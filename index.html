@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dungeon Depths - Roguelike</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- TITLE SCREEN -->
+    <div id="title-screen" class="screen active">
+        <div class="title-content">
+            <h1 class="game-title">DUNGEON<br>DEPTHS</h1>
+            <p class="subtitle">A Roguelike Adventure</p>
+            <button id="btn-start" class="pixel-btn">NEW ADVENTURE</button>
+            <div class="controls-hint">
+                <p><strong>CONTROLS</strong></p>
+                <p>Click adjacent tile = Move (1⚡ per tile)</p>
+                <p>Click enemy = Attack with selected skill</p>
+                <p>1-5 keys = Select skill slot</p>
+                <p>E / Space = End turn</p>
+                <p>Right-click = Deselect skill (back to Move)</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- GAME SCREEN -->
+    <div id="game-screen" class="screen">
+        <!-- Top Bar -->
+        <div id="top-bar">
+            <div class="top-stat">
+                <span class="label">STAGE</span>
+                <span id="stage-num" class="value">1</span>
+            </div>
+            <div class="top-stat">
+                <span class="label">FLOOR</span>
+                <span id="floor-num" class="value">1</span>
+            </div>
+            <div class="top-stat">
+                <span class="label">BOSS IN</span>
+                <span id="boss-in" class="value">5</span>
+            </div>
+            <div class="top-stat">
+                <span class="label">TURN</span>
+                <span id="turn-num" class="value">1</span>
+            </div>
+        </div>
+
+        <!-- Main Game Area -->
+        <div id="game-area">
+            <!-- Canvas Container -->
+            <div id="canvas-container">
+                <canvas id="game-canvas"></canvas>
+            </div>
+
+            <!-- Right Sidebar -->
+            <div id="sidebar">
+                <!-- Player Info -->
+                <div id="player-info" class="panel">
+                    <h3 class="panel-title">KNIGHT</h3>
+                    <div class="stat-row">
+                        <span class="stat-label">HP</span>
+                        <div class="stat-bar-container">
+                            <div id="hp-bar" class="stat-bar hp-bar" style="width: 100%"></div>
+                        </div>
+                        <span id="hp-text" class="stat-value">100/100</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">NRJ</span>
+                        <div class="stat-bar-container">
+                            <div id="energy-bar" class="stat-bar energy-bar" style="width: 100%"></div>
+                        </div>
+                        <span id="energy-text" class="stat-value">6/6</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">PWR</span>
+                        <span id="power-text" class="stat-value">+0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">CRT</span>
+                        <span id="crit-text" class="stat-value">0%</span>
+                    </div>
+                </div>
+
+                <!-- Synergies -->
+                <div id="synergies-panel" class="panel">
+                    <h3 class="panel-title">SYNERGIES</h3>
+                    <div id="synergies-list">
+                        <p class="empty-text">No synergies active</p>
+                    </div>
+                </div>
+
+                <!-- Enemy List -->
+                <div id="enemy-panel" class="panel">
+                    <h3 class="panel-title">ENEMIES</h3>
+                    <div id="enemy-list"></div>
+                </div>
+
+                <!-- Combat Log -->
+                <div id="log-panel" class="panel">
+                    <h3 class="panel-title">COMBAT LOG</h3>
+                    <div id="combat-log"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Skill Bar -->
+        <div id="skill-bar">
+            <div class="skill-slot move-slot active" data-slot="0">
+                <span class="skill-key">1</span>
+                <div class="skill-icon move-icon">M</div>
+                <span class="skill-name">Move</span>
+                <span class="skill-cost">1⚡</span>
+            </div>
+            <div class="skill-slot" data-slot="1">
+                <span class="skill-key">2</span>
+                <div class="skill-icon slash-icon"></div>
+                <span class="skill-name">Slash</span>
+                <span class="skill-cost">1⚡</span>
+            </div>
+            <div class="skill-slot empty" data-slot="2">
+                <span class="skill-key">3</span>
+                <div class="skill-icon empty-icon"></div>
+                <span class="skill-name">Empty</span>
+                <span class="skill-cost">-</span>
+            </div>
+            <div class="skill-slot empty" data-slot="3">
+                <span class="skill-key">4</span>
+                <div class="skill-icon empty-icon"></div>
+                <span class="skill-name">Empty</span>
+                <span class="skill-cost">-</span>
+            </div>
+            <div class="skill-slot empty" data-slot="4">
+                <span class="skill-key">5</span>
+                <div class="skill-icon empty-icon"></div>
+                <span class="skill-name">Empty</span>
+                <span class="skill-cost">-</span>
+            </div>
+            <button id="btn-end-turn" class="pixel-btn end-turn-btn">END TURN<span class="key-hint">(E/Space)</span></button>
+        </div>
+        <div id="controls-hint">
+            <span>Click: move/attack</span>
+            <span>1-5: select skill</span>
+            <span>Right-click: deselect</span>
+        </div>
+    </div>
+
+    <!-- STAGE COMPLETE SCREEN -->
+    <div id="complete-screen" class="screen overlay">
+        <div class="modal">
+            <h2 class="modal-title">STAGE COMPLETE!</h2>
+            <p class="modal-subtitle">Choose a stat upgrade:</p>
+            <div id="stat-choices" class="choices-grid">
+                <!-- Populated by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- SKILL CHOICE SCREEN -->
+    <div id="skill-screen" class="screen overlay">
+        <div class="modal">
+            <h2 class="modal-title">NEW SKILL!</h2>
+            <p class="modal-subtitle">Choose a skill to learn:</p>
+            <div id="skill-choices" class="choices-grid">
+                <!-- Populated by JS -->
+            </div>
+            <button id="btn-skip-skill" class="pixel-btn small">SKIP</button>
+        </div>
+    </div>
+
+    <!-- SKILL REPLACE SCREEN -->
+    <div id="replace-screen" class="screen overlay">
+        <div class="modal">
+            <h2 class="modal-title">REPLACE SKILL?</h2>
+            <p class="modal-subtitle">Your skills are full. Replace one:</p>
+            <div id="replace-choices" class="choices-grid">
+                <!-- Populated by JS -->
+            </div>
+            <button id="btn-skip-replace" class="pixel-btn small">SKIP</button>
+        </div>
+    </div>
+
+    <!-- DEATH SCREEN -->
+    <div id="death-screen" class="screen overlay">
+        <div class="modal death-modal">
+            <h2 class="modal-title death-title">YOU DIED</h2>
+            <p class="death-stage">Reached Stage <span id="death-stage-num">1</span></p>
+            <p class="death-turns">Survived <span id="death-turns">0</span> turns</p>
+            <div id="death-stats" class="death-stats">
+                <div class="stat-line"><span>Stages Cleared:</span><span id="stat-stages">0</span></div>
+                <div class="stat-line"><span>Total Damage Dealt:</span><span id="stat-damage">0</span></div>
+                <div class="stat-line"><span>Enemies Killed:</span><span id="stat-kills">0</span></div>
+                <div class="stat-line"><span>Bosses Killed:</span><span id="stat-bosses">0</span></div>
+                <div class="stat-divider"></div>
+                <div class="stat-line"><span>Max HP:</span><span id="stat-maxhp">100</span></div>
+                <div class="stat-line"><span>Attack Power:</span><span id="stat-power">0</span></div>
+                <div class="stat-line"><span>Crit Chance:</span><span id="stat-crit">0%</span></div>
+            </div>
+            <button id="btn-retry" class="pixel-btn">TRY AGAIN</button>
+        </div>
+    </div>
+
+    <!-- BOSS WARNING -->
+    <div id="boss-warning" class="screen overlay">
+        <div class="boss-warning-content">
+            <h2 class="boss-warning-text">BOSS ENCOUNTER</h2>
+            <p id="boss-name" class="boss-name">Stone Colossus</p>
+        </div>
+    </div>
+
+    <!-- BOSS KILL BONUS -->
+    <div id="boss-bonus-screen" class="screen overlay">
+        <div class="modal">
+            <h2 class="modal-title">BOSS DEFEATED!</h2>
+            <p class="modal-subtitle">Choose a permanent bonus:</p>
+            <div id="boss-bonus-choices" class="choices-grid">
+                <!-- Populated by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- jQuery CDN -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    
+    <!-- Game Scripts (order matters) -->
+    <script src="js/data.js"></script>
+    <script src="js/state.js"></script>
+    <script src="js/grid.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/combat.js"></script>
+    <script src="js/ai.js"></script>
+    <script src="js/stages.js"></script>
+    <script src="js/boss.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

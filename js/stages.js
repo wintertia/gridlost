@@ -1,0 +1,212 @@
+var Stages = {
+    generate: function() {
+        State.obstacles = [];
+        State.enemies = [];
+        State.burnTiles = [];
+
+        var stage = State.stage;
+        State.isBossStage = (stage % Data.BOSS_EVERY === 0);
+
+        State.player.x = 0;
+        State.player.y = Data.GRID_SIZE - 1;
+
+        if (State.isBossStage) {
+            this.generateBossStage();
+        } else {
+            this.generateRegularStage(stage);
+        }
+    },
+
+    generateRegularStage: function(stage) {
+        var numEnemies = Math.min(
+            Data.ENEMIES_PER_STAGE_BASE + Math.floor(stage / 3),
+            Data.ENEMIES_PER_STAGE_MAX
+        );
+
+        var numObstacles = Math.min(
+            Data.OBSTACLES_PER_STAGE_BASE + Math.floor(stage / 4),
+            Data.OBSTACLES_PER_STAGE_MAX
+        );
+
+        this.placeObstacles(numObstacles);
+        this.placeEnemies(numEnemies);
+
+        this.placePortalPair();
+    },
+
+    generateBossStage: function() {
+        var bossKeys = Object.keys(Data.BOSS_DEFS);
+        var bossKey = bossKeys[Math.floor(Math.random() * bossKeys.length)];
+        var bossDef = Data.BOSS_DEFS[bossKey];
+
+        var scaling = Math.pow(1 + Data.BOSS_STAT_SCALE, Math.floor(State.stage / 15));
+        var loopScaling = 1 + Math.floor(State.stage / 15) * Data.BOSS_STAT_SCALE;
+
+        State.currentBossDef = bossDef;
+        State.bossTurnCount = 0;
+
+        var centerX = Math.floor(Data.GRID_SIZE / 2) - 1;
+        var centerY = Math.floor(Data.GRID_SIZE / 2) - 1;
+
+        var boss = {
+            x: centerX,
+            y: centerY,
+            size: bossDef.size || 2,
+            hp: Math.floor(bossDef.hp * loopScaling),
+            maxHp: Math.floor(bossDef.hp * loopScaling),
+            damage: Math.floor(bossDef.damage * loopScaling),
+            defId: bossKey,
+            facing: 'down',
+            frozen: 0,
+            poison: null,
+            isBoss: true,
+            color: bossDef.color,
+            name: bossDef.name,
+            attacks: JSON.parse(JSON.stringify(bossDef.attacks)),
+            nextAttack: null,
+            telegraph: null
+        };
+
+        State.enemies.push(boss);
+
+        this.placeObstacles(2);
+    },
+
+    placeObstacles: function(count) {
+        var placed = 0;
+        var attempts = 0;
+
+        while (placed < count && attempts < 100) {
+            var x = Math.floor(Math.random() * Data.GRID_SIZE);
+            var y = Math.floor(Math.random() * Data.GRID_SIZE);
+
+            if (this.isReserved(x, y)) { attempts++; continue; }
+
+            var obstacleTypes = ['stone', 'wall', 'lava', 'water'];
+            var weights = [3, 2, 1, 1];
+            var totalWeight = weights.reduce(function(a, b) { return a + b; }, 0);
+            var roll = Math.random() * totalWeight;
+            var cumulative = 0;
+            var chosenType = obstacleTypes[0];
+
+            for (var i = 0; i < obstacleTypes.length; i++) {
+                cumulative += weights[i];
+                if (roll < cumulative) {
+                    chosenType = obstacleTypes[i];
+                    break;
+                }
+            }
+
+            var obstacleDef = Data.OBSTACLES[chosenType];
+            var obstacle = {
+                x: x, y: y,
+                id: chosenType,
+                hp: obstacleDef.hp > 0 ? obstacleDef.hp : -1,
+                destructible: obstacleDef.destructible,
+                blocksMove: obstacleDef.blocksMove,
+                blocksLOS: obstacleDef.blocksLOS || false,
+                color: obstacleDef.color
+            };
+
+            State.obstacles.push(obstacle);
+            placed++;
+            attempts++;
+        }
+    },
+
+    placePortalPair: function() {
+        if (Math.random() > 0.3) return;
+
+        var portal1 = this.findOpenTile();
+        var portal2 = this.findOpenTile();
+
+        if (portal1 && portal2) {
+            State.obstacles.push({
+                x: portal1.x, y: portal1.y,
+                id: 'portal', hp: -1, destructible: false,
+                blocksMove: false, blocksLOS: false, color: '#cc44ff'
+            });
+            State.obstacles.push({
+                x: portal2.x, y: portal2.y,
+                id: 'portal', hp: -1, destructible: false,
+                blocksMove: false, blocksLOS: false, color: '#cc44ff'
+            });
+        }
+    },
+
+    placeEnemies: function(count) {
+        var stage = State.stage;
+        var availableTypes = ['goblin'];
+        if (stage >= 2) availableTypes.push('archer');
+        if (stage >= 3) availableTypes.push('slime');
+        if (stage >= 4) availableTypes.push('necromancer');
+        if (stage >= 5) availableTypes.push('shadow');
+
+        var placed = 0;
+        var attempts = 0;
+
+        while (placed < count && attempts < 100) {
+            var x = Math.floor(Math.random() * Data.GRID_SIZE);
+            var y = Math.floor(Math.random() * Data.GRID_SIZE);
+
+            if (this.isReserved(x, y)) { attempts++; continue; }
+
+            var dist = AI.distance(x, y, State.player.x, State.player.y);
+            if (dist < 3) { attempts++; continue; }
+
+            var typeKey = availableTypes[Math.floor(Math.random() * availableTypes.length)];
+            var def = Data.ENEMIES[typeKey];
+
+            var scaling = 1 + (stage - 1) * Data.SCALING_HP_MULT;
+            var dmgScaling = 1 + (stage - 1) * Data.SCALING_DMG_MULT;
+
+            State.enemies.push({
+                x: x, y: y,
+                hp: Math.floor(def.hp * scaling),
+                maxHp: Math.floor(def.hp * scaling),
+                damage: Math.floor(def.damage * dmgScaling),
+                defId: typeKey,
+                facing: 'down',
+                frozen: 0,
+                poison: null,
+                isBoss: false,
+                color: def.color,
+                summonTimer: 0,
+                teleportTimer: 0
+            });
+
+            placed++;
+            attempts++;
+        }
+    },
+
+    findOpenTile: function() {
+        var attempts = 0;
+        while (attempts < 50) {
+            var x = Math.floor(Math.random() * Data.GRID_SIZE);
+            var y = Math.floor(Math.random() * Data.GRID_SIZE);
+            if (!this.isReserved(x, y)) {
+                return { x: x, y: y };
+            }
+            attempts++;
+        }
+        return null;
+    },
+
+    isReserved: function(x, y) {
+        if (x === State.player.x && y === State.player.y) return true;
+
+        for (var i = 0; i < State.enemies.length; i++) {
+            var e = State.enemies[i];
+            if (e.hp <= 0) continue;
+            var size = e.size || 1;
+            if (x >= e.x && x < e.x + size && y >= e.y && y < e.y + size) return true;
+        }
+
+        for (var i = 0; i < State.obstacles.length; i++) {
+            if (State.obstacles[i].x === x && State.obstacles[i].y === y) return true;
+        }
+
+        return false;
+    }
+};
