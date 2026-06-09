@@ -5,13 +5,14 @@ var Boss = {
         if (boss.telegraph) {
             this.executeTelegraphedAttack(boss, boss.telegraph, callback);
             boss.telegraph = null;
+            boss.telegraphTiles = null;
             return;
         }
 
         var nextAttack = this.getNextAttack(boss);
         if (nextAttack) {
             boss.telegraph = nextAttack;
-            State.addFloatingText(boss.x + (boss.size || 2) / 2, boss.y, 'TELEGRAPH: ' + nextAttack.name, '#ffff00');
+            boss.telegraphTiles = this.getTelegraphTiles(boss, nextAttack);
             State.addLog(boss.name + ' telegraphs: ' + nextAttack.name, 'telegraph');
             Grid.render();
             UI.updateAll();
@@ -19,6 +20,66 @@ var Boss = {
         } else {
             this.basicAttack(boss, callback);
         }
+    },
+
+    getTelegraphTiles: function(boss, attack) {
+        var size = boss.size || 2;
+        var centerX = boss.x + Math.floor(size / 2);
+        var centerY = boss.y + Math.floor(size / 2);
+        var tiles = [];
+
+        switch (attack.name) {
+            case 'Ground Slam':
+                tiles = [
+                    { x: centerX, y: centerY },
+                    { x: centerX + 1, y: centerY },
+                    { x: centerX - 1, y: centerY },
+                    { x: centerX, y: centerY + 1 },
+                    { x: centerX, y: centerY - 1 }
+                ];
+                break;
+            case 'Boulder Throw':
+                var dx = State.player.x - centerX;
+                var dy = State.player.y - centerY;
+                var stepX = dx === 0 ? 0 : (dx > 0 ? 1 : -1);
+                var stepY = dy === 0 ? 0 : (dy > 0 ? 1 : -1);
+                for (var i = 1; i <= attack.range; i++) {
+                    tiles.push({ x: centerX + stepX * i, y: centerY + stepY * i });
+                }
+                break;
+            case 'Tail Sweep':
+            case 'Life Drain':
+                tiles = [
+                    { x: centerX, y: centerY },
+                    { x: centerX + 1, y: centerY },
+                    { x: centerX - 1, y: centerY },
+                    { x: centerX, y: centerY + 1 },
+                    { x: centerX, y: centerY - 1 }
+                ];
+                break;
+            case 'Lightning Breath':
+                var dx2 = State.player.x - centerX;
+                var dy2 = State.player.y - centerY;
+                var dirX = dx2 === 0 ? 0 : (dx2 > 0 ? 1 : -1);
+                var dirY = dy2 === 0 ? 0 : (dy2 > 0 ? 1 : -1);
+                for (var i = 1; i <= attack.range; i++) {
+                    for (var spread = -1; spread <= 1; spread++) {
+                        if (dirX !== 0) {
+                            tiles.push({ x: centerX + dirX * i, y: centerY + spread });
+                        } else {
+                            tiles.push({ x: centerX + spread, y: centerY + dirY * i });
+                        }
+                    }
+                }
+                break;
+            case 'Fly Up':
+                tiles = [{ x: State.player.x, y: State.player.y }];
+                break;
+        }
+
+        return tiles.filter(function(t) {
+            return t.x >= 0 && t.x < Data.GRID_SIZE && t.y >= 0 && t.y < Data.GRID_SIZE;
+        });
     },
 
     getNextAttack: function(boss) {
@@ -40,8 +101,22 @@ var Boss = {
             }
         }
 
-        State.addFloatingText(boss.x + (boss.size || 2) / 2, boss.y, attack.name.toUpperCase(), '#ff4466');
         State.addLog(boss.name + ' uses ' + attack.name, 'boss');
+
+        var alertMessages = {
+            'Summon Rubble': boss.name + ' summoned rubble on yourself! Destroy the rubble to move',
+            'Fly Up': boss.name + ' is flying up high! Avoid the dangerous landing area',
+            'Shadow Step': boss.name + ' is teleporting behind you!',
+            'Clone': boss.name + ' is creating a clone!',
+            'Boulder Throw': 'A boulder is heading your way!',
+            'Lightning Breath': 'Lightning breath incoming! Dodge the cone!',
+            'Ground Slam': 'Ground slam! Move away from the center!',
+            'Tail Sweep': 'Tail sweep! Stay clear of adjacent tiles!'
+        };
+
+        if (alertMessages[attack.name]) {
+            State.addLog(alertMessages[attack.name], 'telegraph');
+        }
 
         switch (attack.name) {
             case 'Ground Slam': this.groundSlam(boss, attack, callback); break;
@@ -135,17 +210,27 @@ var Boss = {
         ];
 
         var count = 0;
+        var playerAdjOpen = 0;
+        for (var i = 0; i < dirs.length; i++) {
+            var px = State.player.x + dirs[i].x;
+            var py = State.player.y + dirs[i].y;
+            if (px >= 0 && px < Data.GRID_SIZE && py >= 0 && py < Data.GRID_SIZE) {
+                if (!State.isBlocked(px, py)) playerAdjOpen++;
+            }
+        }
+
         for (var i = 0; i < dirs.length && count < 2; i++) {
             var nx = State.player.x + dirs[i].x;
             var ny = State.player.y + dirs[i].y;
             if (nx >= 0 && nx < Data.GRID_SIZE && ny >= 0 && ny < Data.GRID_SIZE) {
-                if (!State.isReserved(nx, ny)) {
+                if (!Stages.isReserved(nx, ny) && !State.isBlocked(nx, ny) && playerAdjOpen > 3) {
                     State.obstacles.push({
                         x: nx, y: ny,
-                        id: 'wall', hp: 10, destructible: true,
+                        id: 'wall', hp: 150, destructible: true,
                         blocksMove: true, blocksLOS: true, color: '#886644'
                     });
                     count++;
+                    playerAdjOpen--;
                 }
             }
         }
@@ -336,7 +421,7 @@ var Boss = {
                 boss.x = Math.floor(Math.random() * (Data.GRID_SIZE - size + 1));
                 boss.y = Math.floor(Math.random() * (Data.GRID_SIZE - size + 1));
                 attempts++;
-            } while (attempts < 100 && (State.isReserved(boss.x, boss.y) || State.isReserved(boss.x + size - 1, boss.y) || State.isReserved(boss.x, boss.y + size - 1) || State.isReserved(boss.x + size - 1, boss.y + size - 1)));
+            } while (attempts < 100 && (Stages.isReserved(boss.x, boss.y) || Stages.isReserved(boss.x + size - 1, boss.y) || Stages.isReserved(boss.x, boss.y + size - 1) || Stages.isReserved(boss.x + size - 1, boss.y + size - 1)));
 
             boss.untargetable = false;
 

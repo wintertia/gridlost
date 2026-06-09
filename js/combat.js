@@ -52,8 +52,9 @@ var Combat = {
                 }
                 break;
             case 'aoe':
-                for (var dy2 = -1; dy2 <= 1; dy2++) {
-                    for (var dx2 = -1; dx2 <= 1; dx2++) {
+                var aoeRange = (State.hasSynergy('firestorm') && skill.id === 'fireball') ? 2 : 1;
+                for (var dy2 = -aoeRange; dy2 <= aoeRange; dy2++) {
+                    for (var dx2 = -aoeRange; dx2 <= aoeRange; dx2++) {
                         tiles.push({ x: tx + dx2, y: ty + dy2 });
                     }
                 }
@@ -69,14 +70,22 @@ var Combat = {
         var bonus = State.getPlayerDamage();
         var dmg = baseDmg + bonus;
 
-        if (State.hasSynergy('empowered') && State.player.tempPower > 0) {
+        if (State.player.tempPower > 0) {
+            dmg = Math.floor(dmg * (1 + State.player.tempPower / 100));
+        }
+
+        if (State.hasSynergy('empowered') && State.player.empoweredNext) {
             dmg = Math.floor(dmg * 1.5);
+            State.player.empoweredNext = false;
         }
 
         var isCrit = Math.random() * 100 < State.player.critChance;
         if (isCrit) {
             dmg = Math.floor(dmg * 2);
         }
+
+        var roll = 0.9 + Math.random() * 0.1;
+        dmg = Math.floor(dmg * roll);
 
         return { damage: Math.max(1, dmg), isCrit: isCrit };
     },
@@ -108,6 +117,15 @@ var Combat = {
             } else {
                 State.runStats.enemyKills++;
                 State.addLog(targetName + ' killed!', 'kill');
+
+                var defId = target.defId;
+                if (defId !== 'skeleton') {
+                    var healPercent = 1 + Math.random() * 2;
+                    var healAmount = Math.floor(State.player.maxHp * healPercent / 100);
+                    State.player.hp = Math.min(State.player.hp + healAmount, State.player.maxHp);
+                    State.addFloatingText(State.player.x, State.player.y, '+' + healAmount + ' HP', '#44ff44');
+                    State.addLog('Healed for ' + healAmount + ' HP', 'info');
+                }
             }
         }
 
@@ -125,7 +143,6 @@ var Combat = {
 
     executeSingleAttack: function(tx, ty, skill) {
         if (State.player.energy < skill.energyCost) return;
-        if (State.isBlocked(tx, ty)) return;
 
         var dist = Math.abs(tx - State.player.x) + Math.abs(ty - State.player.y);
         if (dist > skill.range) return;
@@ -139,16 +156,11 @@ var Combat = {
             var dmg = result.damage;
             var isCrit = result.isCrit;
 
-            if (skill.effects.indexOf('backstab') !== -1) {
-                var playerDir = Grid.getDirection(State.player.x, State.player.y, tx, ty);
-                var enemyDir = enemy.facing || 'up';
-                var opposite = { up: 'down', down: 'up', left: 'right', right: 'left' };
-                if (playerDir === opposite[enemyDir]) {
-                    var backstabResult = this.calculateDamage(skill.damage * 2, skill);
-                    dmg = backstabResult.damage;
-                    isCrit = backstabResult.isCrit;
-                    State.addFloatingText(tx, ty, 'BACKSTAB!', '#ff8800');
-                }
+            if (skill.effects.indexOf('backstab') !== -1 && enemy.frozen > 0) {
+                var backstabResult = this.calculateDamage(skill.damage * 2, skill);
+                dmg = backstabResult.damage;
+                isCrit = backstabResult.isCrit;
+                State.addFloatingText(tx, ty, 'SHATTER!', '#ff8800');
             }
 
             this.dealDamage(enemy, dmg, 'player', isCrit);
@@ -168,14 +180,16 @@ var Combat = {
                 enemy.y = pushY;
             }
 
-            if (skill.effects.indexOf('freeze') !== -1) {
+            if (skill.effects.indexOf('freeze') !== -1 && !enemy.freezeImmune) {
                 enemy.frozen = 2;
+                enemy.freezeImmune = false;
             }
             if (skill.effects.indexOf('burn') !== -1) {
                 State.burnTiles.push({ x: tx, y: ty, turns: 3 });
             }
             if (skill.effects.indexOf('poison') !== -1) {
-                enemy.poison = { damage: 3, turns: 3 };
+                var poisonDmg = Math.floor(20 * (1 + State.player.power / 100));
+                enemy.poison = { damage: poisonDmg, turns: 3 };
             }
         } else {
             this.hitObstacle(tx, ty, skill.damage);
@@ -196,7 +210,16 @@ var Combat = {
 
         for (var i = 0; i < tiles.length; i++) {
             var t = tiles[i];
-            if (State.isBlocked(t.x, t.y) && !State.getEnemyAt(t.x, t.y)) break;
+            if (State.isBlocked(t.x, t.y)) {
+                var obstacle = null;
+                for (var j = 0; j < State.obstacles.length; j++) {
+                    if (State.obstacles[j].x === t.x && State.obstacles[j].y === t.y) {
+                        obstacle = State.obstacles[j];
+                        break;
+                    }
+                }
+                if (!obstacle || !obstacle.destructible) break;
+            }
 
             var enemy = State.getEnemyAt(t.x, t.y);
             if (enemy) {
@@ -205,9 +228,12 @@ var Combat = {
                 hitSomething = true;
                 lastHitEnemy = enemy;
 
-                if (skill.effects.indexOf('freeze') !== -1) enemy.frozen = 2;
+                if (skill.effects.indexOf('freeze') !== -1 && !enemy.freezeImmune) enemy.frozen = 2;
                 if (skill.effects.indexOf('burn') !== -1) State.burnTiles.push({ x: t.x, y: t.y, turns: 3 });
-                if (skill.effects.indexOf('poison') !== -1) enemy.poison = { damage: 2, turns: 3 };
+                if (skill.effects.indexOf('poison') !== -1) {
+                    var poisonDmg = Math.floor(20 * (1 + State.player.power / 100));
+                    enemy.poison = { damage: poisonDmg, turns: 3 };
+                }
             } else {
                 this.hitObstacle(t.x, t.y, skill.damage);
             }
@@ -239,8 +265,8 @@ var Combat = {
         State.addLog('Player uses ' + skill.name, 'action');
 
         if (skill.effects.indexOf('empower') !== -1) {
-            State.player.tempPower = 3;
-            State.addFloatingText(State.player.x, State.player.y, 'EMPOWERED!', '#ffaa00');
+            State.player.tempPower = 50;
+            State.addFloatingText(State.player.x, State.player.y, 'EMPOWERED! +50%', '#ffaa00');
         }
 
         var tiles = this.getAffectedTiles(State.player.x, State.player.y, State.player.x, State.player.y, skill);
@@ -257,7 +283,6 @@ var Combat = {
 
     executeAoE: function(tx, ty, skill) {
         if (State.player.energy < skill.energyCost) return;
-        if (State.isBlocked(tx, ty)) return;
 
         var dist = Math.abs(tx - State.player.x) + Math.abs(ty - State.player.y);
         if (dist > skill.range) return;
@@ -280,7 +305,8 @@ var Combat = {
                     State.burnTiles.push({ x: t.x, y: t.y, turns: 3 });
                 }
                 if (skill.effects.indexOf('poison') !== -1) {
-                    enemy.poison = { damage: 2, turns: 3 };
+                    var poisonDmg = Math.floor(20 * (1 + State.player.power / 100));
+                    enemy.poison = { damage: poisonDmg, turns: 3 };
                 }
             } else {
                 this.hitObstacle(t.x, t.y, skill.damage);
@@ -387,6 +413,9 @@ var Combat = {
                 e.frozen--;
                 if (e.frozen === 0) {
                     State.addFloatingText(e.x, e.y, 'THAWED', '#88ddff');
+                    if (!e.isBoss) {
+                        e.freezeImmune = true;
+                    }
                 }
             }
 
@@ -407,6 +436,15 @@ var Combat = {
                     e.hp = 0;
                     State.runStats.enemyKills++;
                     State.addLog(name + ' killed by poison!', 'kill');
+
+                    var defId = e.defId;
+                    if (defId !== 'skeleton') {
+                        var healPercent = 1 + Math.random() * 2;
+                        var healAmount = Math.floor(State.player.maxHp * healPercent / 100);
+                        State.player.hp = Math.min(State.player.hp + healAmount, State.player.maxHp);
+                        State.addFloatingText(State.player.x, State.player.y, '+' + healAmount + ' HP', '#44ff44');
+                        State.addLog('Healed for ' + healAmount + ' HP', 'info');
+                    }
                 }
             }
         }

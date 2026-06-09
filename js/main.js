@@ -27,6 +27,7 @@ var Main = {
         Stages.generate();
         State.updateSynergies();
         State.phase = 'player';
+        State.clearFloatingTexts();
         UI.showScreen('game-screen');
         var self = this;
         setTimeout(function() {
@@ -85,14 +86,18 @@ var Main = {
         var upgrade = Data.STAT_UPGRADES[stat];
         if (!upgrade) return;
 
-        if (upgrade.healAmount) {
-            State.player.hp = Math.min(State.player.hp + upgrade.healAmount, State.player.maxHp);
+        if (upgrade.healPercent) {
+            var healAmount = Math.floor(State.player.maxHp * upgrade.healPercent / 100);
+            State.player.hp = Math.min(State.player.hp + healAmount, State.player.maxHp);
+            State.addFloatingText(State.player.x, State.player.y, '+' + healAmount + ' HP', '#44ff44');
         }
-        if (upgrade.powerBonus) {
-            State.player.power += upgrade.powerBonus;
+        if (upgrade.powerBonusPercent) {
+            State.player.power += upgrade.powerBonusPercent;
+            State.addFloatingText(State.player.x, State.player.y, '+' + upgrade.powerBonusPercent + '% DMG', '#ffaa00');
         }
         if (upgrade.critBonus) {
             State.player.critChance += upgrade.critBonus;
+            State.addFloatingText(State.player.x, State.player.y, '+' + upgrade.critBonus + '% CRIT', '#ff4444');
         }
     },
 
@@ -130,6 +135,7 @@ var Main = {
         State.stage++;
         State.player.energy = State.player.maxEnergy;
         State.player.tempPower = 0;
+        State.clearFloatingTexts();
         Stages.generate();
         State.updateSynergies();
         State.phase = 'player';
@@ -152,6 +158,7 @@ var Main = {
 
     gameOver: function() {
         State.phase = 'idle';
+        State.clearFloatingTexts();
         setTimeout(function() {
             UI.showDeathScreen();
         }, 500);

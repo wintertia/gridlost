@@ -1,4 +1,6 @@
 var Stages = {
+    extraObstacles: 0,
+
     generate: function() {
         State.obstacles = [];
         State.enemies = [];
@@ -7,14 +9,50 @@ var Stages = {
         var stage = State.stage;
         State.isBossStage = (stage % Data.BOSS_EVERY === 0);
 
-        State.player.x = 0;
-        State.player.y = Data.GRID_SIZE - 1;
+        this.placePlayer();
 
         if (State.isBossStage) {
             this.generateBossStage();
         } else {
             this.generateRegularStage(stage);
         }
+    },
+
+    placePlayer: function() {
+        var attempts = 0;
+        while (attempts < 200) {
+            var px = Math.floor(Math.random() * Data.GRID_SIZE);
+            var py = Math.floor(Math.random() * Data.GRID_SIZE);
+            var blocked = false;
+
+            for (var i = 0; i < State.enemies.length; i++) {
+                var e = State.enemies[i];
+                if (e.hp <= 0) continue;
+                var size = e.size || 1;
+                if (px >= e.x && px < e.x + size && py >= e.y && py < e.y + size) {
+                    blocked = true;
+                    break;
+                }
+            }
+
+            if (!blocked && !State.isBlocked(px, py)) {
+                State.player.x = px;
+                State.player.y = py;
+                return;
+            }
+            attempts++;
+        }
+        for (var x = 0; x < Data.GRID_SIZE; x++) {
+            for (var y = 0; y < Data.GRID_SIZE; y++) {
+                if (!State.isBlocked(x, y) && !State.getEnemyAt(x, y)) {
+                    State.player.x = x;
+                    State.player.y = y;
+                    return;
+                }
+            }
+        }
+        State.player.x = 0;
+        State.player.y = 0;
     },
 
     generateRegularStage: function(stage) {
@@ -24,7 +62,7 @@ var Stages = {
         );
 
         var numObstacles = Math.min(
-            Data.OBSTACLES_PER_STAGE_BASE + Math.floor(stage / 4),
+            Data.OBSTACLES_PER_STAGE_BASE + Math.floor(stage / 4) + this.extraObstacles,
             Data.OBSTACLES_PER_STAGE_MAX
         );
 
@@ -32,6 +70,10 @@ var Stages = {
         this.placeEnemies(numEnemies);
 
         this.placePortalPair();
+
+        if (Math.random() < 0.3) {
+            this.extraObstacles++;
+        }
     },
 
     generateBossStage: function() {

@@ -49,6 +49,8 @@ html, body {
     background: var(--bg-dark);
     color: var(--text-primary);
     font-family: var(--font-pixel);
+    -webkit-overflow-scrolling: none;
+    touch-action: none;
 }
 
 .screen {
@@ -179,6 +181,7 @@ html, body {
     display: flex;
     flex: 1;
     min-height: 0;
+    min-width: 0;
     overflow: hidden;
 }
 
@@ -189,6 +192,7 @@ html, body {
     align-items: center;
     min-width: 0;
     padding: 1rem;
+    overflow: hidden;
 }
 
 #game-canvas {
@@ -197,26 +201,50 @@ html, body {
     image-rendering: pixelated;
     max-width: 100%;
     max-height: 100%;
+}
+
+.obstacle-tooltip {
+    display: none;
+    position: absolute;
+    background: var(--bg-dark);
+    color: var(--text-primary);
+    padding: 0.4rem 0.6rem;
+    border: 1px solid var(--gold);
+    font-size: 0.4rem;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+}
     cursor: pointer;
 }
 
 /* SIDEBAR */
 #sidebar {
+    flex: 0 0 220px;
     width: 220px;
-    flex-shrink: 0;
+    min-width: 0;
+    max-width: 220px;
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
     padding: 0.5rem;
     overflow-y: auto;
+    overflow-x: hidden;
     background: var(--bg-panel);
     border-left: 2px solid var(--border);
+    height: 100%;
+    word-break: break-word;
 }
 
 .panel {
     background: var(--bg-medium);
     border: 1px solid var(--border);
     padding: 0.6rem;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    box-sizing: border-box;
 }
 
 .panel-title {
@@ -236,8 +264,11 @@ html, body {
 }
 
 .stat-label {
-    width: 28px;
+    width: 20px;
+    text-align: center;
+    font-size: 0.7rem;
     color: var(--text-secondary);
+    flex-shrink: 0;
 }
 
 .stat-bar-container {
@@ -281,6 +312,7 @@ html, body {
     border-bottom: 1px solid var(--border);
     cursor: help;
     position: relative;
+    z-index: 1;
 }
 
 .synergy-item:hover {
@@ -288,25 +320,28 @@ html, body {
 }
 
 .synergy-item::after {
-    content: attr(data-tooltip);
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    background: var(--bg-dark);
-    color: var(--text-primary);
-    padding: 0.4rem 0.6rem;
-    border: 1px solid var(--border);
-    font-size: 0.4rem;
-    white-space: nowrap;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.2s;
-    z-index: 10;
+    content: none;
 }
 
 .synergy-item:hover::after {
-    opacity: 1;
+    content: none;
+}
+
+.js-tooltip {
+    position: fixed;
+    background: var(--bg-dark);
+    color: var(--text-primary);
+    padding: 0.5rem 0.7rem;
+    border: 1px solid var(--gold);
+    font-size: 0.4rem;
+    white-space: pre-line;
+    pointer-events: none;
+    z-index: 99999;
+    max-width: 300px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    line-height: 1.5;
+    text-align: left;
 }
 
 .enemy-item {
@@ -322,6 +357,12 @@ html, body {
     height: 8px;
     border-radius: 2px;
     flex-shrink: 0;
+}
+
+#enemy-list {
+    max-height: 100px;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .enemy-info {
@@ -355,16 +396,20 @@ html, body {
 }
 
 #combat-log {
-    max-height: 120px;
+    height: 120px;
     overflow-y: auto;
+    overflow-x: hidden;
     font-size: 0.4rem;
     line-height: 1.6;
+    word-break: break-word;
 }
 
 .log-entry {
     padding: 0.2rem 0;
     border-bottom: 1px solid var(--border);
     color: var(--text-secondary);
+    word-break: break-word;
+    overflow-wrap: break-word;
 }
 
 .log-player { color: #5599ff; }
@@ -444,28 +489,11 @@ html, body {
 }
 
 .skill-slot::after {
-    content: attr(data-tooltip);
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    background: var(--bg-dark);
-    color: var(--text-primary);
-    padding: 0.5rem 0.7rem;
-    border: 1px solid var(--border);
-    font-size: 0.4rem;
-    white-space: pre-line;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.2s;
-    z-index: 100;
-    min-width: 150px;
-    text-align: left;
-    line-height: 1.5;
+    content: none;
 }
 
 .skill-slot:hover::after {
-    opacity: 1;
+    content: none;
 }
 
 .skill-key {
@@ -676,22 +704,26 @@ html, body {
 @media (max-width: 768px) {
     #game-area {
         flex-direction: column;
+        overflow: hidden;
     }
     
     #sidebar {
         width: 100%;
+        max-width: 100%;
+        flex: 0 0 auto;
         flex-direction: row;
         flex-wrap: wrap;
         border-left: none;
         border-top: 2px solid var(--border);
         max-height: 120px;
-        overflow-x: auto;
-        overflow-y: hidden;
+        overflow-x: hidden;
+        overflow-y: auto;
+        height: auto;
     }
     
     .panel {
-        min-width: 150px;
-        flex: 1;
+        min-width: 0;
+        flex: 1 1 auto;
     }
     
     #enemy-panel {
@@ -701,6 +733,7 @@ html, body {
     #skill-bar {
         flex-wrap: wrap;
         gap: 0.3rem;
+        overflow: hidden;
     }
     
     .skill-slot {

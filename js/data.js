@@ -1,70 +1,70 @@
 var Data = {
     GRID_SIZE: 8,
-    PLAYER_BASE_HP: 100,
+    PLAYER_BASE_HP: 1000,
     PLAYER_BASE_ENERGY: 6,
     PLAYER_BASE_POWER: 0,
     PLAYER_BASE_VITALITY: 0,
     PLAYER_BASE_AGILITY: 0,
 
     STAT_UPGRADES: {
-        vitality: { name: 'Vitality', desc: 'Heal 30 HP', healAmount: 30 },
-        power: { name: 'Power', desc: '+2 flat damage', powerBonus: 2 },
+        vitality: { name: 'Vitality', desc: 'Heal 30% HP', healPercent: 30 },
+        power: { name: 'Power', desc: '+10% damage', powerBonusPercent: 10 },
         crit: { name: 'Precision', desc: '+8% crit chance (2x damage)', critBonus: 8 }
     },
 
     SKILLS: {
         slash: {
             id: 'slash', name: 'Slash', desc: 'Basic melee attack',
-            energyCost: 1, damage: 6, shape: 'single', range: 1,
+            energyCost: 1, damage: 60, shape: 'single', range: 1,
             color: '#ffffff', isBasic: true, effects: []
         },
         thrust: {
             id: 'thrust', name: 'Thrust', desc: 'Piercing line attack',
-            energyCost: 2, damage: 8, shape: 'line', range: 3,
+            energyCost: 2, damage: 80, shape: 'line', range: 3,
             color: '#aaddff', isBasic: false, effects: []
         },
         fireball: {
             id: 'fireball', name: 'Fireball', desc: 'Explosive 3x3 AoE, leaves burning ground',
-            energyCost: 2, damage: 6, shape: 'aoe', range: 3,
+            energyCost: 2, damage: 60, shape: 'aoe', range: 3,
             color: '#ff6622', isBasic: false, effects: ['burn']
         },
         whirlwind: {
             id: 'whirlwind', name: 'Whirlwind', desc: 'Spin attack hitting all adjacent',
-            energyCost: 2, damage: 5, shape: 'ring', range: 1,
+            energyCost: 2, damage: 50, shape: 'ring', range: 1,
             color: '#ccddff', isBasic: false, effects: []
         },
         holy_smite: {
             id: 'holy_smite', name: 'Holy Smite', desc: 'Divine cross smite',
-            energyCost: 3, damage: 10, shape: 'cross', range: 2,
+            energyCost: 3, damage: 100, shape: 'cross', range: 2,
             color: '#ffee44', isBasic: false, effects: []
         },
         ice_shard: {
             id: 'ice_shard', name: 'Ice Shard', desc: 'Freezing line, freezes enemies',
-            energyCost: 2, damage: 4, shape: 'line', range: 4,
+            energyCost: 2, damage: 40, shape: 'line', range: 4,
             color: '#88ddff', isBasic: false, effects: ['freeze']
         },
         backstab: {
-            id: 'backstab', name: 'Backstab', desc: 'Massive damage from behind',
-            energyCost: 2, damage: 12, shape: 'single', range: 1,
+            id: 'backstab', name: 'Shatter Strike', desc: '2x damage against frozen enemies',
+            energyCost: 2, damage: 120, shape: 'single', range: 1,
             color: '#ff4444', isBasic: false, effects: ['backstab']
         },
         shield_bash: {
             id: 'shield_bash', name: 'Shield Bash', desc: 'Push enemy 2 tiles back',
-            energyCost: 2, damage: 4, shape: 'single', range: 1,
+            energyCost: 2, damage: 40, shape: 'single', range: 1,
             color: '#888899', isBasic: false, effects: ['push']
         },
         lightning: {
             id: 'lightning', name: 'Lightning', desc: 'Piercing bolt, chains to nearby',
-            energyCost: 3, damage: 8, shape: 'line', range: 4,
+            energyCost: 3, damage: 80, shape: 'line', range: 4,
             color: '#ffff44', isBasic: false, effects: ['chain']
         },
         poison_cloud: {
             id: 'poison_cloud', name: 'Poison Cloud', desc: 'Toxic cone, DoT',
-            energyCost: 2, damage: 2, shape: 'cone', range: 2,
+            energyCost: 2, damage: 20, shape: 'cone', range: 2,
             color: '#44cc44', isBasic: false, effects: ['poison']
         },
         war_cry: {
-            id: 'war_cry', name: 'War Cry', desc: '+3 power to next attack',
+            id: 'war_cry', name: 'War Cry', desc: '+50% power to next attack',
             energyCost: 1, damage: 0, shape: 'ring', range: 1,
             color: '#ffaa00', isBasic: false, effects: ['empower']
         },
@@ -92,7 +92,7 @@ var Data = {
         },
         assassin: {
             name: 'Assassin', requires: ['backstab', 'dash'],
-            desc: 'Dash behind enemy, next Backstab costs 0'
+            desc: 'Dash freezes nearby enemies, Shatter Strike costs 0'
         },
         empowered: {
             name: 'Empowered', requires: ['war_cry'],
@@ -106,58 +106,58 @@ var Data = {
 
     ENEMIES: {
         goblin: {
-            id: 'goblin', name: 'Goblin', hp: 24, damage: 4, moveSpeed: 1,
+            id: 'goblin', name: 'Goblin', hp: 240, damage: 30, moveSpeed: 1,
             type: 'melee', color: '#44cc44', behavior: 'charge'
         },
         archer: {
-            id: 'archer', name: 'Archer', hp: 18, damage: 6, moveSpeed: 1,
+            id: 'archer', name: 'Archer', hp: 180, damage: 40, moveSpeed: 1,
             type: 'ranged', color: '#ee8833', behavior: 'keep_distance'
         },
         slime: {
-            id: 'slime', name: 'Slime', hp: 45, damage: 3, moveSpeed: 0.5,
+            id: 'slime', name: 'Slime', hp: 450, damage: 20, moveSpeed: 0.5,
             type: 'melee', color: '#aa44dd', behavior: 'charge'
         },
         necromancer: {
-            id: 'necromancer', name: 'Necromancer', hp: 30, damage: 3, moveSpeed: 0,
+            id: 'necromancer', name: 'Necromancer', hp: 300, damage: 20, moveSpeed: 0,
             type: 'summoner', color: '#7722aa', behavior: 'stay_far'
         },
         shadow: {
-            id: 'shadow', name: 'Shadow', hp: 20, damage: 7, moveSpeed: 1,
+            id: 'shadow', name: 'Shadow', hp: 200, damage: 50, moveSpeed: 1,
             type: 'phaser', color: '#555566', behavior: 'teleport'
         },
         skeleton: {
-            id: 'skeleton', name: 'Skeleton', hp: 10, damage: 2, moveSpeed: 1,
+            id: 'skeleton', name: 'Skeleton', hp: 100, damage: 15, moveSpeed: 1,
             type: 'melee', color: '#ccccaa', behavior: 'charge', isSummon: true
         }
     },
 
     BOSS_DEFS: {
         colossus: {
-            id: 'colossus', name: 'Stone Colossus', hp: 160, damage: 6,
+            id: 'colossus', name: 'Stone Colossus', hp: 1600, damage: 60,
             color: '#778899', behavior: 'boss', size: 2,
             attacks: [
-                { name: 'Ground Slam', shape: 'cross', range: 1, damage: 12, cooldown: 3, current: 0 },
-                { name: 'Boulder Throw', shape: 'line', range: 4, damage: 8, cooldown: 2, current: 0 },
+                { name: 'Ground Slam', shape: 'cross', range: 1, damage: 120, cooldown: 3, current: 0 },
+                { name: 'Boulder Throw', shape: 'line', range: 4, damage: 80, cooldown: 2, current: 0 },
                 { name: 'Summon Rubble', shape: 'summon_rubble', damage: 0, cooldown: 4, current: 0 }
             ]
         },
         wraith: {
-            id: 'wraith', name: 'Shadow Wraith', hp: 130, damage: 6,
+            id: 'wraith', name: 'Shadow Wraith', hp: 1300, damage: 60,
             color: '#443366', behavior: 'boss', size: 2,
             attacks: [
-                { name: 'Shadow Step', shape: 'shadow_step', damage: 10, cooldown: 3, current: 0 },
-                { name: 'Life Drain', shape: 'ring', range: 1, damage: 6, heal: 4, cooldown: 2, current: 0 },
+                { name: 'Shadow Step', shape: 'shadow_step', damage: 100, cooldown: 3, current: 0 },
+                { name: 'Life Drain', shape: 'ring', range: 1, damage: 60, heal: 40, cooldown: 2, current: 0 },
                 { name: 'Clone', shape: 'clone', damage: 0, cooldown: 5, current: 0 }
             ]
         },
         dragon: {
-            id: 'dragon', name: 'Storm Dragon', hp: 200, damage: 8,
+            id: 'dragon', name: 'Storm Dragon', hp: 2000, damage: 80,
             color: '#2244aa', behavior: 'boss', size: 2,
             attacks: [
-                { name: 'Lightning Breath', shape: 'cone', range: 3, damage: 10, cooldown: 2, current: 0 },
+                { name: 'Lightning Breath', shape: 'cone', range: 3, damage: 100, cooldown: 2, current: 0 },
                 { name: 'Wing Gust', shape: 'push_player', damage: 0, cooldown: 3, current: 0 },
-                { name: 'Tail Sweep', shape: 'ring', range: 1, damage: 8, cooldown: 2, current: 0 },
-                { name: 'Fly Up', shape: 'fly_up', damage: 15, cooldown: 5, current: 0 }
+                { name: 'Tail Sweep', shape: 'ring', range: 1, damage: 80, cooldown: 2, current: 0 },
+                { name: 'Fly Up', shape: 'fly_up', damage: 150, cooldown: 5, current: 0 }
             ]
         }
     },
@@ -165,11 +165,11 @@ var Data = {
     BOSS_ORDER: ['colossus', 'wraith', 'dragon'],
 
     OBSTACLES: {
-        stone: { id: 'stone', name: 'Stone Wall', hp: -1, destructible: false, color: '#555566', blocksMove: true, blocksLOS: true },
-        wall: { id: 'wall', name: 'Crumbling Wall', hp: 15, destructible: true, color: '#886644', blocksMove: true, blocksLOS: true },
-        lava: { id: 'lava', name: 'Lava', hp: -1, destructible: false, color: '#ff4400', blocksMove: false, damage: 2 },
-        water: { id: 'water', name: 'Water', hp: -1, destructible: false, color: '#2266cc', blocksMove: false, energyCost: 2 },
-        portal: { id: 'portal', name: 'Portal', hp: -1, destructible: false, color: '#cc44ff', blocksMove: false, teleport: true }
+        stone: { id: 'stone', name: 'Stone Wall', desc: 'Impassable wall. Cannot be destroyed.', hp: -1, destructible: false, color: '#555566', blocksMove: true, blocksLOS: true },
+        wall: { id: 'wall', name: 'Crumbling Wall', desc: 'Breakable wall. Can be attacked.', hp: 150, destructible: true, color: '#886644', blocksMove: true, blocksLOS: true },
+        lava: { id: 'lava', name: 'Lava', desc: 'Deals 20 damage when stepped on.', hp: -1, destructible: false, color: '#ff4400', blocksMove: false, damage: 20 },
+        water: { id: 'water', name: 'Water', desc: 'Costs 2 energy to move through.', hp: -1, destructible: false, color: '#2266cc', blocksMove: false, energyCost: 2 },
+        portal: { id: 'portal', name: 'Portal', desc: 'Teleports you to a random location.', hp: -1, destructible: false, color: '#cc44ff', blocksMove: false, teleport: true }
     },
 
     ENEMIES_PER_STAGE_BASE: 3,

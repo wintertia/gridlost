@@ -5,11 +5,32 @@ var Grid = {
     offsetX: 0,
     offsetY: 0,
     animFrame: 0,
+    animLoop: null,
 
     init: function() {
         this.canvas = document.getElementById('game-canvas');
         this.ctx = this.canvas.getContext('2d');
         this.resize();
+        this.startAnimLoop();
+    },
+
+    startAnimLoop: function() {
+        var self = this;
+        function loop() {
+            if (State.screen === 'game') {
+                self.animFrame++;
+                self.render();
+            }
+            self.animLoop = requestAnimationFrame(loop);
+        }
+        loop();
+    },
+
+    stopAnimLoop: function() {
+        if (this.animLoop) {
+            cancelAnimationFrame(this.animLoop);
+            this.animLoop = null;
+        }
     },
 
     resize: function() {
@@ -44,7 +65,8 @@ var Grid = {
     render: function() {
         var ctx = this.ctx;
         var ts = this.tileSize;
-        this.animFrame++;
+
+        State.updateFloatingTexts();
 
         ctx.fillStyle = Data.COLORS.bg;
         ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
@@ -52,6 +74,7 @@ var Grid = {
         this.drawTiles(ctx, ts);
         this.drawObstacles(ctx, ts);
         this.drawBurnTiles(ctx, ts);
+        this.drawRangeIndicator(ctx, ts);
         this.drawMoveIndicators(ctx, ts);
         this.drawAttackPreview(ctx, ts);
         this.drawEnemies(ctx, ts);
@@ -92,7 +115,7 @@ var Grid = {
                 ctx.fillRect(px + 2, py + 2, ts - 4, ts - 4);
                 ctx.fillStyle = '#775533';
                 ctx.fillRect(px + 4, py + 4, ts - 8, ts/3);
-                var hpPct = o.hp / 15;
+                var hpPct = o.hp / 150;
                 if (hpPct < 1) {
                     ctx.strokeStyle = '#442200';
                     ctx.lineWidth = 1;
@@ -141,6 +164,29 @@ var Grid = {
             var flicker = 0.3 + Math.sin(this.animFrame * 0.15 + i) * 0.15;
             ctx.fillStyle = 'rgba(255, 100, 0, ' + flicker + ')';
             ctx.fillRect(px + 2, py + 2, ts - 4, ts - 4);
+        }
+    },
+
+    drawRangeIndicator: function(ctx, ts) {
+        if (State.phase !== 'player' || State.isMoveMode()) return;
+        var skill = State.getSelectedSkill();
+        if (!skill || skill.range <= 0) return;
+
+        var range = skill.range;
+        var px = State.player.x;
+        var py = State.player.y;
+        var pulse = 0.06 + Math.sin(this.animFrame * 0.06) * 0.02;
+
+        for (var dy = -range; dy <= range; dy++) {
+            for (var dx = -range; dx <= range; dx++) {
+                if (Math.abs(dx) + Math.abs(dy) === 0) continue;
+                if (Math.abs(dx) + Math.abs(dy) > range) continue;
+                var tx = px + dx;
+                var ty = py + dy;
+                if (tx < 0 || tx >= Data.GRID_SIZE || ty < 0 || ty >= Data.GRID_SIZE) continue;
+                ctx.fillStyle = 'rgba(255, 255, 150, ' + pulse + ')';
+                ctx.fillRect(tx * ts + 2, ty * ts + 2, ts - 4, ts - 4);
+            }
         }
     },
 
@@ -297,6 +343,25 @@ var Grid = {
             ctx.strokeStyle = '#ffff00';
             ctx.lineWidth = 2;
             ctx.strokeRect(px + 2, py + 2, bossW - 4, bossH - 4);
+
+            var teleText = 'NEXT: ' + e.telegraph.name;
+            ctx.fillStyle = '#ffff00';
+            ctx.font = Math.floor(ts * 0.18) + 'px "Press Start 2P"';
+            ctx.textAlign = 'center';
+            ctx.fillText(teleText, px + bossW / 2, py - 22);
+        }
+
+        if (e.telegraphTiles && e.telegraphTiles.length > 0) {
+            for (var t = 0; t < e.telegraphTiles.length; t++) {
+                var tile = e.telegraphTiles[t];
+                var tilePx = tile.x * ts;
+                var tilePy = tile.y * ts;
+                ctx.fillStyle = 'rgba(255, 255, 0, 0.15)';
+                ctx.fillRect(tilePx + 2, tilePy + 2, ts - 4, ts - 4);
+                ctx.strokeStyle = 'rgba(255, 255, 0, 0.5)';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(tilePx + 2, tilePy + 2, ts - 4, ts - 4);
+            }
         }
     },
 
@@ -319,11 +384,13 @@ var Grid = {
     drawFloatingTexts: function(ctx, ts) {
         for (var i = 0; i < State.floatingTexts.length; i++) {
             var ft = State.floatingTexts[i];
-            var alpha = ft.life / ft.maxLife;
+            var lifeRatio = ft.life / ft.maxLife;
+            var alpha = lifeRatio * lifeRatio;
             ctx.globalAlpha = alpha;
             ctx.fillStyle = ft.color;
-            ctx.font = Math.floor(ts * 0.25) + 'px "Press Start 2P"';
+            ctx.font = 'bold ' + Math.floor(ts * 0.28) + 'px "Press Start 2P"';
             ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
             ctx.fillText(ft.text, ft.x * ts + ts / 2, ft.y * ts + ts / 2);
             ctx.globalAlpha = 1;
         }

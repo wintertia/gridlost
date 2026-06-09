@@ -92,7 +92,15 @@ var AI = {
 
             if (enemy.frozen > 0) {
                 State.addFloatingText(enemy.x, enemy.y, 'FROZEN', '#88ddff');
-                processNext();
+                if (enemy.isBoss) {
+                    if (enemy.isBoss) {
+                        Boss.processTurn(enemy, processNext);
+                    } else {
+                        AI.processEnemy(enemy, processNext);
+                    }
+                } else {
+                    processNext();
+                }
                 return;
             }
 
@@ -158,7 +166,9 @@ var AI = {
     },
 
     meleeAttack: function(enemy, callback) {
-        var dmg = enemy.damage;
+        var baseDmg = enemy.damage;
+        var roll = 0.9 + Math.random() * 0.1;
+        var dmg = Math.floor(baseDmg * roll);
         var def = Data.ENEMIES[enemy.defId];
         var name = def ? def.name : 'Enemy';
         State.addLog(name + ' attacks player for ' + dmg + ' dmg', 'enemy');
@@ -177,6 +187,9 @@ var AI = {
         var stepY = dy === 0 ? 0 : (dy > 0 ? 1 : -1);
         var def = Data.ENEMIES[enemy.defId];
         var name = def ? def.name : 'Enemy';
+        var baseDmg = enemy.damage;
+        var roll = 0.9 + Math.random() * 0.1;
+        var dmg = Math.floor(baseDmg * roll);
 
         for (var i = 1; i <= 4; i++) {
             var tx = enemy.x + stepX * i;
@@ -184,8 +197,8 @@ var AI = {
             if (tx < 0 || tx >= Data.GRID_SIZE || ty < 0 || ty >= Data.GRID_SIZE) break;
             if (State.isBlocked(tx, ty)) break;
             if (tx === State.player.x && ty === State.player.y) {
-                State.addLog(name + ' shoots player for ' + enemy.damage + ' dmg', 'enemy');
-                Combat.dealDamageToPlayer(enemy.damage);
+                State.addLog(name + ' shoots player for ' + dmg + ' dmg', 'enemy');
+                Combat.dealDamageToPlayer(dmg);
                 State.addFloatingText(tx, ty, 'ARROW!', '#ee8833');
                 break;
             }

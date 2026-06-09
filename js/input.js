@@ -1,4 +1,6 @@
 var Input = {
+    activeTooltip: null,
+
     init: function() {
         var self = this;
         var canvas = document.getElementById('game-canvas');
@@ -14,6 +16,7 @@ var Input = {
         canvas.addEventListener('mouseleave', function() {
             State.hoveredTile = null;
             State.attackPreview = [];
+            $('#obstacle-tooltip').hide();
             Grid.render();
         });
 
@@ -26,6 +29,8 @@ var Input = {
         document.addEventListener('keydown', function(e) {
             self.handleKey(e);
         });
+
+        this.setupTooltips();
 
         $('.skill-slot').on('click', function() {
             var slot = parseInt($(this).data('slot'));
@@ -41,12 +46,84 @@ var Input = {
         });
     },
 
+    setupTooltips: function() {
+        var self = this;
+        $(document).on('mouseenter', '.skill-slot, .synergy-item', function(e) {
+            var $el = $(this);
+            var text = $el.attr('data-tooltip');
+            if (!text) return;
+
+            var $tip = $('<div class="js-tooltip"></div>').text(text);
+            $('body').append($tip);
+
+            var rect = $el[0].getBoundingClientRect();
+            var tipW = $tip.outerWidth();
+            var tipH = $tip.outerHeight();
+            var winW = $(window).width();
+            var winH = $(window).height();
+
+            var left = rect.left + rect.width / 2 - tipW / 2;
+            var top = rect.top - tipH - 8;
+
+            if (left < 8) left = 8;
+            if (left + tipW > winW - 8) left = winW - tipW - 8;
+            if (top < 8) {
+                top = rect.bottom + 8;
+            }
+
+            $tip.css({ left: left + 'px', top: top + 'px' });
+            self.activeTooltip = $tip;
+        });
+
+        $(document).on('mouseleave', '.skill-slot, .synergy-item', function() {
+            if (self.activeTooltip) {
+                self.activeTooltip.remove();
+                self.activeTooltip = null;
+            }
+        });
+    },
+
     handleHover: function(e) {
-        if (State.phase !== 'player') return;
+        if (State.phase !== 'player') {
+            $('#obstacle-tooltip').hide();
+            return;
+        }
         var tile = Grid.pixelToTile(e.clientX, e.clientY);
         State.hoveredTile = tile;
         this.updatePreview(tile);
+        this.updateObstacleTooltip(e, tile);
         Grid.render();
+    },
+
+    updateObstacleTooltip: function(e, tile) {
+        var $tooltip = $('#obstacle-tooltip');
+        if (!tile) {
+            $tooltip.hide();
+            return;
+        }
+
+        var obstacle = null;
+        for (var i = 0; i < State.obstacles.length; i++) {
+            var o = State.obstacles[i];
+            if (o.x === tile.x && o.y === tile.y) {
+                obstacle = o;
+                break;
+            }
+        }
+
+        if (obstacle) {
+            var def = Data.OBSTACLES[obstacle.id];
+            var name = def ? def.name : 'Obstacle';
+            var desc = def ? def.desc : '';
+            var hpText = obstacle.destructible ? ' (HP: ' + obstacle.hp + ')' : '';
+            $tooltip.text(name + hpText + (desc ? ' - ' + desc : ''));
+            $tooltip.css({
+                left: (e.clientX + 12) + 'px',
+                top: (e.clientY - 10) + 'px'
+            }).show();
+        } else {
+            $tooltip.hide();
+        }
     },
 
     updatePreview: function(tile) {
@@ -97,8 +174,8 @@ var Input = {
             return;
         }
 
-        if (enemyAtTile && dist <= skill.range && State.player.energy >= skill.energyCost) {
-            if (skill.shape === 'single' || skill.isBasic) {
+        if (skill.shape === 'single' || skill.isBasic) {
+            if (dist <= skill.range && State.player.energy >= skill.energyCost) {
                 Combat.executeSingleAttack(tile.x, tile.y, skill);
                 return;
             }
@@ -115,6 +192,7 @@ var Input = {
     tryMove: function(x, y) {
         if (State.player.energy < 1) return;
         if (State.isBlocked(x, y)) return;
+        if (State.getEnemyAt(x, y)) return;
         if (x === State.player.x && y === State.player.y) return;
 
         var dist = Math.abs(x - State.player.x) + Math.abs(y - State.player.y);

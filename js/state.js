@@ -60,9 +60,10 @@ var State = {
         this.bossTurnCount = 0;
         this.combatLog = [];
         this.runStats = { totalDamage: 0, enemyKills: 0, bossesKilled: 0 };
+        Stages.extraObstacles = 0;
 
         this.player.x = 0;
-        this.player.y = Data.GRID_SIZE - 1;
+        this.player.y = 0;
         this.player.hp = Data.PLAYER_BASE_HP;
         this.player.maxHp = Data.PLAYER_BASE_HP;
         this.player.energy = Data.PLAYER_BASE_ENERGY;
@@ -82,18 +83,22 @@ var State = {
     addFloatingText: function(x, y, text, color) {
         this.floatingTexts.push({
             x: x, y: y, text: text, color: color,
-            life: 60, maxLife: 60
+            life: 45, maxLife: 45
         });
     },
 
     updateFloatingTexts: function() {
         for (var i = this.floatingTexts.length - 1; i >= 0; i--) {
             this.floatingTexts[i].life--;
-            this.floatingTexts[i].y -= 0.3;
+            this.floatingTexts[i].y -= 0.4;
             if (this.floatingTexts[i].life <= 0) {
                 this.floatingTexts.splice(i, 1);
             }
         }
+    },
+
+    clearFloatingTexts: function() {
+        this.floatingTexts = [];
     },
 
     getEnemyAt: function(x, y) {

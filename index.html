@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dungeon Depths - Roguelike</title>
+    <title>GRIDLOST</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -13,7 +13,7 @@
     <!-- TITLE SCREEN -->
     <div id="title-screen" class="screen active">
         <div class="title-content">
-            <h1 class="game-title">DUNGEON<br>DEPTHS</h1>
+            <h1 class="game-title">GRIDLOST</h1>
             <p class="subtitle">A Roguelike Adventure</p>
             <button id="btn-start" class="pixel-btn">NEW ADVENTURE</button>
             <div class="controls-hint">
@@ -54,6 +54,7 @@
             <!-- Canvas Container -->
             <div id="canvas-container">
                 <canvas id="game-canvas"></canvas>
+                <div id="obstacle-tooltip" class="obstacle-tooltip"></div>
             </div>
 
             <!-- Right Sidebar -->
@@ -62,25 +63,25 @@
                 <div id="player-info" class="panel">
                     <h3 class="panel-title">KNIGHT</h3>
                     <div class="stat-row">
-                        <span class="stat-label">HP</span>
+                        <span class="stat-label" title="Health Points">♥</span>
                         <div class="stat-bar-container">
                             <div id="hp-bar" class="stat-bar hp-bar" style="width: 100%"></div>
                         </div>
                         <span id="hp-text" class="stat-value">100/100</span>
                     </div>
                     <div class="stat-row">
-                        <span class="stat-label">NRJ</span>
+                        <span class="stat-label" title="Energy">⚡</span>
                         <div class="stat-bar-container">
                             <div id="energy-bar" class="stat-bar energy-bar" style="width: 100%"></div>
                         </div>
                         <span id="energy-text" class="stat-value">6/6</span>
                     </div>
                     <div class="stat-row">
-                        <span class="stat-label">PWR</span>
-                        <span id="power-text" class="stat-value">+0</span>
+                        <span class="stat-label" title="Power">⚔</span>
+                        <span id="power-text" class="stat-value">+0%</span>
                     </div>
                     <div class="stat-row">
-                        <span class="stat-label">CRT</span>
+                        <span class="stat-label" title="Critical">✦</span>
                         <span id="crit-text" class="stat-value">0%</span>
                     </div>
                 </div>

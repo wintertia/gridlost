@@ -18,7 +18,7 @@ var UI = {
         $('#hp-text').text(p.hp + '/' + p.maxHp);
         $('#energy-bar').css('width', nrjPct + '%');
         $('#energy-text').text(p.energy + '/' + p.maxEnergy);
-        $('#power-text').text('+' + p.power);
+        $('#power-text').text('+' + p.power + '%');
         $('#crit-text').text(p.critChance + '%');
     },
 
@@ -58,7 +58,21 @@ var UI = {
                 }
                 var synergies = this.getSkillSynergies(skill.id);
                 if (synergies.length > 0) {
-                    tooltipText += '\nSynergies: ' + synergies.join(', ');
+                    tooltipText += '\n\nSYNERGIES:';
+                    for (var s = 0; s < synergies.length; s++) {
+                        var synKey = null;
+                        for (var key in Data.SYNERGIES) {
+                            if (Data.SYNERGIES[key].name === synergies[s]) {
+                                synKey = key;
+                                break;
+                            }
+                        }
+                        if (synKey) {
+                            var syn = Data.SYNERGIES[synKey];
+                            var active = State.hasSynergy(synKey);
+                            tooltipText += '\n[' + (active ? 'ACTIVE' : 'INACTIVE') + '] ' + syn.name + ': ' + syn.desc;
+                        }
+                    }
                 }
                 $slot.attr('data-tooltip', tooltipText);
             } else {
@@ -230,6 +244,10 @@ var UI = {
         });
 
         $('#btn-skip-skill').off('click').on('click', function() {
+            var healAmount = Math.floor(State.player.maxHp * 0.05);
+            State.player.hp = Math.min(State.player.hp + healAmount, State.player.maxHp);
+            State.addFloatingText(State.player.x, State.player.y, '+' + healAmount + ' HP', '#44ff44');
+            State.addLog('Skipped skill selection, healed for ' + healAmount + ' HP', 'info');
             callback(null);
         });
 
