@@ -48,10 +48,12 @@ var Input = {
 
     setupTooltips: function() {
         var self = this;
-        $(document).on('mouseenter', '.skill-slot, .synergy-item', function(e) {
-            var $el = $(this);
+
+        function showTooltip($el) {
             var text = $el.attr('data-tooltip');
             if (!text) return;
+
+            self.hideTooltip();
 
             var $tip = $('<div class="js-tooltip"></div>').text(text);
             $('body').append($tip);
@@ -73,14 +75,31 @@ var Input = {
 
             $tip.css({ left: left + 'px', top: top + 'px' });
             self.activeTooltip = $tip;
+        }
+
+        $(document).on('mouseenter', '.skill-slot, .synergy-item', function() {
+            showTooltip($(this));
         });
 
         $(document).on('mouseleave', '.skill-slot, .synergy-item', function() {
-            if (self.activeTooltip) {
-                self.activeTooltip.remove();
-                self.activeTooltip = null;
-            }
+            self.hideTooltip();
         });
+
+        $(document).on('touchstart', '.skill-slot', function(e) {
+            e.preventDefault();
+            showTooltip($(this));
+        });
+
+        $(document).on('touchend touchcancel', function() {
+            self.hideTooltip();
+        });
+    },
+
+    hideTooltip: function() {
+        if (this.activeTooltip) {
+            this.activeTooltip.remove();
+            this.activeTooltip = null;
+        }
     },
 
     handleHover: function(e) {

@@ -292,11 +292,13 @@ var Combat = {
 
         var tiles = this.getAffectedTiles(State.player.x, State.player.y, tx, ty, skill);
         var hitCount = 0;
+        var hitEnemies = [];
 
         for (var i = 0; i < tiles.length; i++) {
             var t = tiles[i];
             var enemy = State.getEnemyAt(t.x, t.y);
-            if (enemy) {
+            if (enemy && hitEnemies.indexOf(enemy) === -1) {
+                hitEnemies.push(enemy);
                 var result = this.calculateDamage(skill.damage, skill);
                 this.dealDamage(enemy, result.damage, 'player', result.isCrit);
                 hitCount++;
@@ -308,7 +310,7 @@ var Combat = {
                     var poisonDmg = Math.floor(20 * (1 + State.player.power / 100));
                     enemy.poison = { damage: poisonDmg, turns: 3 };
                 }
-            } else {
+            } else if (!enemy) {
                 this.hitObstacle(t.x, t.y, skill.damage);
             }
         }

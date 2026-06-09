@@ -370,15 +370,17 @@ var Grid = {
         var barH = 5;
         var pct = Math.max(0, current / max);
 
+        var barY = y < 0 ? y + barH + 2 : y;
+
         ctx.fillStyle = '#1a0a0a';
-        ctx.fillRect(x, y, barW, barH);
+        ctx.fillRect(x, barY, barW, barH);
 
         ctx.fillStyle = color;
-        ctx.fillRect(x, y, barW * pct, barH);
+        ctx.fillRect(x, barY, barW * pct, barH);
 
         ctx.strokeStyle = '#333';
         ctx.lineWidth = 1;
-        ctx.strokeRect(x, y, barW, barH);
+        ctx.strokeRect(x, barY, barW, barH);
     },
 
     drawFloatingTexts: function(ctx, ts) {
