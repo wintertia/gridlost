@@ -4,6 +4,7 @@ var UI = {
         this.updateSkillBar();
         this.updateEnemyList();
         this.updateSynergies();
+        this.updateItems();
         this.updateTopBar();
         this.updateCombatLog();
         Grid.render();
@@ -15,7 +16,9 @@ var UI = {
         var nrjPct = (p.energy / p.maxEnergy) * 100;
 
         $('#hp-bar').css('width', hpPct + '%');
-        $('#hp-text').text(p.hp + '/' + p.maxHp);
+        var hpText = p.hp + '/' + p.maxHp;
+        if (p.shield > 0) hpText += ' (+' + p.shield + ' shield)';
+        $('#hp-text').text(hpText);
         $('#energy-bar').css('width', nrjPct + '%');
         $('#energy-text').text(p.energy + '/' + p.maxEnergy);
         $('#power-text').text('+' + p.power + '%');
@@ -139,7 +142,10 @@ var UI = {
         var $list = $('#synergies-list');
         $list.empty();
 
-        if (State.activeSynergies.length === 0) {
+        var activeSets = State.getActiveItemSets();
+        var hasAny = State.activeSynergies.length > 0 || activeSets.length > 0;
+
+        if (!hasAny) {
             $list.append('<p class="empty-text">No synergies active</p>');
             return;
         }
@@ -148,6 +154,47 @@ var UI = {
             var syn = Data.SYNERGIES[State.activeSynergies[i]];
             var $item = $('<div class="synergy-item" data-tooltip="' + syn.desc + '">' + syn.name + '</div>');
             $list.append($item);
+        }
+
+        for (var j = 0; j < activeSets.length; j++) {
+            var set = Data.ITEM_SETS[activeSets[j]];
+            var $setItem = $('<div class="synergy-item" data-tooltip="' + set.desc + '" style="color:#44ff44">' + set.name + '</div>');
+            $list.append($setItem);
+        }
+    },
+
+    updateItems: function() {
+        var $list = $('#items-list');
+        $list.empty();
+
+        var items = State.player.items;
+        var hasItems = false;
+        var order = ['common', 'uncommon', 'rare'];
+
+        for (var r = 0; r < order.length; r++) {
+            var rarity = order[r];
+            var color = Data.ITEM_RARITY[rarity].color;
+
+            for (var id in items) {
+                if (items[id] <= 0) continue;
+                var item = Data.ITEMS[id];
+                if (!item || item.rarity !== rarity) continue;
+
+                hasItems = true;
+                var stackText = items[id] > 1 ? ' x' + items[id] : '';
+                var iconChar = item.icon || '\u25CF';
+                var iconBg = item.iconBg || color;
+                var $entry = $('<div class="item-entry" data-tooltip="' + item.name + ': ' + item.desc + '">' +
+                    '<div class="item-icon" style="background:' + iconBg + ';color:#fff;text-align:center;line-height:12px;font-size:8px;">' + iconChar + '</div>' +
+                    '<span class="item-name">' + item.name + '</span>' +
+                    '<span class="item-stack">' + stackText + '</span>' +
+                    '</div>');
+                $list.append($entry);
+            }
+        }
+
+        if (!hasItems) {
+            $list.append('<p class="empty-text">No items yet</p>');
         }
     },
 
@@ -198,6 +245,63 @@ var UI = {
                 '<div class="choice-title">' + upgrade.name + '</div>' +
                 '<div class="choice-desc">' + upgrade.desc + '</div>' +
                 '</div>');
+            $grid.append($card);
+        }
+
+        $grid.find('.choice-card').on('click', function() {
+            var choice = $(this).data('choice');
+            $grid.find('.choice-card').off('click');
+            callback(choice);
+        });
+
+        this.showScreen('complete-screen');
+    },
+
+    showItemChoices: function(callback) {
+        var pool = [];
+        for (var id in Data.ITEMS) {
+            pool.push(id);
+        }
+
+        var weighted = [];
+        for (var i = 0; i < pool.length; i++) {
+            var item = Data.ITEMS[pool[i]];
+            var rarity = Data.ITEM_RARITY[item.rarity];
+            for (var w = 0; w < rarity.weight; w++) {
+                weighted.push(pool[i]);
+            }
+        }
+
+        var picked = [];
+        var tempPool = weighted.slice();
+        while (picked.length < 3 && tempPool.length > 0) {
+            var idx = Math.floor(Math.random() * tempPool.length);
+            var candidate = tempPool[idx];
+            if (picked.indexOf(candidate) === -1) {
+                picked.push(candidate);
+            }
+            tempPool.splice(idx, 1);
+        }
+
+        var $grid = $('#item-choices');
+        $grid.empty();
+
+        for (var j = 0; j < picked.length; j++) {
+            var item = Data.ITEMS[picked[j]];
+            var rarityColor = Data.ITEM_RARITY[item.rarity].color;
+            var rarityName = Data.ITEM_RARITY[item.rarity].name;
+            var stacks = State.getItemStacks(picked[j]);
+            var stackHint = stacks > 0 ? ' (will have ' + (stacks + 1) + ')' : '';
+            var iconChar = item.icon || '\u25CF';
+            var iconBg = item.iconBg || '#666666';
+
+            var $card = $('<div class="choice-card item-card" data-choice="' + picked[j] + '">' +
+                '<div class="item-card-icon" style="background:' + iconBg + '">' + iconChar + '</div>' +
+                '<div class="item-card-info">' +
+                '<div class="item-card-name" style="color:' + rarityColor + '">' + item.name + '</div>' +
+                '<div class="item-card-desc">' + item.desc + '</div>' +
+                '<div class="item-card-rarity" style="color:' + rarityColor + '">' + rarityName + stackHint + '</div>' +
+                '</div></div>');
             $grid.append($card);
         }
 
@@ -301,6 +405,29 @@ var UI = {
         $('#stat-maxhp').text(State.player.maxHp);
         $('#stat-power').text('+' + State.player.power);
         $('#stat-crit').text(State.player.critChance + '%');
+
+        var itemCount = 0;
+        var $itemsList = $('#stat-items-list');
+        $itemsList.empty();
+        for (var id in State.player.items) {
+            if (State.player.items[id] > 0) {
+                itemCount += State.player.items[id];
+                var item = Data.ITEMS[id];
+                if (item) {
+                    var rarityColor = Data.ITEM_RARITY[item.rarity].color;
+                    var stackText = State.player.items[id] > 1 ? ' x' + State.player.items[id] : '';
+                    var iconChar = item.icon || '\u25CF';
+                    var iconBg = item.iconBg || '#666666';
+                    $itemsList.append('<div class="death-item-badge">' +
+                        '<span class="death-item-icon" style="background:' + iconBg + '">' + iconChar + '</span>' +
+                        '<span class="death-item-name" style="color:' + rarityColor + '">' + item.name + '</span>' +
+                        '<span class="death-item-stack">' + stackText + '</span>' +
+                        '</div>');
+                }
+            }
+        }
+        $('#stat-items').text(itemCount);
+
         this.showScreen('death-screen');
     },
 

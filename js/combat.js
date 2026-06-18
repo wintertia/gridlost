@@ -45,14 +45,16 @@ var Combat = {
                 for (var dy2 = -1; dy2 <= 1; dy2++) {
                     for (var dx2 = -1; dx2 <= 1; dx2++) {
                         if (dx2 === 0 && dy2 === 0) continue;
-                        if (Math.abs(dx2) + Math.abs(dy2) === 1) {
-                            tiles.push({ x: px + dx2, y: py + dy2 });
-                        }
+                        tiles.push({ x: px + dx2, y: py + dy2 });
                     }
                 }
                 break;
             case 'aoe':
-                var aoeRange = (State.hasSynergy('firestorm') && skill.id === 'fireball') ? 2 : 1;
+                var aoeRange = 1;
+                var fireInter = State.hasSkillInteraction('fireball');
+                if (fireInter && fireInter.range && skill.id === 'fireball') {
+                    aoeRange = fireInter.range;
+                }
                 for (var dy2 = -aoeRange; dy2 <= aoeRange; dy2++) {
                     for (var dx2 = -aoeRange; dx2 <= aoeRange; dx2++) {
                         tiles.push({ x: tx + dx2, y: ty + dy2 });
@@ -68,20 +70,26 @@ var Combat = {
 
     calculateDamage: function(baseDmg, skill) {
         var bonus = State.getPlayerDamage();
-        var dmg = baseDmg + bonus;
+        var itemPowerBonus = this.calculateItemStatBonus('power');
+        var conditionalBonus = this.getConditionalDamageBonus();
+        var dmg = baseDmg + bonus + itemPowerBonus + conditionalBonus;
 
         if (State.player.tempPower > 0) {
             dmg = Math.floor(dmg * (1 + State.player.tempPower / 100));
         }
 
-        if (State.hasSynergy('empowered') && State.player.empoweredNext) {
-            dmg = Math.floor(dmg * 1.5);
-            State.player.empoweredNext = false;
+        var empowerInter = State.hasSkillInteraction('war_cry');
+        if (empowerInter && empowerInter.value && State.player.tempPower > 0) {
+            dmg = Math.floor(dmg * (1 + empowerInter.value / 100));
         }
 
-        var isCrit = Math.random() * 100 < State.player.critChance;
+        var isCrit = Math.random() * 100 < (State.player.critChance + this.calculateItemStatBonus('critChance'));
         if (isCrit) {
-            dmg = Math.floor(dmg * 2);
+            var critMultiplier = 2;
+            var hasGlassCannonSet = State.hasItemSet('glass_cannon_synergy');
+            if (hasGlassCannonSet) critMultiplier = 3;
+            var critDamageBonus = this.calculateItemStatBonus('critDamage');
+            dmg = Math.floor(dmg * (critMultiplier + critDamageBonus / 100));
         }
 
         var roll = 0.9 + Math.random() * 0.1;
@@ -92,7 +100,14 @@ var Combat = {
 
     dealDamage: function(target, dmg, source, isCrit) {
         var actualDmg = dmg;
-        if (target.frozen && target.frozen > 0 && State.hasSynergy('shatter')) {
+
+        var shatterInter = State.hasSkillInteraction('ice_shard');
+        if (target.frozen && target.frozen > 0 && shatterInter && shatterInter.multiplier) {
+            actualDmg = dmg * shatterInter.multiplier;
+        }
+
+        var iceShardShatter = State.hasItem('frozen_core') && State.hasSkillInteraction('ice_shard');
+        if (target.frozen && target.frozen > 0 && iceShardShatter) {
             actualDmg = dmg * 2;
         }
 
@@ -109,6 +124,10 @@ var Combat = {
         var critText = isCrit ? ' (CRIT)' : '';
         State.addLog('Player deals ' + actualDmg + ' dmg to ' + targetName + critText, 'player');
 
+        if (source === 'player') {
+            this.processOnHitEffects(target, centerX, centerY);
+        }
+
         if (target.hp <= 0) {
             target.hp = 0;
             if (target.isBoss) {
@@ -117,6 +136,7 @@ var Combat = {
             } else {
                 State.runStats.enemyKills++;
                 State.addLog(targetName + ' killed!', 'kill');
+                this.processOnKillEffects(target);
 
                 var defId = target.defId;
                 if (defId !== 'skeleton') {
@@ -129,13 +149,142 @@ var Combat = {
             }
         }
 
-        return actualDmg;
+        var lifesteal = this.calculateItemStatBonus('lifesteal');
+        if (lifesteal > 0 && actualDmg > 0) {
+            var healAmount = Math.floor(actualDmg * lifesteal / 100);
+            if (healAmount > 0) {
+                State.player.hp = Math.min(State.player.hp + healAmount, State.player.maxHp);
+                State.addFloatingText(State.player.x, State.player.y, '+' + healAmount + ' HP', '#44ff44');
+            }
+        }
+    },
+
+    processOnHitEffects: function(target, hitX, hitY) {
+        var items = State.player.items;
+        var hasElementalMastery = State.hasItemSet('elemental_mastery');
+
+        if (items['burning_touch'] > 0) {
+            var chance = 10 * items['burning_touch'];
+            if (hasElementalMastery) chance *= 2;
+            if (Math.random() * 100 < chance) {
+                State.burnTiles.push({ x: hitX, y: hitY, turns: 3 });
+                State.addFloatingText(hitX, hitY, 'BURN!', '#ff6600');
+            }
+        }
+
+        if (items['frozen_core'] > 0 && !target.isBoss && target.frozen === 0) {
+            var chance = 10 * items['frozen_core'];
+            if (hasElementalMastery) chance *= 2;
+            if (Math.random() * 100 < chance) {
+                target.frozen = 2;
+                target.freezeImmune = true;
+                State.addFloatingText(hitX, hitY, 'FREEZE!', '#88ddff');
+            }
+        }
+
+        if (items['chain_lightning'] > 0) {
+            var chance = 20 * items['chain_lightning'];
+            if (hasElementalMastery) chance *= 2;
+            if (Math.random() * 100 < chance) {
+                var alive = State.getAliveEnemies();
+                var nearby = [];
+                for (var i = 0; i < alive.length; i++) {
+                    if (alive[i] !== target && alive[i].hp > 0) {
+                        var d = Math.abs(alive[i].x - hitX) + Math.abs(alive[i].y - hitY);
+                        if (d <= 2) nearby.push(alive[i]);
+                    }
+                }
+                if (nearby.length > 0) {
+                    var chainTarget = nearby[Math.floor(Math.random() * nearby.length)];
+                    var chainDmg = Math.floor(this.calculateDamage(30 * items['chain_lightning']).damage);
+                    this.dealDamage(chainTarget, chainDmg, 'chain', false);
+                    State.addFloatingText(chainTarget.x, chainTarget.y, 'CHAIN!', '#ffff44');
+                }
+            }
+        }
+
+        if (items['chaos_embrace'] > 0) {
+            var chance = 25 * items['chaos_embrace'];
+            if (Math.random() * 100 < chance) {
+                var statuses = ['burn', 'freeze', 'poison'];
+                var status = statuses[Math.floor(Math.random() * statuses.length)];
+                if (status === 'freeze' && !target.isBoss && target.frozen === 0) {
+                    target.frozen = 2;
+                    target.freezeImmune = true;
+                    State.addFloatingText(hitX, hitY, 'CHAOS FREEZE!', '#88ddff');
+                } else if (status === 'burn') {
+                    State.burnTiles.push({ x: hitX, y: hitY, turns: 3 });
+                    State.addFloatingText(hitX, hitY, 'CHAOS BURN!', '#ff6600');
+                } else if (status === 'poison') {
+                    var poisonDmg = Math.floor(20 * (1 + State.player.power / 100));
+                    target.poison = { damage: poisonDmg, turns: 3 };
+                    State.addFloatingText(hitX, hitY, 'CHAOS POISON!', '#44cc44');
+                }
+            }
+        }
+    },
+
+    processOnKillEffects: function(target) {
+        var items = State.player.items;
+        var size = target.size || 1;
+        var centerX = target.x + Math.floor(size / 2);
+        var centerY = target.y + Math.floor(size / 2);
+
+        if (items['explosive_rounds'] > 0) {
+            var chance = 30 * items['explosive_rounds'];
+            if (Math.random() * 100 < chance) {
+                var aoeDmg = Math.floor(this.calculateDamage(50).damage);
+                var nearby = State.getAliveEnemies();
+                for (var i = 0; i < nearby.length; i++) {
+                    var e = nearby[i];
+                    if (e === target || e.hp <= 0) continue;
+                    var d = Math.abs(e.x - centerX) + Math.abs(e.y - centerY);
+                    if (d <= 2) {
+                        this.dealDamage(e, aoeDmg, 'explosion', false);
+                        State.addFloatingText(e.x, e.y, 'BOOM!', '#ff8800');
+                    }
+                }
+                State.addFloatingText(centerX, centerY, 'EXPLOSION!', '#ff4400');
+            }
+        }
+
+        if (items['second_wind'] > 0) {
+            var healPercent = 3 * items['second_wind'];
+            var healAmount = Math.floor(State.player.maxHp * healPercent / 100);
+            State.player.hp = Math.min(State.player.hp + healAmount, State.player.maxHp);
+            State.addFloatingText(State.player.x, State.player.y, '+' + healAmount + ' HP', '#44ff44');
+        }
+
+        if (items['blood_focus'] > 0 || items['battle_momentum'] > 0) {
+            var energyRestore = 0;
+            if (items['blood_focus']) energyRestore += items['blood_focus'];
+            if (items['battle_momentum']) energyRestore += items['battle_momentum'];
+            State.player.energy = Math.min(State.player.energy + energyRestore, State.player.maxEnergy);
+            State.addFloatingText(State.player.x, State.player.y, '+' + energyRestore + ' ⚡', '#ffaa00');
+        }
     },
 
     dealDamageToPlayer: function(dmg) {
-        State.player.hp -= dmg;
-        State.addFloatingText(State.player.x, State.player.y, '-' + dmg, '#ff4444');
-        State.addLog('Player takes ' + dmg + ' damage', 'damage');
+        var stacks = State.getItemStacks('iron_skin');
+        var reduction = 1;
+        if (stacks > 0) {
+            reduction = 1 - (0.07 * Math.log2(stacks + 1));
+            reduction = Math.max(0.3, reduction);
+        }
+        var reducedDmg = Math.max(1, Math.floor(dmg * reduction));
+
+        if (State.player.shield > 0) {
+            var shieldAbsorb = Math.min(State.player.shield, reducedDmg);
+            State.player.shield -= shieldAbsorb;
+            reducedDmg -= shieldAbsorb;
+            if (shieldAbsorb > 0) {
+                State.addFloatingText(State.player.x, State.player.y, '-' + shieldAbsorb + ' SHIELD', '#4488ff');
+            }
+        }
+
+        State.player.hp -= reducedDmg;
+        State.addFloatingText(State.player.x, State.player.y, '-' + reducedDmg, '#ff4444');
+        State.addLog('Player takes ' + reducedDmg + ' damage', 'damage');
         if (State.player.hp <= 0) {
             State.player.hp = 0;
         }
@@ -268,8 +417,13 @@ var Combat = {
         State.addLog('Player uses ' + skill.name, 'action');
 
         if (skill.effects.indexOf('empower') !== -1) {
-            State.player.tempPower = 50;
-            State.addFloatingText(State.player.x, State.player.y, 'EMPOWERED! +50%', '#ffaa00');
+            var empowerValue = 50;
+            var empowerInter = State.hasSkillInteraction('war_cry');
+            if (empowerInter && empowerInter.value) {
+                empowerValue = empowerInter.value;
+            }
+            State.player.tempPower = empowerValue;
+            State.addFloatingText(State.player.x, State.player.y, 'EMPOWERED! +' + empowerValue + '%', '#ffaa00');
         }
 
         var tiles = this.getAffectedTiles(State.player.x, State.player.y, State.player.x, State.player.y, skill);
@@ -376,6 +530,14 @@ var Combat = {
         State.player.x = finalX;
         State.player.y = finalY;
         Input.checkTileEffects(finalX, finalY);
+
+        var dashInter = State.hasSkillInteraction('dash');
+        if (dashInter && dashInter.healPercent) {
+            var healAmount = Math.floor(State.player.maxHp * dashInter.healPercent / 100);
+            State.player.hp = Math.min(State.player.hp + healAmount, State.player.maxHp);
+            State.addFloatingText(finalX, finalY, '+' + healAmount + ' HP', '#44ff44');
+        }
+
         this.endPlayerTurn();
     },
 
@@ -414,6 +576,7 @@ var Combat = {
 
         this.processStatusEffects();
         this.processBurnTiles();
+        this.processItemEffects();
 
         if (State.player.hp <= 0) {
             Main.gameOver();
@@ -453,7 +616,7 @@ var Combat = {
 
             if (e.poison && e.poison.turns > 0) {
                 var poisonDmg = e.poison.damage;
-                if (State.hasSynergy('combust')) {
+                if (State.hasSkillInteraction('poison_cloud')) {
                     var onBurn = State.burnTiles.some(function(b) { return b.x === e.x && b.y === e.y; });
                     if (onBurn) poisonDmg *= 2;
                 }
@@ -480,6 +643,76 @@ var Combat = {
                 }
             }
         }
+    },
+
+    processItemEffects: function() {
+        var items = State.player.items;
+        var p = State.player;
+
+        if (items['guardian_angel'] > 0 || items['shield_generator'] > 0) {
+            var maxShield = 0;
+            var regenPercent = 0;
+            if (items['guardian_angel']) {
+                maxShield += 150 * items['guardian_angel'];
+                regenPercent += 10 * items['guardian_angel'];
+            }
+            if (items['shield_generator']) {
+                maxShield += 300 * items['shield_generator'];
+                regenPercent += 15 * items['shield_generator'];
+            }
+
+            var hasJuggernaut = State.hasItemSet('juggernaut_set');
+            if (hasJuggernaut) {
+                maxShield = Math.floor(maxShield * 1.5);
+            }
+
+            if (p.shield < maxShield) {
+                var regen = Math.max(1, Math.floor(maxShield * regenPercent / 100));
+                p.shield = Math.min(p.shield + regen, maxShield);
+                if (regen > 0) {
+                    State.addFloatingText(p.x, p.y, '+' + regen + ' SHIELD', '#4488ff');
+                }
+            }
+        }
+    },
+
+    calculateItemStatBonus: function(stat) {
+        var items = State.player.items;
+        var total = 0;
+
+        for (var id in items) {
+            if (items[id] <= 0) continue;
+            var item = Data.ITEMS[id];
+            if (!item || item.effect.type !== 'passive') continue;
+            if (item.effect.stat === stat) {
+                total += item.effect.value * items[id];
+            }
+        }
+
+        var hasJuggernaut = State.hasItemSet('juggernaut_set');
+        if (hasJuggernaut && stat === 'maxHp') {
+            total += Math.floor(State.player.maxHp * 0.5);
+        }
+
+        return total;
+    },
+
+    getConditionalDamageBonus: function() {
+        var items = State.player.items;
+        var bonus = 0;
+        var p = State.player;
+
+        if (items['desperate_strength'] > 0 && p.hp < p.maxHp * 0.5) {
+            bonus += 20 * items['desperate_strength'];
+        }
+
+        if (items['berserker_blood'] > 0) {
+            var missingHpPercent = Math.floor((1 - p.hp / p.maxHp) * 100);
+            var stacks = Math.floor(missingHpPercent / 10);
+            bonus += 15 * stacks * items['berserker_blood'];
+        }
+
+        return bonus;
     },
 
     processBurnTiles: function() {

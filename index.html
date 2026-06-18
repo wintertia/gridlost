@@ -94,6 +94,14 @@
                     </div>
                 </div>
 
+                <!-- Items -->
+                <div id="items-panel" class="panel">
+                    <h3 class="panel-title">ITEMS</h3>
+                    <div id="items-list">
+                        <p class="empty-text">No items yet</p>
+                    </div>
+                </div>
+
                 <!-- Enemy List -->
                 <div id="enemy-panel" class="panel">
                     <h3 class="panel-title">ENEMIES</h3>
@@ -153,8 +161,8 @@
     <div id="complete-screen" class="screen overlay">
         <div class="modal">
             <h2 class="modal-title">STAGE COMPLETE!</h2>
-            <p class="modal-subtitle">Choose a stat upgrade:</p>
-            <div id="stat-choices" class="choices-grid">
+            <p class="modal-subtitle">Choose an item:</p>
+            <div id="item-choices" class="choices-grid">
                 <!-- Populated by JS -->
             </div>
         </div>
@@ -199,6 +207,9 @@
                 <div class="stat-line"><span>Max HP:</span><span id="stat-maxhp">100</span></div>
                 <div class="stat-line"><span>Attack Power:</span><span id="stat-power">0</span></div>
                 <div class="stat-line"><span>Crit Chance:</span><span id="stat-crit">0%</span></div>
+                <div class="stat-divider"></div>
+                <div class="stat-line"><span>Items Collected:</span><span id="stat-items">0</span></div>
+                <div id="stat-items-list" class="death-items-list"></div>
             </div>
             <button id="btn-retry" class="pixel-btn">TRY AGAIN</button>
         </div>

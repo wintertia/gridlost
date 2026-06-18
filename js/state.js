@@ -16,7 +16,10 @@ var State = {
         skills: [null, Data.SKILLS.slash, null, null, null],
         selectedSlot: 0,
         statusEffects: [],
-        tempPower: 0
+        tempPower: 0,
+        items: {},
+        shield: 0,
+        tempBuffs: []
     },
 
     enemies: [],
@@ -74,6 +77,9 @@ var State = {
         this.player.selectedSlot = 0;
         this.player.statusEffects = [];
         this.player.tempPower = 0;
+        this.player.items = {};
+        this.player.shield = 0;
+        this.player.tempBuffs = [];
     },
 
     getPlayerDamage: function() {
@@ -107,6 +113,54 @@ var State = {
 
     clearFloatingTexts: function() {
         this.floatingTexts = [];
+    },
+
+    hasItem: function(id) {
+        return this.player.items[id] > 0;
+    },
+
+    getItemStacks: function(id) {
+        return this.player.items[id] || 0;
+    },
+
+    addItem: function(id) {
+        if (!Data.ITEMS[id]) return;
+        this.player.items[id] = (this.player.items[id] || 0) + 1;
+    },
+
+    getItemsByRarity: function(rarity) {
+        var result = [];
+        for (var id in this.player.items) {
+            if (this.player.items[id] > 0 && Data.ITEMS[id] && Data.ITEMS[id].rarity === rarity) {
+                result.push(id);
+            }
+        }
+        return result;
+    },
+
+    hasItemSet: function(setId) {
+        var set = Data.ITEM_SETS[setId];
+        if (!set) return false;
+        for (var i = 0; i < set.requires.length; i++) {
+            if (!this.hasItem(set.requires[i])) return false;
+        }
+        return true;
+    },
+
+    hasSkillInteraction: function(skillId) {
+        for (var key in Data.ITEM_SKILL_INTERACTIONS) {
+            var inter = Data.ITEM_SKILL_INTERACTIONS[key];
+            if (inter.skill === skillId && this.hasItem(inter.item)) return inter.bonus;
+        }
+        return null;
+    },
+
+    getActiveItemSets: function() {
+        var result = [];
+        for (var setId in Data.ITEM_SETS) {
+            if (this.hasItemSet(setId)) result.push(setId);
+        }
+        return result;
     },
 
     getEnemyAt: function(x, y) {

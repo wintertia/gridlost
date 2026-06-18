@@ -12,6 +12,174 @@ var Data = {
         crit: { name: 'Precision', desc: 'Crit chance +8% (log)', critBonus: 8 }
     },
 
+    ITEM_RARITY: {
+        common: { name: 'Common', color: '#ffffff', weight: 60 },
+        uncommon: { name: 'Uncommon', color: '#44ff44', weight: 30 },
+        rare: { name: 'Rare', color: '#ff4444', weight: 10 }
+    },
+
+    ITEMS: {
+        // === COMMON (White) ===
+        tough_shell: {
+            id: 'tough_shell', name: 'Tough Shell', desc: '+50 max HP',
+            rarity: 'common', effect: { type: 'passive', stat: 'maxHp', value: 50 },
+            icon: '\u25C6', iconBg: '#4488cc'
+        },
+        power_stone: {
+            id: 'power_stone', name: 'Power Stone', desc: '+8% damage',
+            rarity: 'common', effect: { type: 'passive', stat: 'power', value: 8 },
+            icon: '\u25B2', iconBg: '#ff8844'
+        },
+        iron_skin: {
+            id: 'iron_skin', name: 'Iron Skin', desc: '7% dmg reduction (log)',
+            rarity: 'common', effect: { type: 'passive', stat: 'damageReduction', value: 7 },
+            icon: '\u25A0', iconBg: '#888899'
+        },
+        vampiric_fangs: {
+            id: 'vampiric_fangs', name: 'Vampiric Fangs', desc: '+2% lifesteal',
+            rarity: 'common', effect: { type: 'passive', stat: 'lifesteal', value: 2 },
+            icon: '\u25BC', iconBg: '#cc4444'
+        },
+        second_wind: {
+            id: 'second_wind', name: 'Second Wind', desc: 'Heal 3% HP on kill',
+            rarity: 'common', effect: { type: 'on_kill', healPercent: 3 },
+            icon: '\u25CB', iconBg: '#88cc88'
+        },
+        sharp_edge: {
+            id: 'sharp_edge', name: 'Sharp Edge', desc: '+5% crit chance',
+            rarity: 'common', effect: { type: 'passive', stat: 'critChance', value: 5 },
+            icon: '\u2726', iconBg: '#bbbbcc'
+        },
+        burning_touch: {
+            id: 'burning_touch', name: 'Burning Touch', desc: '10% chance to burn on hit',
+            rarity: 'common', effect: { type: 'on_hit', chance: 10, status: 'burn', value: 20 },
+            icon: '\u2666', iconBg: '#ff4422'
+        },
+        frozen_core: {
+            id: 'frozen_core', name: 'Frozen Core', desc: '10% chance to freeze on hit',
+            rarity: 'common', effect: { type: 'on_hit', chance: 10, status: 'freeze', value: 2 },
+            icon: '\u25C7', iconBg: '#44ccff'
+        },
+        blood_focus: {
+            id: 'blood_focus', name: 'Blood Focus', desc: '+1 energy on kill',
+            rarity: 'common', effect: { type: 'on_kill', energyRestore: 1 },
+            icon: '\u26A1', iconBg: '#ffcc00'
+        },
+
+        // === UNCOMMON (Green) ===
+        critical_lens: {
+            id: 'critical_lens', name: 'Critical Lens', desc: '+20% crit damage',
+            rarity: 'uncommon', effect: { type: 'passive', stat: 'critDamage', value: 20 },
+            icon: '\u25CF', iconBg: '#aa44dd'
+        },
+        guardian_angel: {
+            id: 'guardian_angel', name: 'Guardian Angel', desc: '+150 shield, regen 10%/turn',
+            rarity: 'uncommon', effect: { type: 'passive', stat: 'shield', value: 150, shieldRegenPercent: 10 },
+            icon: '\u25C8', iconBg: '#ffdd44'
+        },
+        explosive_rounds: {
+            id: 'explosive_rounds', name: 'Explosive Rounds', desc: 'On kill: 30% explode (50% AoE)',
+            rarity: 'uncommon', effect: { type: 'on_kill', chance: 30, damagePercent: 50 },
+            icon: '\u2738', iconBg: '#ff6622'
+        },
+        battle_momentum: {
+            id: 'battle_momentum', name: 'Battle Momentum', desc: 'On kill: +1 energy',
+            rarity: 'uncommon', effect: { type: 'on_kill', chance: 100, energyRestore: 1 },
+            icon: '\u25BA', iconBg: '#ee4444'
+        },
+        desperate_strength: {
+            id: 'desperate_strength', name: 'Desperate Strength', desc: '+20% dmg below 50% HP',
+            rarity: 'uncommon', effect: { type: 'conditional', condition: 'belowHp50', stat: 'power', value: 20 },
+            icon: '\u2660', iconBg: '#cc2222'
+        },
+        thorns_armor: {
+            id: 'thorns_armor', name: 'Thorns Armor', desc: 'Reflect 15% melee damage',
+            rarity: 'uncommon', effect: { type: 'passive', stat: 'thorns', value: 15 },
+            icon: '\u2663', iconBg: '#44aa44'
+        },
+        chain_lightning: {
+            id: 'chain_lightning', name: 'Chain Lightning', desc: 'On hit: 20% chain to 1 enemy',
+            rarity: 'uncommon', effect: { type: 'on_hit', chance: 20, chain: 1, damagePercent: 30 },
+            icon: '\u26A1', iconBg: '#cccc44'
+        },
+
+        // === RARE (Red) ===
+        glass_cannon: {
+            id: 'glass_cannon', name: 'Glass Cannon', desc: '+100% dmg, -50% max HP',
+            rarity: 'rare', effect: { type: 'passive', stat: 'power', value: 100, penalty: { stat: 'maxHpPercent', value: -50 } },
+            icon: '\u2756', iconBg: '#ff88cc'
+        },
+        chaos_embrace: {
+            id: 'chaos_embrace', name: 'Chaos Embrace', desc: 'On hit: random status',
+            rarity: 'rare', effect: { type: 'on_hit', chance: 25, status: 'random' },
+            icon: '\u2727', iconBg: '#aa44ff'
+        },
+        berserker_blood: {
+            id: 'berserker_blood', name: "Berserker's Blood", desc: '+15% dmg per 10% missing HP',
+            rarity: 'rare', effect: { type: 'conditional', condition: 'missingHp', stat: 'power', valuePer10: 15 },
+            icon: '\u2665', iconBg: '#aa0022'
+        },
+        shield_generator: {
+            id: 'shield_generator', name: 'Shield Generator', desc: '+300 shield, regen 15%/turn',
+            rarity: 'rare', effect: { type: 'passive', stat: 'shield', value: 300, shieldRegenPercent: 15 },
+            icon: '\u25CE', iconBg: '#4488ff'
+        }
+    },
+
+    ITEM_SETS: {
+        elemental_mastery: {
+            name: 'Elemental Mastery',
+            requires: ['burning_touch', 'frozen_core', 'chain_lightning'],
+            desc: 'All on-hit effects chance doubled',
+            bonus: { type: 'double_onhit_chance' }
+        },
+        juggernaut_set: {
+            name: 'Juggernaut',
+            requires: ['tough_shell', 'iron_skin', 'thorns_armor'],
+            desc: '+50% max HP, reflect 30% damage',
+            bonus: { type: 'juggernaut_bonus' }
+        },
+        glass_cannon_synergy: {
+            name: 'Glass Cannon+',
+            requires: ['glass_cannon', 'critical_lens'],
+            desc: 'Crits deal 3x instead of 2x',
+            bonus: { type: 'triple_crit' }
+        }
+    },
+
+    ITEM_SKILL_INTERACTIONS: {
+        fireball_burning: {
+            skill: 'fireball', item: 'burning_touch',
+            desc: 'Fireball AoE becomes 5x5',
+            bonus: { type: 'aoe_expand', range: 2 }
+        },
+        ice_shard_shatter: {
+            skill: 'ice_shard', item: 'frozen_core',
+            desc: 'Frozen enemies take 2x damage',
+            bonus: { type: 'frozen_damage', multiplier: 2 }
+        },
+        shield_bash_stun: {
+            skill: 'shield_bash', item: 'iron_skin',
+            desc: 'Shield bash knocks back + stuns 1 turn',
+            bonus: { type: 'add_stun', duration: 1 }
+        },
+        dash_heal: {
+            skill: 'dash', item: 'second_wind',
+            desc: 'Dash heals 5% HP on use',
+            bonus: { type: 'dash_heal', healPercent: 5 }
+        },
+        war_cry_empower: {
+            skill: 'war_cry', item: 'berserker_blood',
+            desc: 'War Cry grants +100% damage',
+            bonus: { type: 'empower_boost', value: 100 }
+        },
+        poison_burn: {
+            skill: 'poison_cloud', item: 'burning_touch',
+            desc: 'Poison tiles deal double DoT',
+            bonus: { type: 'dot_double' }
+        }
+    },
+
     SKILLS: {
         slash: {
             id: 'slash', name: 'Slash', desc: 'Basic melee attack',

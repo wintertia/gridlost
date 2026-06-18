@@ -3,7 +3,6 @@ var Main = {
         Grid.init();
         Input.init();
         this.bindEvents();
-        this.startRenderLoop();
     },
 
     bindEvents: function() {
@@ -46,8 +45,8 @@ var Main = {
         if (State.isBossStage) {
             UI.showBossBonusChoices(function(bonusId) {
                 Main.applyBossBonus(bonusId);
-                UI.showStatChoices(function(statChoice) {
-                    Main.applyStatUpgrade(statChoice);
+                UI.showItemChoices(function(itemId) {
+                    Main.applyItemReward(itemId);
 
                     UI.showSkillChoices(function(skillId) {
                         if (skillId) {
@@ -59,8 +58,8 @@ var Main = {
                 });
             });
         } else {
-            UI.showStatChoices(function(statChoice) {
-                Main.applyStatUpgrade(statChoice);
+            UI.showItemChoices(function(itemId) {
+                Main.applyItemReward(itemId);
 
                 UI.showSkillChoices(function(skillId) {
                     if (skillId) {
@@ -104,6 +103,32 @@ var Main = {
         }
     },
 
+    applyItemReward: function(itemId) {
+        var item = Data.ITEMS[itemId];
+        if (!item) return;
+
+        State.addItem(itemId);
+        var stacks = State.getItemStacks(itemId);
+        var rarityColor = Data.ITEM_RARITY[item.rarity].color;
+
+        State.addFloatingText(State.player.x, State.player.y, '+' + item.name, rarityColor);
+        State.addLog('Obtained ' + item.name + (stacks > 1 ? ' (x' + stacks + ')' : ''), 'item');
+
+        if (item.effect.type === 'passive' && item.effect.stat === 'maxHp') {
+            var hpBonus = item.effect.value;
+            State.player.maxHp += hpBonus;
+            State.player.hp += hpBonus;
+        }
+
+        if (item.effect.penalty && item.effect.penalty.stat === 'maxHpPercent') {
+            var penalty = Math.floor(State.player.maxHp * Math.abs(item.effect.penalty.value) / 100);
+            State.player.maxHp -= penalty;
+            State.player.hp = Math.min(State.player.hp, State.player.maxHp);
+        }
+
+        UI.updateAll();
+    },
+
     handleSkillAcquisition: function(skillId) {
         var newSkill = Data.SKILLS[skillId];
         if (!newSkill) {
@@ -141,6 +166,7 @@ var Main = {
         State.clearFloatingTexts();
         Stages.generate();
         State.updateSynergies();
+        UI.updateAll();
         State.phase = 'player';
         State.turn = 1;
         UI.hideScreen('complete-screen');
@@ -165,17 +191,6 @@ var Main = {
         setTimeout(function() {
             UI.showDeathScreen();
         }, 500);
-    },
-
-    startRenderLoop: function() {
-        function loop() {
-            if (State.screen === 'game') {
-                State.updateFloatingTexts();
-                Grid.render();
-            }
-            requestAnimationFrame(loop);
-        }
-        loop();
     }
 };
 

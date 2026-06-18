@@ -17,11 +17,11 @@ var Grid = {
     startAnimLoop: function() {
         var self = this;
         function loop() {
+            self.animLoop = requestAnimationFrame(loop);
             if (State.screen === 'game') {
                 self.animFrame++;
                 self.render();
             }
-            self.animLoop = requestAnimationFrame(loop);
         }
         loop();
     },

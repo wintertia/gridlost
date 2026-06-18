@@ -173,6 +173,22 @@ var AI = {
         var name = def ? def.name : 'Enemy';
         State.addLog(name + ' attacks player for ' + dmg + ' dmg', 'enemy');
         Combat.dealDamageToPlayer(dmg);
+
+        var thorns = Combat.calculateItemStatBonus('thorns');
+        if (thorns > 0) {
+            var thornsDmg = Math.floor(dmg * thorns / 100);
+            if (thornsDmg > 0) {
+                enemy.hp -= thornsDmg;
+                State.addFloatingText(enemy.x, enemy.y, '-' + thornsDmg + ' THORNS', '#44ff44');
+                State.addLog('Thorns reflects ' + thornsDmg + ' dmg', 'item');
+                if (enemy.hp <= 0) {
+                    enemy.hp = 0;
+                    State.runStats.enemyKills++;
+                    State.addLog(name + ' killed by thorns!', 'kill');
+                }
+            }
+        }
+
         var dir = Grid.getDirection(enemy.x, enemy.y, State.player.x, State.player.y);
         enemy.facing = dir;
         Grid.render();
