@@ -276,7 +276,7 @@ var Grid = {
 
             if (e.isBoss) {
                 this.drawBoss(ctx, px, py, ts, e, bounce);
-                this.drawHealthBar(ctx, px, py - 8, ts * size, e.hp, e.maxHp, '#ff3344');
+                this.drawHealthBar(ctx, px, py - 14, ts * size, e.hp, e.maxHp, '#ff3344');
             } else {
                 this.drawEnemy(ctx, px, py, ts, e, bounce);
                 this.drawHealthBar(ctx, px, py - 6, ts, e.hp, e.maxHp, '#ff3344');
@@ -334,7 +334,7 @@ var Grid = {
             ctx.fillStyle = '#ff4466';
             ctx.font = Math.floor(ts * 0.2) + 'px "Press Start 2P"';
             ctx.textAlign = 'center';
-            ctx.fillText(e.name, px + bossW / 2, py - 10);
+            ctx.fillText(e.name, px + bossW / 2, py - 20);
         }
 
         if (e.telegraph) {
@@ -348,7 +348,7 @@ var Grid = {
             ctx.fillStyle = '#ffff00';
             ctx.font = Math.floor(ts * 0.18) + 'px "Press Start 2P"';
             ctx.textAlign = 'center';
-            ctx.fillText(teleText, px + bossW / 2, py - 22);
+            ctx.fillText(teleText, px + bossW / 2, py - 40);
         }
 
         if (e.telegraphTiles && e.telegraphTiles.length > 0) {

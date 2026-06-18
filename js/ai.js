@@ -291,6 +291,8 @@ var AI = {
                     defId: 'skeleton',
                     facing: 'down',
                     frozen: 0,
+                    freezeImmune: false,
+                    freezeImmuneTurns: 0,
                     poison: null,
                     isBoss: false,
                     isSummon: true,

@@ -1,5 +1,6 @@
 var Input = {
     activeTooltip: null,
+    activeTooltipTarget: null,
 
     init: function() {
         var self = this;
@@ -48,8 +49,9 @@ var Input = {
 
     setupTooltips: function() {
         var self = this;
+        var isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
-        function showTooltip($el) {
+        function showTooltip($el, forTouch) {
             var text = $el.attr('data-tooltip');
             if (!text) return;
 
@@ -57,6 +59,12 @@ var Input = {
 
             var $tip = $('<div class="js-tooltip"></div>').text(text);
             $('body').append($tip);
+
+            if (forTouch) {
+                $tip.on('touchend', function(e) {
+                    e.stopPropagation();
+                });
+            }
 
             var rect = $el[0].getBoundingClientRect();
             var tipW = $tip.outerWidth();
@@ -77,28 +85,45 @@ var Input = {
             self.activeTooltip = $tip;
         }
 
-        $(document).on('mouseenter', '.skill-slot, .synergy-item', function() {
-            showTooltip($(this));
-        });
+        function hideTooltipIfOutside($target) {
+            if (!self.activeTooltip) return;
+            if ($target.closest('.js-tooltip, .skill-slot, .synergy-item').length === 0) {
+                self.hideTooltip();
+            }
+        }
 
-        $(document).on('mouseleave', '.skill-slot, .synergy-item', function() {
-            self.hideTooltip();
-        });
+        if (isTouch) {
+            $(document).on('touchstart', '.skill-slot, .synergy-item', function(e) {
+                var $el = $(this);
+                if (self.activeTooltip && self.activeTooltipTarget && self.activeTooltipTarget[0] === $el[0]) {
+                    self.hideTooltip();
+                } else {
+                    self.activeTooltipTarget = $el;
+                    showTooltip($el, true);
+                }
+            });
 
-        $(document).on('touchstart', '.skill-slot', function(e) {
-            e.preventDefault();
-            showTooltip($(this));
-        });
+            $(document).on('touchstart', function(e) {
+                if (!$(e.target).closest('.skill-slot, .synergy-item, .js-tooltip').length) {
+                    self.hideTooltip();
+                }
+            });
+        } else {
+            $(document).on('mouseenter', '.skill-slot, .synergy-item', function() {
+                showTooltip($(this), false);
+            });
 
-        $(document).on('touchend touchcancel', function() {
-            self.hideTooltip();
-        });
+            $(document).on('mouseleave', '.skill-slot, .synergy-item', function() {
+                self.hideTooltip();
+            });
+        }
     },
 
     hideTooltip: function() {
         if (this.activeTooltip) {
             this.activeTooltip.remove();
             this.activeTooltip = null;
+            this.activeTooltipTarget = null;
         }
     },
 

@@ -165,24 +165,27 @@ var Combat = {
 
             this.dealDamage(enemy, dmg, 'player', isCrit);
 
-            if (skill.effects.indexOf('push') !== -1) {
+            if (skill.effects.indexOf('knockback3') !== -1 && !enemy.isBoss) {
                 var pushDir = Grid.getDirection(State.player.x, State.player.y, tx, ty);
                 var pushX = tx, pushY = ty;
-                for (var p = 0; p < 2; p++) {
+                for (var p = 0; p < 3; p++) {
                     var nx = pushX + (pushDir === 'right' ? 1 : pushDir === 'left' ? -1 : 0);
                     var ny = pushY + (pushDir === 'down' ? 1 : pushDir === 'up' ? -1 : 0);
                     if (!State.isBlocked(nx, ny) && !State.getEnemyAt(nx, ny)) {
                         pushX = nx;
                         pushY = ny;
+                    } else {
+                        break;
                     }
                 }
                 enemy.x = pushX;
                 enemy.y = pushY;
+                State.addFloatingText(tx, ty, 'PUSHED!', '#8888ff');
             }
 
-            if (skill.effects.indexOf('freeze') !== -1 && !enemy.freezeImmune) {
+            if (skill.effects.indexOf('freeze') !== -1 && !enemy.isBoss && !enemy.freezeImmune && enemy.frozen === 0) {
                 enemy.frozen = 2;
-                enemy.freezeImmune = false;
+                enemy.freezeImmune = true;
             }
             if (skill.effects.indexOf('burn') !== -1) {
                 State.burnTiles.push({ x: tx, y: ty, turns: 3 });
@@ -228,7 +231,7 @@ var Combat = {
                 hitSomething = true;
                 lastHitEnemy = enemy;
 
-                if (skill.effects.indexOf('freeze') !== -1 && !enemy.freezeImmune) enemy.frozen = 2;
+                if (skill.effects.indexOf('freeze') !== -1 && !enemy.isBoss && !enemy.freezeImmune && enemy.frozen === 0) enemy.frozen = 2;
                 if (skill.effects.indexOf('burn') !== -1) State.burnTiles.push({ x: t.x, y: t.y, turns: 3 });
                 if (skill.effects.indexOf('poison') !== -1) {
                     var poisonDmg = Math.floor(20 * (1 + State.player.power / 100));
@@ -275,6 +278,16 @@ var Combat = {
             if (enemy) {
                 var result = this.calculateDamage(skill.damage, skill);
                 this.dealDamage(enemy, result.damage, 'player', result.isCrit);
+
+                if (skill.effects.indexOf('knockback1') !== -1 && !enemy.isBoss) {
+                    var kbDir = Grid.getDirection(State.player.x, State.player.y, tiles[i].x, tiles[i].y);
+                    var kbX = tiles[i].x + (kbDir === 'right' ? 1 : kbDir === 'left' ? -1 : 0);
+                    var kbY = tiles[i].y + (kbDir === 'down' ? 1 : kbDir === 'up' ? -1 : 0);
+                    if (!State.isBlocked(kbX, kbY) && !State.getEnemyAt(kbX, kbY)) {
+                        enemy.x = kbX;
+                        enemy.y = kbY;
+                    }
+                }
             }
         }
 
@@ -302,6 +315,16 @@ var Combat = {
                 var result = this.calculateDamage(skill.damage, skill);
                 this.dealDamage(enemy, result.damage, 'player', result.isCrit);
                 hitCount++;
+
+                if (skill.effects.indexOf('knockback1') !== -1 && !enemy.isBoss) {
+                    var kbDir = Grid.getDirection(State.player.x, State.player.y, t.x, t.y);
+                    var kbX = t.x + (kbDir === 'right' ? 1 : kbDir === 'left' ? -1 : 0);
+                    var kbY = t.y + (kbDir === 'down' ? 1 : kbDir === 'up' ? -1 : 0);
+                    if (!State.isBlocked(kbX, kbY) && !State.getEnemyAt(kbX, kbY)) {
+                        enemy.x = kbX;
+                        enemy.y = kbY;
+                    }
+                }
 
                 if (skill.effects.indexOf('burn') !== -1) {
                     State.burnTiles.push({ x: t.x, y: t.y, turns: 3 });
@@ -416,8 +439,15 @@ var Combat = {
                 if (e.frozen === 0) {
                     State.addFloatingText(e.x, e.y, 'THAWED', '#88ddff');
                     if (!e.isBoss) {
-                        e.freezeImmune = true;
+                        e.freezeImmuneTurns = 2;
                     }
+                }
+            }
+
+            if (e.freezeImmuneTurns > 0) {
+                e.freezeImmuneTurns--;
+                if (e.freezeImmuneTurns === 0) {
+                    e.freezeImmune = false;
                 }
             }
 

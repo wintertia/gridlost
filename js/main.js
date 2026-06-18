@@ -75,8 +75,9 @@ var Main = {
 
     applyBossBonus: function(bonusId) {
         if (bonusId === 'maxhp') {
-            State.player.maxHp += 25;
-            State.player.hp += 25;
+            var hpBonus = Math.floor(State.player.maxHp * 0.25);
+            State.player.maxHp += hpBonus;
+            State.player.hp += hpBonus;
         } else if (bonusId === 'damage') {
             State.player.power = Math.floor(State.player.power * 1.25);
         }
@@ -96,8 +97,10 @@ var Main = {
             State.addFloatingText(State.player.x, State.player.y, '+' + upgrade.powerBonusPercent + '% DMG', '#ffaa00');
         }
         if (upgrade.critBonus) {
-            State.player.critChance += upgrade.critBonus;
-            State.addFloatingText(State.player.x, State.player.y, '+' + upgrade.critBonus + '% CRIT', '#ff4444');
+            State.player.critStacks++;
+            var bonus = Math.floor(upgrade.critBonus * Math.log2(State.player.critStacks + 1));
+            State.player.critChance += bonus;
+            State.addFloatingText(State.player.x, State.player.y, '+' + bonus + '% CRIT', '#ff4444');
         }
     },
 

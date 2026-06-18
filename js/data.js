@@ -9,7 +9,7 @@ var Data = {
     STAT_UPGRADES: {
         vitality: { name: 'Vitality', desc: 'Heal 30% HP', healPercent: 30 },
         power: { name: 'Power', desc: '+10% damage', powerBonusPercent: 10 },
-        crit: { name: 'Precision', desc: '+8% crit chance (2x damage)', critBonus: 8 }
+        crit: { name: 'Precision', desc: 'Crit chance +8% (log)', critBonus: 8 }
     },
 
     SKILLS: {
@@ -29,9 +29,9 @@ var Data = {
             color: '#ff6622', isBasic: false, effects: ['burn']
         },
         whirlwind: {
-            id: 'whirlwind', name: 'Whirlwind', desc: 'Spin attack hitting all adjacent',
+            id: 'whirlwind', name: 'Whirlwind', desc: 'Spin attack, knockback enemies 1 tile',
             energyCost: 2, damage: 50, shape: 'ring', range: 1,
-            color: '#ccddff', isBasic: false, effects: []
+            color: '#ccddff', isBasic: false, effects: ['knockback1']
         },
         holy_smite: {
             id: 'holy_smite', name: 'Holy Smite', desc: 'Divine cross smite',
@@ -49,9 +49,9 @@ var Data = {
             color: '#ff4444', isBasic: false, effects: ['backstab']
         },
         shield_bash: {
-            id: 'shield_bash', name: 'Shield Bash', desc: 'Push enemy 2 tiles back',
+            id: 'shield_bash', name: 'Shield Bash', desc: 'Push enemy 3 tiles back',
             energyCost: 2, damage: 40, shape: 'single', range: 1,
-            color: '#888899', isBasic: false, effects: ['push']
+            color: '#888899', isBasic: false, effects: ['knockback3']
         },
         lightning: {
             id: 'lightning', name: 'Lightning', desc: 'Piercing bolt, chains to nearby',

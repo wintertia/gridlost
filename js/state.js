@@ -12,6 +12,7 @@ var State = {
         maxEnergy: Data.PLAYER_BASE_ENERGY,
         power: Data.PLAYER_BASE_POWER,
         critChance: 0,
+        critStacks: 0,
         skills: [null, Data.SKILLS.slash, null, null, null],
         selectedSlot: 0,
         statusEffects: [],
@@ -81,16 +82,23 @@ var State = {
     },
 
     addFloatingText: function(x, y, text, color) {
+        var offset = 0;
+        for (var i = 0; i < this.floatingTexts.length; i++) {
+            var ft = this.floatingTexts[i];
+            if (Math.abs(ft.x - x) < 0.5 && Math.abs(ft.y - y) < 1) {
+                offset += 0.3;
+            }
+        }
         this.floatingTexts.push({
-            x: x, y: y, text: text, color: color,
-            life: 45, maxLife: 45
+            x: x, y: y - offset, text: text, color: color,
+            life: 70, maxLife: 70
         });
     },
 
     updateFloatingTexts: function() {
         for (var i = this.floatingTexts.length - 1; i >= 0; i--) {
             this.floatingTexts[i].life--;
-            this.floatingTexts[i].y -= 0.4;
+            this.floatingTexts[i].y -= 0.25;
             if (this.floatingTexts[i].life <= 0) {
                 this.floatingTexts.splice(i, 1);
             }

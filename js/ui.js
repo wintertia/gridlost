@@ -306,7 +306,7 @@ var UI = {
 
     showBossBonusChoices: function(callback) {
         var choices = [
-            { id: 'maxhp', name: '+25 Max HP', desc: 'Increase maximum health by 25' },
+            { id: 'maxhp', name: '+25% Max HP', desc: 'Increase maximum health by 25%' },
             { id: 'damage', name: '+25% Damage', desc: 'All attacks deal 25% more damage' }
         ];
 
