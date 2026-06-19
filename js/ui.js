@@ -65,13 +65,13 @@ var UI = {
     updateSkillBar: function() {
         var p = State.player;
 
-        for (var i = 0; i < 5; i++) {
+        for (var i = 0; i < 6; i++) {
             var $slot = $('.skill-slot[data-slot="' + i + '"]');
             var skill = p.skills[i];
 
             $slot.removeClass('active empty');
             if (i === p.selectedSlot) $slot.addClass('active');
-            if (i >= 2 && !skill) $slot.addClass('empty');
+            if (i >= 2 && i <= 4 && !skill) $slot.addClass('empty');
 
             if (i === 0) {
                 $slot.find('.skill-name').text('Move');
@@ -80,7 +80,12 @@ var UI = {
             } else if (i === 1) {
                 $slot.find('.skill-name').text('Slash');
                 $slot.find('.skill-cost').text('1⚡');
-                $slot.attr('data-tooltip', 'Basic melee attack\nDamage: 6\nCost: 1 energy\nShape: Single target (adjacent)');
+                $slot.attr('data-tooltip', 'Basic melee attack\nDamage: 60\nCost: 1 energy\nShape: Single target (adjacent)');
+            } else if (i === 5) {
+                $slot.find('.skill-name').text('Guard');
+                $slot.find('.skill-cost').text('All⚡');
+                var guardPct = p.energy * 5;
+                $slot.attr('data-tooltip', 'Guard: spend all remaining energy\nMitigate ' + guardPct + '% damage this turn\n(' + p.energy + ' energy × 5%)');
             } else if (skill) {
                 $slot.find('.skill-name').text(skill.name);
                 $slot.find('.skill-cost').text(skill.energyCost + '⚡');
@@ -131,7 +136,10 @@ var UI = {
             'cross': 'Cross (cross-shaped)',
             'ring': 'Ring (all adjacent)',
             'aoe': 'AoE (3x3 area)',
-            'dash': 'Movement (3 tiles)'
+            'dash': 'Movement (3 tiles)',
+            'self': 'Self',
+            'blink': 'Teleport (3 tiles)',
+            'guard': 'Guard'
         };
         return names[shape] || shape;
     },
@@ -323,6 +331,7 @@ var UI = {
     showItemChoices: function(callback) {
         var pool = [];
         for (var id in Data.ITEMS) {
+            if (Data.ITEMS[id].rarity === 'boss') continue;
             pool.push(id);
         }
 
@@ -378,36 +387,58 @@ var UI = {
     },
 
     showSkillChoices: function(callback) {
-        var pool = Data.SKILL_POOL.slice();
-        var owned = [];
-        for (var i = 1; i < State.player.skills.length; i++) {
-            if (State.player.skills[i]) owned.push(State.player.skills[i].id);
+        var self = this;
+        var rerollsLeft = 1 + (State.player.items['boss_crown'] || 0);
+
+        function generateChoices() {
+            var pool = Data.SKILL_POOL.slice();
+            var owned = [];
+            for (var i = 1; i < State.player.skills.length; i++) {
+                if (State.player.skills[i]) owned.push(State.player.skills[i].id);
+            }
+
+            var available = pool.filter(function(id) {
+                return owned.indexOf(id) === -1;
+            });
+
+            var shuffled = available.sort(function() { return Math.random() - 0.5; });
+            var choices = shuffled.slice(0, 3);
+
+            var $grid = $('#skill-choices');
+            $grid.empty();
+
+            for (var i = 0; i < choices.length; i++) {
+                var skill = Data.SKILLS[choices[i]];
+                var $card = $('<div class="choice-card" data-skill="' + skill.id + '">' +
+                    '<div class="choice-title" style="color:' + skill.color + '">' + skill.name + '</div>' +
+                    '<div class="choice-desc">' + skill.desc + '</div>' +
+                    '<div class="choice-stat">Cost: ' + skill.energyCost + '⚡ | Damage: ' + skill.damage + '</div>' +
+                    '</div>');
+                $grid.append($card);
+            }
+
+            $grid.find('.choice-card').on('click', function() {
+                var skillId = $(this).data('skill');
+                $grid.find('.choice-card').off('click');
+                $('#btn-reroll-skill').off('click');
+                callback(skillId);
+            });
+
+            $('#btn-reroll-skill').text('REROLL (' + rerollsLeft + ')');
+            if (rerollsLeft <= 0) {
+                $('#btn-reroll-skill').prop('disabled', true).addClass('disabled');
+            } else {
+                $('#btn-reroll-skill').prop('disabled', false).removeClass('disabled');
+            }
         }
 
-        var available = pool.filter(function(id) {
-            return owned.indexOf(id) === -1;
-        });
+        generateChoices();
 
-        var shuffled = available.sort(function() { return Math.random() - 0.5; });
-        var choices = shuffled.slice(0, 3);
-
-        var $grid = $('#skill-choices');
-        $grid.empty();
-
-        for (var i = 0; i < choices.length; i++) {
-            var skill = Data.SKILLS[choices[i]];
-            var $card = $('<div class="choice-card" data-skill="' + skill.id + '">' +
-                '<div class="choice-title" style="color:' + skill.color + '">' + skill.name + '</div>' +
-                '<div class="choice-desc">' + skill.desc + '</div>' +
-                '<div class="choice-stat">Cost: ' + skill.energyCost + '⚡ | Damage: ' + skill.damage + '</div>' +
-                '</div>');
-            $grid.append($card);
-        }
-
-        $grid.find('.choice-card').on('click', function() {
-            var skillId = $(this).data('skill');
-            $grid.find('.choice-card').off('click');
-            callback(skillId);
+        $('#btn-reroll-skill').off('click').on('click', function() {
+            if (rerollsLeft > 0) {
+                rerollsLeft--;
+                generateChoices();
+            }
         });
 
         $('#btn-skip-skill').off('click').on('click', function() {
@@ -495,27 +526,25 @@ var UI = {
     },
 
     showBossBonusChoices: function(callback) {
-        var choices = [
-            { id: 'maxhp', name: '+25% Max HP', desc: 'Increase maximum health by 25%' },
-            { id: 'damage', name: '+25% Damage', desc: 'All attacks deal 25% more damage' }
-        ];
+        var bossItemIds = ['boss_heart', 'boss_weapon', 'boss_crown'];
 
         var $grid = $('#boss-bonus-choices');
         $grid.empty();
 
-        for (var i = 0; i < choices.length; i++) {
-            var choice = choices[i];
-            var $card = $('<div class="choice-card" data-bonus="' + choice.id + '">' +
-                '<div class="choice-title">' + choice.name + '</div>' +
-                '<div class="choice-desc">' + choice.desc + '</div>' +
+        for (var i = 0; i < bossItemIds.length; i++) {
+            var item = Data.ITEMS[bossItemIds[i]];
+            var $card = $('<div class="choice-card item-card item-rarity-boss" data-item="' + item.id + '">' +
+                '<div class="item-icon" style="background:' + item.iconBg + '">' + item.icon + '</div>' +
+                '<div class="choice-title" style="color:#ffdd00">' + item.name + '</div>' +
+                '<div class="choice-desc">' + item.desc + '</div>' +
                 '</div>');
             $grid.append($card);
         }
 
         $grid.find('.choice-card').on('click', function() {
-            var bonusId = $(this).data('bonus');
+            var itemId = $(this).data('item');
             $grid.find('.choice-card').off('click');
-            callback(bonusId);
+            callback(itemId);
         });
 
         this.showScreen('boss-bonus-screen');

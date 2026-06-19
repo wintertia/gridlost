@@ -74,6 +74,7 @@ var Grid = {
         this.drawTiles(ctx, ts);
         this.drawObstacles(ctx, ts);
         this.drawBurnTiles(ctx, ts);
+        this.drawPoisonTiles(ctx, ts);
         this.drawRangeIndicator(ctx, ts);
         this.drawMoveIndicators(ctx, ts);
         this.drawAttackPreview(ctx, ts);
@@ -102,6 +103,7 @@ var Grid = {
     },
 
     drawObstacles: function(ctx, ts) {
+        if (ts <= 0) return;
         for (var i = 0; i < State.obstacles.length; i++) {
             var o = State.obstacles[i];
             var px = o.x * ts;
@@ -165,6 +167,17 @@ var Grid = {
             var py = b.y * ts;
             var flicker = 0.3 + Math.sin(this.animFrame * 0.15 + i) * 0.15;
             ctx.fillStyle = 'rgba(255, 100, 0, ' + flicker + ')';
+            ctx.fillRect(px + 2, py + 2, ts - 4, ts - 4);
+        }
+    },
+
+    drawPoisonTiles: function(ctx, ts) {
+        for (var i = 0; i < State.poisonTiles.length; i++) {
+            var p = State.poisonTiles[i];
+            var px = p.x * ts;
+            var py = p.y * ts;
+            var flicker = 0.25 + Math.sin(this.animFrame * 0.12 + i * 1.5) * 0.15;
+            ctx.fillStyle = 'rgba(68, 204, 68, ' + flicker + ')';
             ctx.fillRect(px + 2, py + 2, ts - 4, ts - 4);
         }
     },

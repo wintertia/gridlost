@@ -73,12 +73,16 @@ var Main = {
     },
 
     applyBossBonus: function(bonusId) {
-        if (bonusId === 'maxhp') {
+        State.addItem(bonusId);
+        var item = Data.ITEMS[bonusId];
+        var name = item ? item.name : bonusId;
+        State.addLog('Obtained boss item: ' + name, 'boss');
+
+        if (bonusId === 'boss_heart') {
             var hpBonus = Math.floor(State.player.maxHp * 0.25);
             State.player.maxHp += hpBonus;
             State.player.hp += hpBonus;
-        } else if (bonusId === 'damage') {
-            State.player.power = Math.floor(State.player.power * 1.25);
+            State.addFloatingText(State.player.x, State.player.y, '+' + hpBonus + ' MAX HP', '#ffaa00');
         }
     },
 
@@ -132,6 +136,27 @@ var Main = {
     handleSkillAcquisition: function(skillId) {
         var newSkill = Data.SKILLS[skillId];
         if (!newSkill) {
+            this.proceedToNextStage();
+            return;
+        }
+
+        var existingSlot = -1;
+        for (var i = 2; i < State.player.skills.length; i++) {
+            if (State.player.skills[i] && State.player.skills[i].id === skillId) {
+                existingSlot = i;
+                break;
+            }
+        }
+
+        if (existingSlot !== -1) {
+            if (!State.player.skillStacks[skillId]) {
+                State.player.skillStacks[skillId] = 1;
+            } else {
+                State.player.skillStacks[skillId]++;
+            }
+            State.addFloatingText(State.player.x, State.player.y, 'STACK +' + State.player.skillStacks[skillId] + '!', '#ffaa00');
+            State.addLog(newSkill.name + ' stacked to ' + State.player.skillStacks[skillId], 'info');
+            State.updateSynergies();
             this.proceedToNextStage();
             return;
         }

@@ -160,11 +160,17 @@
                 <span class="skill-name">Empty</span>
                 <span class="skill-cost">-</span>
             </div>
+            <div class="skill-slot guard-slot" data-slot="5">
+                <span class="skill-key">6</span>
+                <div class="skill-icon guard-icon"></div>
+                <span class="skill-name">Guard</span>
+                <span class="skill-cost">All⚡</span>
+            </div>
             <button id="btn-end-turn" class="pixel-btn end-turn-btn">END TURN<span class="key-hint">(E/Space)</span></button>
         </div>
         <div id="controls-hint">
             <span>Click: move/attack</span>
-            <span>1-5: select skill</span>
+            <span>1-6: select skill</span>
             <span>Right-click: deselect</span>
         </div>
     </div>
@@ -188,7 +194,10 @@
             <div id="skill-choices" class="choices-grid">
                 <!-- Populated by JS -->
             </div>
-            <button id="btn-skip-skill" class="pixel-btn small">SKIP</button>
+            <div class="skill-actions">
+                <button id="btn-reroll-skill" class="pixel-btn small">REROLL (1)</button>
+                <button id="btn-skip-skill" class="pixel-btn small">SKIP</button>
+            </div>
         </div>
     </div>
 

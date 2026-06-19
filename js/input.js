@@ -197,10 +197,27 @@ var Input = {
         var skill = State.getSelectedSkill();
         if (!skill) return;
 
+        if (skill.shape === 'guard') {
+            Combat.executeGuard();
+            return;
+        }
+
+        if (skill.shape === 'self') {
+            Combat.executeSelfSkill(skill);
+            return;
+        }
+
         var enemyAtTile = State.getEnemyAt(tile.x, tile.y);
 
         if (skill.shape === 'dash') {
             Combat.executeDash(tile.x, tile.y);
+            return;
+        }
+
+        if (skill.shape === 'blink') {
+            if (State.player.energy >= skill.energyCost) {
+                Combat.executeBlinkStrike(tile.x, tile.y, skill);
+            }
             return;
         }
 
@@ -281,7 +298,7 @@ var Input = {
     handleKey: function(e) {
         if (State.phase !== 'player') return;
         var key = e.key;
-        if (key >= '1' && key <= '5') {
+        if (key >= '1' && key <= '6') {
             var slot = parseInt(key) - 1;
             State.player.selectedSlot = slot;
             UI.updateSkillBar();

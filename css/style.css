@@ -640,6 +640,20 @@ html, body {
     align-items: center;
 }
 .empty-icon { background: var(--bg-dark); }
+.guard-icon {
+    background: linear-gradient(135deg, #446688, #6688aa);
+    position: relative;
+}
+.guard-icon::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    right: 3px;
+    bottom: 3px;
+    border: 2px solid #aaccee;
+    border-radius: 2px;
+}
 
 .skill-name {
     font-size: 0.45rem;
@@ -727,6 +741,23 @@ html, body {
     gap: 0.8rem;
 }
 
+.skill-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    justify-content: center;
+}
+
+.skill-actions .pixel-btn {
+    flex: 1;
+}
+
+.pixel-btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
 .choice-card {
     background: var(--bg-dark);
     border: 2px solid var(--border);
@@ -746,6 +777,15 @@ html, body {
 .choice-card:active {
     transform: translateY(2px);
     box-shadow: none;
+}
+
+.item-rarity-boss {
+    border-color: #ffaa00;
+}
+
+.item-rarity-boss:hover {
+    border-color: #ffdd44;
+    box-shadow: 0 4px 0 #cc8800;
 }
 
 /* Item Choice Cards - Larger with Icons */

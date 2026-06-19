@@ -73,8 +73,8 @@ var Data = {
             icon: '\u25CF', iconBg: '#aa44dd'
         },
         guardian_angel: {
-            id: 'guardian_angel', name: 'Guardian Angel', desc: '+150 shield, regen 10%/turn',
-            rarity: 'uncommon', effect: { type: 'passive', stat: 'shield', value: 150, shieldRegenPercent: 10 },
+            id: 'guardian_angel', name: 'Guardian Angel', desc: '+100 shield, regen 7%/turn',
+            rarity: 'uncommon', effect: { type: 'passive', stat: 'shield', value: 100, shieldRegenPercent: 7 },
             icon: '\u25C8', iconBg: '#ffdd44'
         },
         explosive_rounds: {
@@ -120,9 +120,26 @@ var Data = {
             icon: '\u2665', iconBg: '#aa0022'
         },
         shield_generator: {
-            id: 'shield_generator', name: 'Shield Generator', desc: '+300 shield, regen 15%/turn',
-            rarity: 'rare', effect: { type: 'passive', stat: 'shield', value: 300, shieldRegenPercent: 15 },
+            id: 'shield_generator', name: 'Shield Generator', desc: '+200 shield, regen 10%/turn',
+            rarity: 'rare', effect: { type: 'passive', stat: 'shield', value: 200, shieldRegenPercent: 10 },
             icon: '\u25CE', iconBg: '#4488ff'
+        },
+
+        // === BOSS (Gold) ===
+        boss_heart: {
+            id: 'boss_heart', name: 'Boss Heart', desc: '+25% max HP (stacks)',
+            rarity: 'boss', effect: { type: 'passive', stat: 'maxHpPercent', value: 25 },
+            icon: '\u2665', iconBg: '#ffaa00'
+        },
+        boss_weapon: {
+            id: 'boss_weapon', name: 'Boss Weapon', desc: '+20% flat damage',
+            rarity: 'boss', effect: { type: 'passive', stat: 'power', value: 20 },
+            icon: '\u2694', iconBg: '#ff4444'
+        },
+        boss_crown: {
+            id: 'boss_crown', name: 'Boss Crown', desc: '+1 skill reroll per stage',
+            rarity: 'boss', effect: { type: 'passive', stat: 'extraRerolls', value: 1 },
+            icon: '\u265B', iconBg: '#ffdd00'
         }
     },
 
@@ -192,9 +209,9 @@ var Data = {
             color: '#aaddff', isBasic: false, effects: []
         },
         fireball: {
-            id: 'fireball', name: 'Fireball', desc: 'Explosive 3x3 AoE, leaves burning ground',
+            id: 'fireball', name: 'Fireball', desc: 'Explosive 3x3 AoE',
             energyCost: 4, damage: 60, shape: 'aoe', range: 3,
-            color: '#ff6622', isBasic: false, effects: ['burn']
+            color: '#ff6622', isBasic: false, effects: []
         },
         whirlwind: {
             id: 'whirlwind', name: 'Whirlwind', desc: 'Spin attack, knockback enemies 1 tile',
@@ -212,8 +229,8 @@ var Data = {
             color: '#88ddff', isBasic: false, effects: ['freeze']
         },
         backstab: {
-            id: 'backstab', name: 'Shatter Strike', desc: '2x damage against frozen enemies',
-            energyCost: 2, damage: 120, shape: 'single', range: 1,
+            id: 'backstab', name: 'Shatter Strike', desc: 'Deals bonus damage against frozen enemies',
+            energyCost: 2, damage: 50, shape: 'single', range: 1,
             color: '#ff4444', isBasic: false, effects: ['backstab']
         },
         shield_bash: {
@@ -227,23 +244,88 @@ var Data = {
             color: '#ffff44', isBasic: false, effects: ['chain']
         },
         poison_cloud: {
-            id: 'poison_cloud', name: 'Poison Cloud', desc: 'Toxic cone, DoT',
-            energyCost: 2, damage: 20, shape: 'cone', range: 2,
+            id: 'poison_cloud', name: 'Poison Cloud', desc: 'Toxic cone, leaves poison ground',
+            energyCost: 2, damage: 50, shape: 'cone', range: 2,
             color: '#44cc44', isBasic: false, effects: ['poison']
         },
         war_cry: {
-            id: 'war_cry', name: 'War Cry', desc: '+50% power to next attack',
+            id: 'war_cry', name: 'War Cry', desc: '+50% power, -20% dmg taken for 1 turn',
             energyCost: 1, damage: 0, shape: 'ring', range: 1,
-            color: '#ffaa00', isBasic: false, effects: ['empower']
+            color: '#ffaa00', isBasic: false, effects: ['empower', 'damage_reduction']
         },
         dash: {
-            id: 'dash', name: 'Dash', desc: 'Move 3 tiles, pass through enemies',
-            energyCost: 1, damage: 0, shape: 'dash', range: 3,
+            id: 'dash', name: 'Dash', desc: 'Move 3 tiles, damage enemies in path',
+            energyCost: 1, damage: 30, shape: 'dash', range: 3,
             color: '#88ff88', isBasic: false, effects: ['dash']
+        },
+        guard: {
+            id: 'guard', name: 'Guard', desc: 'Spend all energy, mitigate damage',
+            energyCost: 0, damage: 0, shape: 'guard', range: 0,
+            color: '#6688aa', isBasic: true, effects: ['guard']
+        },
+        blink_strike: {
+            id: 'blink_strike', name: 'Blink Strike', desc: 'Teleport to target, attack',
+            energyCost: 3, damage: 70, shape: 'blink', range: 3,
+            color: '#cc44ff', isBasic: false, effects: []
+        },
+        rend: {
+            id: 'rend', name: 'Rend', desc: 'Bleed: 15 dmg/turn for 3 turns',
+            energyCost: 2, damage: 40, shape: 'single', range: 1,
+            color: '#cc2222', isBasic: false, effects: ['bleed']
+        },
+        execute: {
+            id: 'execute', name: 'Execute', desc: '+100% dmg vs enemies below 50% HP',
+            energyCost: 2, damage: 50, shape: 'single', range: 1,
+            color: '#ff4444', isBasic: false, effects: ['execute']
+        },
+        cleave: {
+            id: 'cleave', name: 'Cleave', desc: 'Wide front arc attack',
+            energyCost: 2, damage: 60, shape: 'cone', range: 1,
+            color: '#ff8844', isBasic: false, effects: []
+        },
+        heal: {
+            id: 'heal', name: 'Heal', desc: 'Restore 20% HP',
+            energyCost: 5, damage: 0, shape: 'self', range: 0,
+            color: '#44ff88', isBasic: false, effects: ['heal']
+        },
+        reave: {
+            id: 'reave', name: 'Reave', desc: '+50% dmg if target is isolated',
+            energyCost: 2, damage: 80, shape: 'single', range: 1,
+            color: '#aa4444', isBasic: false, effects: ['reave']
+        },
+        fire_nova: {
+            id: 'fire_nova', name: 'Fire Nova', desc: 'AoE around self, leaves burn tiles',
+            energyCost: 2, damage: 40, shape: 'ring', range: 1,
+            color: '#ff6622', isBasic: false, effects: ['burn']
+        },
+        frost_nova: {
+            id: 'frost_nova', name: 'Frost Nova', desc: 'AoE around self, freezes enemies',
+            energyCost: 3, damage: 30, shape: 'ring', range: 1,
+            color: '#88ddff', isBasic: false, effects: ['freeze']
+        },
+        mark: {
+            id: 'mark', name: 'Mark', desc: 'Enemy takes 100% more damage next turn',
+            energyCost: 1, damage: 0, shape: 'single', range: 3,
+            color: '#ff8800', isBasic: false, effects: ['mark']
+        },
+        lifesteal_aura: {
+            id: 'lifesteal_aura', name: 'Lifesteal Aura', desc: 'Heal 20% of damage dealt for 3 turns',
+            energyCost: 3, damage: 0, shape: 'self', range: 0,
+            color: '#cc4444', isBasic: false, effects: ['lifesteal_aura']
+        },
+        berserk: {
+            id: 'berserk', name: 'Berserk', desc: '+50% damage but +50% damage taken for 3 turns',
+            energyCost: 1, damage: 0, shape: 'self', range: 0,
+            color: '#ff4444', isBasic: false, effects: ['berserk']
+        },
+        rejuvenation: {
+            id: 'rejuvenation', name: 'Rejuvenation', desc: 'Heal 5% HP for 3 turns',
+            energyCost: 3, damage: 0, shape: 'self', range: 0,
+            color: '#44ff88', isBasic: false, effects: ['rejuvenation']
         }
     },
 
-    SKILL_POOL: ['thrust', 'fireball', 'whirlwind', 'holy_smite', 'ice_shard', 'backstab', 'shield_bash', 'lightning', 'poison_cloud', 'war_cry', 'dash'],
+    SKILL_POOL: ['thrust', 'fireball', 'whirlwind', 'holy_smite', 'ice_shard', 'backstab', 'shield_bash', 'lightning', 'poison_cloud', 'war_cry', 'dash', 'blink_strike', 'rend', 'execute', 'cleave', 'heal', 'reave', 'fire_nova', 'frost_nova', 'mark', 'lifesteal_aura', 'berserk', 'rejuvenation'],
 
     SYNERGIES: {
         firestorm: {
@@ -268,7 +350,7 @@ var Data = {
         },
         combust: {
             name: 'Combust', requires: ['poison_cloud', 'fireball'],
-            desc: 'Burning poison tiles deal double DoT'
+            desc: 'Poison tiles deal double damage'
         }
     },
 

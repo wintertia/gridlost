@@ -61,6 +61,12 @@ var Combat = {
                     }
                 }
                 break;
+            case 'self':
+                tiles.push({ x: State.player.x, y: State.player.y });
+                break;
+            case 'blink':
+                tiles.push({ x: tx, y: ty });
+                break;
         }
 
         return tiles.filter(function(t) {
@@ -74,8 +80,22 @@ var Combat = {
         var conditionalBonus = this.getConditionalDamageBonus();
         var dmg = baseDmg + bonus + itemPowerBonus + conditionalBonus;
 
+        if (skill && skill.id) {
+            var skillStacks = State.player.skillStacks[skill.id] || 0;
+            if (skillStacks > 0 && !['war_cry', 'heal', 'lifesteal_aura', 'rejuvenation', 'mark', 'berserk', 'guard'].includes(skill.id)) {
+                var stackMultiplier = 1 + (skillStacks * 0.2);
+                dmg = Math.floor(dmg * stackMultiplier);
+            }
+        }
+
         if (State.player.tempPower > 0) {
             dmg = Math.floor(dmg * (1 + State.player.tempPower / 100));
+        }
+
+        if (State.player.berserk && State.player.berserk > 0) {
+            var berserkStacks = State.player.skillStacks['berserk'] || 0;
+            var berserkMultiplier = 1.5 + (berserkStacks * 0.25);
+            dmg = Math.floor(dmg * berserkMultiplier);
         }
 
         var empowerInter = State.hasSkillInteraction('war_cry');
@@ -109,6 +129,11 @@ var Combat = {
         var iceShardShatter = State.hasItem('frozen_core') && State.hasSkillInteraction('ice_shard');
         if (target.frozen && target.frozen > 0 && iceShardShatter) {
             actualDmg = dmg * 2;
+        }
+
+        if (target.marked && target.marked > 0) {
+            actualDmg = Math.floor(actualDmg * target.marked);
+            target.marked = 0;
         }
 
         target.hp -= actualDmg;
@@ -149,13 +174,38 @@ var Combat = {
             }
         }
 
-        var lifesteal = this.calculateItemStatBonus('lifesteal');
-        if (lifesteal > 0 && actualDmg > 0) {
-            var healAmount = Math.floor(actualDmg * lifesteal / 100);
-            if (healAmount > 0) {
-                State.player.hp = Math.min(State.player.hp + healAmount, State.player.maxHp);
-                State.addFloatingText(State.player.x, State.player.y, '+' + healAmount + ' HP', '#44ff44');
+        if (source === 'player' && State.player.lifestealAura && State.player.lifestealAura > 0) {
+            var lifestealStacks = State.player.skillStacks['lifesteal_aura'] || 0;
+            var lifestealPercent = 0.2 + (lifestealStacks * 0.025);
+            var lifestealHeal = Math.floor(actualDmg * lifestealPercent);
+            if (lifestealHeal > 0) {
+                State.player.hp = Math.min(State.player.hp + lifestealHeal, State.player.maxHp);
+                State.addFloatingText(State.player.x, State.player.y, '+' + lifestealHeal + ' LIFESTEAL', '#cc4444');
             }
+        }
+
+        if (target.bleed && target.bleed.turns > 0) {
+                var bleedDmg = target.bleed.damage;
+                target.hp -= bleedDmg;
+                var def = Data.ENEMIES[target.defId];
+                var name = def ? def.name : 'Enemy';
+                State.addLog(name + ' takes ' + bleedDmg + ' bleed dmg', 'dot');
+                State.addFloatingText(target.x, target.y, '-' + bleedDmg + ' BLEED', '#cc2222');
+                target.bleed.turns--;
+                if (target.bleed.turns <= 0) target.bleed = null;
+                if (target.hp <= 0) {
+                    target.hp = 0;
+                    State.runStats.enemyKills++;
+                    State.addLog(name + ' killed by bleed!', 'kill');
+                    var defId = target.defId;
+                    if (defId !== 'skeleton') {
+                        var healPercent = 1 + Math.random() * 2;
+                        var healAmount = Math.floor(State.player.maxHp * healPercent / 100);
+                        State.player.hp = Math.min(State.player.hp + healAmount, State.player.maxHp);
+                        State.addFloatingText(State.player.x, State.player.y, '+' + healAmount + ' HP', '#44ff44');
+                        State.addLog('Healed for ' + healAmount + ' HP', 'info');
+                    }
+                }
         }
     },
 
@@ -273,6 +323,23 @@ var Combat = {
         }
         var reducedDmg = Math.max(1, Math.floor(dmg * reduction));
 
+        if (State.player.guarding) {
+            var guardMitigation = State.player.guardEnergy * 5;
+            var guardReduction = 1 - (guardMitigation / 100);
+            reducedDmg = Math.max(1, Math.floor(reducedDmg * guardReduction));
+            State.addFloatingText(State.player.x, State.player.y, 'GUARD -' + guardMitigation + '%', '#6688aa');
+        }
+
+        if (State.player.berserk && State.player.berserk > 0) {
+            var berserkStacks = State.player.skillStacks['berserk'] || 0;
+            var berserkMultiplier = 1.5 + (berserkStacks * 0.25);
+            reducedDmg = Math.floor(reducedDmg * berserkMultiplier);
+        }
+
+        if (State.player.damageReduction > 0) {
+            reducedDmg = Math.floor(reducedDmg * 0.8);
+        }
+
         if (State.player.shield > 0) {
             var shieldAbsorb = Math.min(State.player.shield, reducedDmg);
             State.player.shield -= shieldAbsorb;
@@ -306,13 +373,47 @@ var Combat = {
             var isCrit = result.isCrit;
 
             if (skill.effects.indexOf('backstab') !== -1 && enemy.frozen > 0) {
-                var backstabResult = this.calculateDamage(skill.damage * 2, skill);
+                var backstabResult = this.calculateDamage(skill.damage * 3, skill);
                 dmg = backstabResult.damage;
                 isCrit = backstabResult.isCrit;
                 State.addFloatingText(tx, ty, 'SHATTER!', '#ff8800');
             }
 
+            if (skill.effects.indexOf('execute') !== -1) {
+                var hpPct = enemy.hp / enemy.maxHp;
+                if (hpPct < 0.5) {
+                    dmg = Math.floor(dmg * 2);
+                    State.addFloatingText(tx, ty, 'EXECUTE!', '#ff4444');
+                }
+            }
+
+            if (skill.effects.indexOf('reave') !== -1) {
+                var alive = State.getAliveEnemies();
+                var adjacentEnemies = 0;
+                for (var i = 0; i < alive.length; i++) {
+                    if (alive[i] !== enemy && alive[i].hp > 0) {
+                        var d = Math.abs(alive[i].x - tx) + Math.abs(alive[i].y - ty);
+                        if (d <= 1) adjacentEnemies++;
+                    }
+                }
+                if (adjacentEnemies === 0) {
+                    dmg = Math.floor(dmg * 1.5);
+                    State.addFloatingText(tx, ty, 'REAVE!', '#aa4444');
+                }
+            }
+
             this.dealDamage(enemy, dmg, 'player', isCrit);
+
+            if (skill.effects.indexOf('bleed') !== -1 && !enemy.isBoss) {
+                var bleedDmg = Math.floor(15 * (1 + State.player.power / 100));
+                if (!enemy.bleed) {
+                    enemy.bleed = { damage: bleedDmg, turns: 3 };
+                } else {
+                    enemy.bleed.damage += bleedDmg;
+                    enemy.bleed.turns = 3;
+                }
+                State.addFloatingText(tx, ty, 'BLEED!', '#cc2222');
+            }
 
             if (skill.effects.indexOf('knockback3') !== -1 && !enemy.isBoss) {
                 var pushDir = Grid.getDirection(State.player.x, State.player.y, tx, ty);
@@ -343,8 +444,98 @@ var Combat = {
                 var poisonDmg = Math.floor(20 * (1 + State.player.power / 100));
                 enemy.poison = { damage: poisonDmg, turns: 3 };
             }
+
+            if (skill.effects.indexOf('mark') !== -1 && !enemy.isBoss) {
+                var markStacks = State.player.skillStacks['mark'] || 0;
+                var markMultiplier = 2 + (markStacks * 0.25);
+                enemy.marked = markMultiplier;
+                State.addFloatingText(tx, ty, 'MARKED! ' + Math.floor(markMultiplier * 100) + '%', '#ff8800');
+            }
         } else {
             this.hitObstacle(tx, ty, skill.damage);
+        }
+
+        this.endPlayerTurn();
+    },
+
+    executeBlinkStrike: function(tx, ty, skill) {
+        if (State.player.energy < skill.energyCost) return;
+
+        var dist = Math.abs(tx - State.player.x) + Math.abs(ty - State.player.y);
+        if (dist > skill.range) return;
+
+        var enemy = State.getEnemyAt(tx, ty);
+        if (!enemy) return;
+
+        State.player.energy -= skill.energyCost;
+        State.addLog('Player uses Blink Strike', 'action');
+
+        var oldX = State.player.x;
+        var oldY = State.player.y;
+
+        var dirX = tx === oldX ? 0 : (tx > oldX ? 1 : -1);
+        var dirY = ty === oldY ? 0 : (ty > oldY ? 1 : -1);
+        var blinkX = tx - dirX;
+        var blinkY = ty - dirY;
+
+        if (blinkX < 0 || blinkX >= Data.GRID_SIZE || blinkY < 0 || blinkY >= Data.GRID_SIZE) {
+            blinkX = oldX;
+            blinkY = oldY;
+        } else if (State.isBlocked(blinkX, blinkY) || State.getEnemyAt(blinkX, blinkY)) {
+            blinkX = oldX;
+            blinkY = oldY;
+        }
+
+        State.player.x = blinkX;
+        State.player.y = blinkY;
+
+        var result = this.calculateDamage(skill.damage, skill);
+        this.dealDamage(enemy, result.damage, 'player', result.isCrit);
+
+        this.endPlayerTurn();
+    },
+
+    executeSelfSkill: function(skill) {
+        if (State.player.energy < skill.energyCost) return;
+
+        if (skill.effects.indexOf('lifesteal_aura') !== -1 && State.player.lifestealAura > 0) {
+            State.addFloatingText(State.player.x, State.player.y, 'ALREADY ACTIVE!', '#ff4444');
+            return;
+        }
+        if (skill.effects.indexOf('berserk') !== -1 && State.player.berserk > 0) {
+            State.addFloatingText(State.player.x, State.player.y, 'ALREADY ACTIVE!', '#ff4444');
+            return;
+        }
+        if (skill.effects.indexOf('rejuvenation') !== -1 && State.player.rejuvenation > 0) {
+            State.addFloatingText(State.player.x, State.player.y, 'ALREADY ACTIVE!', '#ff4444');
+            return;
+        }
+
+        State.player.energy -= skill.energyCost;
+        State.addLog('Player uses ' + skill.name, 'action');
+
+        if (skill.effects.indexOf('heal') !== -1) {
+            var healStacks = State.player.skillStacks['heal'] || 0;
+            var healPercent = 0.2 + (healStacks * 0.025);
+            var healAmount = Math.floor(State.player.maxHp * healPercent);
+            State.player.hp = Math.min(State.player.hp + healAmount, State.player.maxHp);
+            State.addFloatingText(State.player.x, State.player.y, '+' + healAmount + ' HP', '#44ff88');
+            State.addLog('Healed for ' + healAmount + ' HP', 'info');
+        }
+
+        if (skill.effects.indexOf('lifesteal_aura') !== -1) {
+            State.player.lifestealAura = 3;
+            State.addFloatingText(State.player.x, State.player.y, 'LIFESTEAL AURA!', '#cc4444');
+        }
+
+        if (skill.effects.indexOf('berserk') !== -1) {
+            State.player.berserk = 3;
+            State.addFloatingText(State.player.x, State.player.y, 'BERSERK!', '#ff4444');
+        }
+
+        if (skill.effects.indexOf('rejuvenation') !== -1) {
+            State.player.rejuvenation = 3;
+            State.addFloatingText(State.player.x, State.player.y, 'REJUVENATION!', '#44ff88');
         }
 
         this.endPlayerTurn();
@@ -385,6 +576,7 @@ var Combat = {
                 if (skill.effects.indexOf('poison') !== -1) {
                     var poisonDmg = Math.floor(20 * (1 + State.player.power / 100));
                     enemy.poison = { damage: poisonDmg, turns: 3 };
+                    State.poisonTiles.push({ x: t.x, y: t.y, turns: 3, damage: poisonDmg });
                 }
             } else {
                 this.hitObstacle(t.x, t.y, skill.damage);
@@ -417,13 +609,20 @@ var Combat = {
         State.addLog('Player uses ' + skill.name, 'action');
 
         if (skill.effects.indexOf('empower') !== -1) {
-            var empowerValue = 50;
+            var empowerValue = 100;
+            var warCryStacks = State.player.skillStacks['war_cry'] || 0;
+            empowerValue += warCryStacks * 10;
             var empowerInter = State.hasSkillInteraction('war_cry');
             if (empowerInter && empowerInter.value) {
                 empowerValue = empowerInter.value;
             }
             State.player.tempPower = empowerValue;
             State.addFloatingText(State.player.x, State.player.y, 'EMPOWERED! +' + empowerValue + '%', '#ffaa00');
+        }
+
+        if (skill.effects.indexOf('damage_reduction') !== -1) {
+            State.player.damageReduction = 1;
+            State.addFloatingText(State.player.x, State.player.y, 'DAMAGE REDUCTION!', '#ffaa00');
         }
 
         var tiles = this.getAffectedTiles(State.player.x, State.player.y, State.player.x, State.player.y, skill);
@@ -441,6 +640,15 @@ var Combat = {
                         enemy.x = kbX;
                         enemy.y = kbY;
                     }
+                }
+
+                if (skill.effects.indexOf('burn') !== -1) {
+                    State.burnTiles.push({ x: tiles[i].x, y: tiles[i].y, turns: 3 });
+                }
+
+                if (skill.effects.indexOf('freeze') !== -1 && !enemy.isBoss && !enemy.freezeImmune && enemy.frozen === 0) {
+                    enemy.frozen = 2;
+                    enemy.freezeImmune = true;
                 }
             }
         }
@@ -516,12 +724,19 @@ var Combat = {
 
         var finalX = State.player.x;
         var finalY = State.player.y;
+        var enemiesHit = [];
 
         for (var i = 0; i < 3; i++) {
             var nx = finalX + stepX;
             var ny = finalY + stepY;
             if (nx < 0 || nx >= Data.GRID_SIZE || ny < 0 || ny >= Data.GRID_SIZE) break;
             if (State.isBlocked(nx, ny)) break;
+            
+            var enemy = State.getEnemyAt(nx, ny);
+            if (enemy && enemiesHit.indexOf(enemy) === -1) {
+                enemiesHit.push(enemy);
+            }
+            
             finalX = nx;
             finalY = ny;
         }
@@ -530,6 +745,15 @@ var Combat = {
         State.player.x = finalX;
         State.player.y = finalY;
         Input.checkTileEffects(finalX, finalY);
+
+        if (enemiesHit.length > 0) {
+            var skill = Data.SKILLS.dash;
+            for (var j = 0; j < enemiesHit.length; j++) {
+                var enemy = enemiesHit[j];
+                var result = this.calculateDamage(skill.damage, skill);
+                this.dealDamage(enemy, result.damage, 'player', result.isCrit);
+            }
+        }
 
         var dashInter = State.hasSkillInteraction('dash');
         if (dashInter && dashInter.healPercent) {
@@ -556,9 +780,25 @@ var Combat = {
         return false;
     },
 
+    executeGuard: function() {
+        var energy = State.player.energy;
+        if (energy <= 0) return;
+
+        State.player.guarding = true;
+        State.player.guardEnergy = energy;
+        State.player.energy = 0;
+
+        var pct = energy * 5;
+        State.addLog('Player guards! Mitigating ' + pct + '% damage (' + energy + ' energy)', 'action');
+        State.addFloatingText(State.player.x, State.player.y, 'GUARD ' + pct + '%', '#6688aa');
+
+        this.endPlayerTurn();
+    },
+
     endPlayerTurn: function() {
         State.phase = 'enemy';
         State.player.tempPower = 0;
+        State.player.damageReduction = 0;
         State.hoveredTile = null;
         State.attackPreview = [];
         UI.updateAll();
@@ -573,10 +813,14 @@ var Combat = {
         State.phase = 'player';
         var regenAmount = Math.ceil(State.player.maxEnergy / 2);
         State.player.energy = Math.min(State.player.energy + regenAmount, State.player.maxEnergy);
+        State.player.guarding = false;
+        State.player.guardEnergy = 0;
 
         this.processStatusEffects();
         this.processBurnTiles();
+        this.processPoisonTiles();
         this.processItemEffects();
+        this.processPlayerStatusEffects();
 
         if (State.player.hp <= 0) {
             Main.gameOver();
@@ -642,6 +886,13 @@ var Combat = {
                     }
                 }
             }
+
+            if (e.marked && e.marked > 0) {
+                e.marked--;
+                if (e.marked === 0) {
+                    State.addFloatingText(e.x, e.y, 'MARK FADED', '#ff8800');
+                }
+            }
         }
     },
 
@@ -653,12 +904,12 @@ var Combat = {
             var maxShield = 0;
             var regenPercent = 0;
             if (items['guardian_angel']) {
-                maxShield += 150 * items['guardian_angel'];
-                regenPercent += 10 * items['guardian_angel'];
+                maxShield += 100 * items['guardian_angel'];
+                regenPercent += 7 * items['guardian_angel'];
             }
             if (items['shield_generator']) {
-                maxShield += 300 * items['shield_generator'];
-                regenPercent += 15 * items['shield_generator'];
+                maxShield += 200 * items['shield_generator'];
+                regenPercent += 10 * items['shield_generator'];
             }
 
             var hasJuggernaut = State.hasItemSet('juggernaut_set');
@@ -720,6 +971,70 @@ var Combat = {
             State.burnTiles[i].turns--;
             if (State.burnTiles[i].turns <= 0) {
                 State.burnTiles.splice(i, 1);
+            }
+        }
+    },
+
+    processPoisonTiles: function() {
+        var hasCombust = State.hasSynergy('combust');
+        for (var i = State.poisonTiles.length - 1; i >= 0; i--) {
+            var pt = State.poisonTiles[i];
+            for (var j = 0; j < State.enemies.length; j++) {
+                var e = State.enemies[j];
+                if (e.hp <= 0) continue;
+                if (e.x === pt.x && e.y === pt.y) {
+                    var dmg = hasCombust ? pt.damage * 2 : pt.damage;
+                    e.hp -= dmg;
+                    var def = Data.ENEMIES[e.defId];
+                    var name = def ? def.name : 'Enemy';
+                    State.addLog(name + ' takes ' + dmg + ' poison ground dmg', 'dot');
+                    State.addFloatingText(e.x, e.y, '-' + dmg + ' POISON', '#44cc44');
+                    if (e.hp <= 0) {
+                        e.hp = 0;
+                        State.runStats.enemyKills++;
+                        State.addLog(name + ' killed by poison!', 'kill');
+                        var defId = e.defId;
+                        if (defId !== 'skeleton') {
+                            var healPercent = 1 + Math.random() * 2;
+                            var healAmount = Math.floor(State.player.maxHp * healPercent / 100);
+                            State.player.hp = Math.min(State.player.hp + healAmount, State.player.maxHp);
+                            State.addFloatingText(State.player.x, State.player.y, '+' + healAmount + ' HP', '#44ff44');
+                            State.addLog('Healed for ' + healAmount + ' HP', 'info');
+                        }
+                    }
+                }
+            }
+            pt.turns--;
+            if (pt.turns <= 0) {
+                State.poisonTiles.splice(i, 1);
+            }
+        }
+    },
+
+    processPlayerStatusEffects: function() {
+        if (State.player.rejuvenation && State.player.rejuvenation > 0) {
+            var rejuvStacks = State.player.skillStacks['rejuvenation'] || 0;
+            var rejuvPercent = 0.05 + (rejuvStacks * 0.025);
+            var healAmount = Math.floor(State.player.maxHp * rejuvPercent);
+            State.player.hp = Math.min(State.player.hp + healAmount, State.player.maxHp);
+            State.addFloatingText(State.player.x, State.player.y, '+' + healAmount + ' HP', '#44ff88');
+            State.player.rejuvenation--;
+            if (State.player.rejuvenation === 0) {
+                State.addFloatingText(State.player.x, State.player.y, 'REJUVENATION ENDED', '#44ff88');
+            }
+        }
+
+        if (State.player.berserk && State.player.berserk > 0) {
+            State.player.berserk--;
+            if (State.player.berserk === 0) {
+                State.addFloatingText(State.player.x, State.player.y, 'BERSERK ENDED', '#ff4444');
+            }
+        }
+
+        if (State.player.lifestealAura && State.player.lifestealAura > 0) {
+            State.player.lifestealAura--;
+            if (State.player.lifestealAura === 0) {
+                State.addFloatingText(State.player.x, State.player.y, 'LIFESTEAL AURA ENDED', '#cc4444');
             }
         }
     }

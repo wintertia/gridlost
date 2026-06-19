@@ -19,12 +19,20 @@ var State = {
         tempPower: 0,
         items: {},
         shield: 0,
-        tempBuffs: []
+        tempBuffs: [],
+        guarding: false,
+        guardEnergy: 0,
+        lifestealAura: 0,
+        berserk: 0,
+        rejuvenation: 0,
+        damageReduction: 0,
+        skillStacks: {}
     },
 
     enemies: [],
     obstacles: [],
     burnTiles: [],
+    poisonTiles: [],
     poisonEffects: [],
     activeSynergies: [],
 
@@ -53,6 +61,7 @@ var State = {
         this.enemies = [];
         this.obstacles = [];
         this.burnTiles = [];
+        this.poisonTiles = [];
         this.poisonEffects = [];
         this.activeSynergies = [];
         this.hoveredTile = null;
@@ -80,6 +89,13 @@ var State = {
         this.player.items = {};
         this.player.shield = 0;
         this.player.tempBuffs = [];
+        this.player.guarding = false;
+        this.player.guardEnergy = 0;
+        this.player.lifestealAura = 0;
+        this.player.berserk = 0;
+        this.player.rejuvenation = 0;
+        this.player.damageReduction = 0;
+        this.player.skillStacks = {};
     },
 
     getPlayerDamage: function() {
@@ -286,6 +302,7 @@ var State = {
 
     getSelectedSkill: function() {
         if (this.player.selectedSlot === 0) return null;
+        if (this.player.selectedSlot === 5) return Data.SKILLS.guard;
         return this.player.skills[this.player.selectedSlot];
     },
 
