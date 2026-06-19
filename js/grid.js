@@ -80,6 +80,8 @@ var Grid = {
         this.drawEnemies(ctx, ts);
         this.drawPlayer(ctx, ts);
         this.drawFloatingTexts(ctx, ts);
+        this.drawHealthBars(ctx, ts);
+        this.drawNames(ctx, ts);
     },
 
     drawTiles: function(ctx, ts) {
@@ -261,8 +263,6 @@ var Grid = {
         ctx.fillStyle = '#3366cc';
         ctx.fillRect(px + ts * 0.15, py + ts * 0.4 + bounce, ts * 0.15, ts * 0.4);
         ctx.fillRect(px + ts * 0.7, py + ts * 0.4 + bounce, ts * 0.15, ts * 0.4);
-
-        this.drawHealthBar(ctx, px, py - 6, ts, State.player.hp, State.player.maxHp, '#ff3344');
     },
 
     drawEnemies: function(ctx, ts) {
@@ -276,10 +276,8 @@ var Grid = {
 
             if (e.isBoss) {
                 this.drawBoss(ctx, px, py, ts, e, bounce);
-                this.drawHealthBar(ctx, px, py - 14, ts * size, e.hp, e.maxHp, '#ff3344');
             } else {
                 this.drawEnemy(ctx, px, py, ts, e, bounce);
-                this.drawHealthBar(ctx, px, py - 6, ts, e.hp, e.maxHp, '#ff3344');
             }
         }
     },
@@ -369,8 +367,7 @@ var Grid = {
         var barW = ts;
         var barH = 5;
         var pct = Math.max(0, current / max);
-
-        var barY = y < 0 ? y + barH + 2 : y;
+        var barY = Math.max(0, y);
 
         ctx.fillStyle = '#1a0a0a';
         ctx.fillRect(x, barY, barW, barH);
@@ -381,6 +378,41 @@ var Grid = {
         ctx.strokeStyle = '#333';
         ctx.lineWidth = 1;
         ctx.strokeRect(x, barY, barW, barH);
+    },
+
+    drawHealthBars: function(ctx, ts) {
+        this.drawHealthBar(ctx, State.player.x * ts, State.player.y * ts - 6, ts, State.player.hp, State.player.maxHp, '#ff3344');
+        for (var i = 0; i < State.enemies.length; i++) {
+            var e = State.enemies[i];
+            if (e.hp <= 0) continue;
+            var size = e.size || 1;
+            var barOffset = e.isBoss ? 14 : 6;
+            this.drawHealthBar(ctx, e.x * ts, e.y * ts - barOffset, ts * size, e.hp, e.maxHp, '#ff3344');
+        }
+    },
+
+    drawNames: function(ctx, ts) {
+        var fontSize = Math.max(6, Math.floor(ts * 0.18));
+        ctx.font = fontSize + 'px "Press Start 2P"';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+
+        var nameY = Math.max(fontSize + 2, State.player.y * ts - 8);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText('KNIGHT', State.player.x * ts + ts / 2, nameY);
+
+        for (var i = 0; i < State.enemies.length; i++) {
+            var e = State.enemies[i];
+            if (e.hp <= 0) continue;
+            var def = e.isBoss ? null : Data.ENEMIES[e.defId];
+            var name = e.isBoss ? e.name : (def ? def.name : '');
+            if (!name) continue;
+
+            var barOffset = e.isBoss ? 16 : 8;
+            var eNameY = Math.max(fontSize + 2, e.y * ts - barOffset);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText(name, e.x * ts + ts / 2, eNameY);
+        }
     },
 
     drawFloatingTexts: function(ctx, ts) {

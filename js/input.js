@@ -87,13 +87,13 @@ var Input = {
 
         function hideTooltipIfOutside($target) {
             if (!self.activeTooltip) return;
-            if ($target.closest('.js-tooltip, .skill-slot, .synergy-item').length === 0) {
+            if ($target.closest('.js-tooltip, .skill-slot, .synergy-item, .item-entry, .stat-label').length === 0) {
                 self.hideTooltip();
             }
         }
 
         if (isTouch) {
-            $(document).on('touchstart', '.skill-slot, .synergy-item', function(e) {
+            $(document).on('touchstart', '.skill-slot, .synergy-item, .item-entry, .stat-label', function(e) {
                 var $el = $(this);
                 if (self.activeTooltip && self.activeTooltipTarget && self.activeTooltipTarget[0] === $el[0]) {
                     self.hideTooltip();
@@ -104,16 +104,16 @@ var Input = {
             });
 
             $(document).on('touchstart', function(e) {
-                if (!$(e.target).closest('.skill-slot, .synergy-item, .js-tooltip').length) {
+                if (!$(e.target).closest('.skill-slot, .synergy-item, .item-entry, .stat-label, .js-tooltip').length) {
                     self.hideTooltip();
                 }
             });
         } else {
-            $(document).on('mouseenter', '.skill-slot, .synergy-item', function() {
+            $(document).on('mouseenter', '.skill-slot, .synergy-item, .item-entry, .stat-label', function() {
                 showTooltip($(this), false);
             });
 
-            $(document).on('mouseleave', '.skill-slot, .synergy-item', function() {
+            $(document).on('mouseleave', '.skill-slot, .synergy-item, .item-entry, .stat-label', function() {
                 self.hideTooltip();
             });
         }

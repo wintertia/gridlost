@@ -63,26 +63,38 @@
                 <div id="player-info" class="panel">
                     <h3 class="panel-title">KNIGHT</h3>
                     <div class="stat-row">
-                        <span class="stat-label" title="Health Points">♥</span>
+                        <span class="stat-label" data-tooltip="Health Points">♥</span>
                         <div class="stat-bar-container">
                             <div id="hp-bar" class="stat-bar hp-bar" style="width: 100%"></div>
+                            <span id="hp-text" class="stat-bar-text">100/100</span>
                         </div>
-                        <span id="hp-text" class="stat-value">100/100</span>
                     </div>
                     <div class="stat-row">
-                        <span class="stat-label" title="Energy">⚡</span>
+                        <span class="stat-label" data-tooltip="Energy - Used to cast skills\nRegens half your max each turn">⚡</span>
                         <div class="stat-bar-container">
                             <div id="energy-bar" class="stat-bar energy-bar" style="width: 100%"></div>
+                            <span id="energy-text" class="stat-bar-text">6/6</span>
                         </div>
-                        <span id="energy-text" class="stat-value">6/6</span>
                     </div>
-                    <div class="stat-row">
-                        <span class="stat-label" title="Power">⚔</span>
+                    <div class="stat-row" id="stat-shield-row" style="display:none">
+                        <span class="stat-label" data-tooltip="Shield - Absorbs damage before HP">◇</span>
+                        <span id="shield-text" class="stat-value">0</span>
+                    </div>
+                    <div class="stat-row" id="stat-power-row" style="display:none">
+                        <span class="stat-label" data-tooltip="Attack Power - Increases all damage dealt">⚔</span>
                         <span id="power-text" class="stat-value">+0%</span>
                     </div>
-                    <div class="stat-row">
-                        <span class="stat-label" title="Critical">✦</span>
+                    <div class="stat-row" id="stat-crit-row" style="display:none">
+                        <span class="stat-label" data-tooltip="Critical Hit Chance - Chance to deal double damage">✦</span>
                         <span id="crit-text" class="stat-value">0%</span>
+                    </div>
+                    <div class="stat-row" id="stat-critdmg-row" style="display:none">
+                        <span class="stat-label" data-tooltip="Critical Damage - Bonus damage on crits">✧</span>
+                        <span id="critdmg-text" class="stat-value">+0%</span>
+                    </div>
+                    <div class="stat-row" id="stat-lifesteal-row" style="display:none">
+                        <span class="stat-label" data-tooltip="Lifesteal - Heals you for a % of damage dealt">♥</span>
+                        <span id="lifesteal-text" class="stat-value">0%</span>
                     </div>
                 </div>
 

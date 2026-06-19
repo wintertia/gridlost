@@ -17,12 +17,49 @@ var UI = {
 
         $('#hp-bar').css('width', hpPct + '%');
         var hpText = p.hp + '/' + p.maxHp;
-        if (p.shield > 0) hpText += ' (+' + p.shield + ' shield)';
+        if (p.shield > 0) hpText += ' (+' + p.shield + ')';
         $('#hp-text').text(hpText);
         $('#energy-bar').css('width', nrjPct + '%');
         $('#energy-text').text(p.energy + '/' + p.maxEnergy);
-        $('#power-text').text('+' + p.power + '%');
-        $('#crit-text').text(p.critChance + '%');
+
+        var shield = Combat.calculateItemStatBonus('shield');
+        if (p.shield > 0 || shield > 0) {
+            $('#stat-shield-row').show();
+            $('#shield-text').text(p.shield + ' / ' + shield);
+        } else {
+            $('#stat-shield-row').hide();
+        }
+
+        if (p.power > 0) {
+            $('#stat-power-row').show();
+            $('#power-text').text('+' + p.power + '%');
+        } else {
+            $('#stat-power-row').hide();
+        }
+
+        var totalCrit = p.critChance + Combat.calculateItemStatBonus('critChance');
+        if (totalCrit > 0) {
+            $('#stat-crit-row').show();
+            $('#crit-text').text(totalCrit + '%');
+        } else {
+            $('#stat-crit-row').hide();
+        }
+
+        var critDmg = Combat.calculateItemStatBonus('critDamage');
+        if (critDmg > 0) {
+            $('#stat-critdmg-row').show();
+            $('#critdmg-text').text('+' + critDmg + '%');
+        } else {
+            $('#stat-critdmg-row').hide();
+        }
+
+        var lifesteal = Combat.calculateItemStatBonus('lifesteal');
+        if (lifesteal > 0) {
+            $('#stat-lifesteal-row').show();
+            $('#lifesteal-text').text(lifesteal + '%');
+        } else {
+            $('#stat-lifesteal-row').hide();
+        }
     },
 
     updateSkillBar: function() {
@@ -152,15 +189,41 @@ var UI = {
 
         for (var i = 0; i < State.activeSynergies.length; i++) {
             var syn = Data.SYNERGIES[State.activeSynergies[i]];
-            var $item = $('<div class="synergy-item" data-tooltip="' + syn.desc + '">' + syn.name + '</div>');
+            var triggerText = this.getSynergyTriggers(syn);
+            var $item = $('<div class="synergy-item" data-tooltip="' + syn.name + '\n' + syn.desc + '\n\nRequires: ' + triggerText + '">' + syn.name + '</div>');
             $list.append($item);
         }
 
         for (var j = 0; j < activeSets.length; j++) {
             var set = Data.ITEM_SETS[activeSets[j]];
-            var $setItem = $('<div class="synergy-item" data-tooltip="' + set.desc + '" style="color:#44ff44">' + set.name + '</div>');
+            var setTriggerText = this.getItemSetTriggers(set);
+            var $setItem = $('<div class="synergy-item" data-tooltip="' + set.name + '\n' + set.desc + '\n\nRequires: ' + setTriggerText + '" style="color:#44ff44">' + set.name + '</div>');
             $list.append($setItem);
         }
+    },
+
+    getSynergyTriggers: function(syn) {
+        var names = [];
+        for (var i = 0; i < syn.requires.length; i++) {
+            var id = syn.requires[i];
+            var skill = Data.SKILLS[id];
+            if (skill) {
+                names.push(skill.name);
+            } else {
+                var item = Data.ITEMS[id];
+                if (item) names.push(item.name);
+            }
+        }
+        return names.join(' + ');
+    },
+
+    getItemSetTriggers: function(set) {
+        var names = [];
+        for (var i = 0; i < set.requires.length; i++) {
+            var item = Data.ITEMS[set.requires[i]];
+            if (item) names.push(item.name);
+        }
+        return names.join(' + ');
     },
 
     updateItems: function() {
@@ -404,7 +467,7 @@ var UI = {
         $('#stat-bosses').text(State.runStats.bossesKilled);
         $('#stat-maxhp').text(State.player.maxHp);
         $('#stat-power').text('+' + State.player.power);
-        $('#stat-crit').text(State.player.critChance + '%');
+        $('#stat-crit').text(State.player.critChance + Combat.calculateItemStatBonus('critChance') + '%');
 
         var itemCount = 0;
         var $itemsList = $('#stat-items-list');

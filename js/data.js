@@ -193,7 +193,7 @@ var Data = {
         },
         fireball: {
             id: 'fireball', name: 'Fireball', desc: 'Explosive 3x3 AoE, leaves burning ground',
-            energyCost: 2, damage: 60, shape: 'aoe', range: 3,
+            energyCost: 4, damage: 60, shape: 'aoe', range: 3,
             color: '#ff6622', isBasic: false, effects: ['burn']
         },
         whirlwind: {
@@ -208,7 +208,7 @@ var Data = {
         },
         ice_shard: {
             id: 'ice_shard', name: 'Ice Shard', desc: 'Freezing line, freezes enemies',
-            energyCost: 2, damage: 40, shape: 'line', range: 4,
+            energyCost: 3, damage: 40, shape: 'line', range: 4,
             color: '#88ddff', isBasic: false, effects: ['freeze']
         },
         backstab: {
