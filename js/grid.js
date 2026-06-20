@@ -68,7 +68,11 @@ var Grid = {
 
         State.updateFloatingTexts();
 
-        ctx.fillStyle = Data.COLORS.bg;
+        var bgColor = Data.COLORS.bg;
+        if (State.currentBiome && Data.BIOMES[State.currentBiome]) {
+            bgColor = Data.BIOMES[State.currentBiome].bg;
+        }
+        ctx.fillStyle = bgColor;
         ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
         this.drawTiles(ctx, ts);
@@ -86,11 +90,17 @@ var Grid = {
     },
 
     drawTiles: function(ctx, ts) {
+        var tileBaseColor = Data.COLORS.tileBase;
+        var tileBorderColor = Data.COLORS.tileBorder;
+        if (State.currentBiome && Data.BIOMES[State.currentBiome]) {
+            tileBaseColor = Data.BIOMES[State.currentBiome].tileBase;
+            tileBorderColor = Data.BIOMES[State.currentBiome].tileBorder;
+        }
         for (var y = 0; y < Data.GRID_SIZE; y++) {
             for (var x = 0; x < Data.GRID_SIZE; x++) {
-                ctx.fillStyle = Data.COLORS.tileBase;
+                ctx.fillStyle = tileBaseColor;
                 ctx.fillRect(x * ts + 1, y * ts + 1, ts - 2, ts - 2);
-                ctx.strokeStyle = Data.COLORS.tileBorder;
+                ctx.strokeStyle = tileBorderColor;
                 ctx.lineWidth = 1;
                 ctx.strokeRect(x * ts + 1, y * ts + 1, ts - 2, ts - 2);
             }
@@ -280,6 +290,11 @@ var Grid = {
         ctx.fillStyle = armColor;
         ctx.fillRect(px + ts * 0.15, py + ts * 0.4 + bounce, ts * 0.15, ts * 0.4);
         ctx.fillRect(px + ts * 0.7, py + ts * 0.4 + bounce, ts * 0.15, ts * 0.4);
+
+        if (State.player.chilled > 0) {
+            ctx.fillStyle = 'rgba(100, 200, 255, 0.35)';
+            ctx.fillRect(px + 1, py + 1, ts - 2, ts - 2);
+        }
     },
 
     drawEnemies: function(ctx, ts) {
@@ -317,6 +332,17 @@ var Grid = {
         if (e.frozen > 0) {
             ctx.fillStyle = 'rgba(100, 200, 255, 0.4)';
             ctx.fillRect(px + 1, py + 1, ts - 2, ts - 2);
+        }
+
+        if (State.player.diseased && e.defId === 'plaguebearer') {
+            ctx.strokeStyle = '#aacc22';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(px + 2, py + 2, ts - 4, ts - 4);
+        }
+        if (State.player.cursed && e.defId === 'mummy') {
+            ctx.strokeStyle = '#cc44ff';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(px + 2, py + 2, ts - 4, ts - 4);
         }
     },
 

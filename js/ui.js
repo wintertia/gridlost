@@ -1,48 +1,4 @@
 var UI = {
-    tooltipEl: null,
-
-    initTooltip: function() {
-        var self = this;
-        this.tooltipEl = $('#tooltip');
-        $(document).on('mouseenter', '[data-tooltip]', function(e) {
-            var text = $(this).attr('data-tooltip');
-            self.tooltipEl.text(text).css('opacity', 1);
-            self.positionTooltip(e);
-        });
-        $(document).on('mousemove', '[data-tooltip]', function(e) {
-            self.positionTooltip(e);
-        });
-        $(document).on('mouseleave', '[data-tooltip]', function() {
-            self.tooltipEl.css('opacity', 0);
-        });
-        $(document).on('touchstart', '[data-tooltip]', function(e) {
-            e.preventDefault();
-            var text = $(this).attr('data-tooltip');
-            self.tooltipEl.text(text).css('opacity', 1);
-            var touch = e.originalEvent.touches[0];
-            self.positionTooltip({ clientX: touch.clientX, clientY: touch.clientY });
-        });
-        $(document).on('touchstart', function(e) {
-            if (!$(e.target).closest('[data-tooltip]').length) {
-                self.tooltipEl.css('opacity', 0);
-            }
-        });
-    },
-
-    positionTooltip: function(e) {
-        var tt = this.tooltipEl;
-        var x = e.clientX + 12;
-        var y = e.clientY - 10;
-        var ttW = tt.outerWidth();
-        var ttH = tt.outerHeight();
-        var winW = $(window).width();
-        var winH = $(window).height();
-        if (x + ttW > winW - 8) x = e.clientX - ttW - 12;
-        if (y - ttH < 8) y = e.clientY + 20;
-        if (x < 8) x = 8;
-        tt.css({ left: x + 'px', top: y + 'px' });
-    },
-
     updateAll: function() {
         this.updateStats();
         this.updateSkillBar();
@@ -359,6 +315,10 @@ var UI = {
         if (bossIn === 0) bossIn = Data.BOSS_EVERY;
         $('#boss-in').text(bossIn);
         $('#turn-num').text(State.turn);
+        if (State.currentBiome && Data.BIOMES[State.currentBiome]) {
+            var biome = Data.BIOMES[State.currentBiome];
+            $('#biome-name').text(biome.name).css('color', biome.accent);
+        }
     },
 
     showScreen: function(screenId) {

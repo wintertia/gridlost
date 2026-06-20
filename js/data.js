@@ -451,6 +451,90 @@ var Data = {
         skeleton: {
             id: 'skeleton', name: 'Skeleton', hp: 100, damage: 15, moveSpeed: 1,
             type: 'melee', color: '#ccccaa', behavior: 'charge', isSummon: true
+        },
+        wolf: {
+            id: 'wolf', name: 'Wolf', hp: 200, damage: 35, moveSpeed: 2,
+            type: 'melee', color: '#886644', behavior: 'charge'
+        },
+        druid: {
+            id: 'druid', name: 'Druid', hp: 180, damage: 30, moveSpeed: 1,
+            type: 'ranged', color: '#448844', behavior: 'keep_distance'
+        },
+        treant: {
+            id: 'treant', name: 'Treant', hp: 600, damage: 25, moveSpeed: 0.5,
+            type: 'melee', color: '#664422', behavior: 'charge'
+        },
+        toad: {
+            id: 'toad', name: 'Toad', hp: 300, damage: 35, moveSpeed: 1,
+            type: 'melee', color: '#558844', behavior: 'charge'
+        },
+        plaguebearer: {
+            id: 'plaguebearer', name: 'Plague Bearer', hp: 250, damage: 25, moveSpeed: 1,
+            type: 'ranged', color: '#88aa44', behavior: 'keep_distance'
+        },
+        mud_golem: {
+            id: 'mud_golem', name: 'Mud Golem', hp: 700, damage: 20, moveSpeed: 0.5,
+            type: 'melee', color: '#886644', behavior: 'charge'
+        },
+        scorpion: {
+            id: 'scorpion', name: 'Scorpion', hp: 220, damage: 40, moveSpeed: 1,
+            type: 'melee', color: '#cc8844', behavior: 'charge'
+        },
+        mummy: {
+            id: 'mummy', name: 'Mummy', hp: 350, damage: 30, moveSpeed: 1,
+            type: 'ranged', color: '#ccaa88', behavior: 'keep_distance'
+        },
+        sand_wraith: {
+            id: 'sand_wraith', name: 'Sand Wraith', hp: 200, damage: 45, moveSpeed: 1,
+            type: 'phaser', color: '#ddcc88', behavior: 'teleport'
+        },
+        frost_elemental: {
+            id: 'frost_elemental', name: 'Frost Elemental', hp: 280, damage: 30, moveSpeed: 1,
+            type: 'ranged', color: '#88bbee', behavior: 'keep_distance'
+        },
+        ice_wyrm: {
+            id: 'ice_wyrm', name: 'Ice Wyrm', hp: 400, damage: 35, moveSpeed: 1,
+            type: 'melee', color: '#aaddff', behavior: 'charge'
+        },
+        yeti: {
+            id: 'yeti', name: 'Yeti', hp: 500, damage: 40, moveSpeed: 1,
+            type: 'melee', color: '#ccddee', behavior: 'charge'
+        },
+        fire_elemental: {
+            id: 'fire_elemental', name: 'Fire Elemental', hp: 250, damage: 35, moveSpeed: 1,
+            type: 'ranged', color: '#ff6622', behavior: 'keep_distance'
+        },
+        magma_slime: {
+            id: 'magma_slime', name: 'Magma Slime', hp: 80, damage: 25, moveSpeed: 1,
+            type: 'melee', color: '#ff4400', behavior: 'charge'
+        },
+        phoenix: {
+            id: 'phoenix', name: 'Phoenix', hp: 80, damage: 30, moveSpeed: 1,
+            type: 'ranged', color: '#ffaa00', behavior: 'keep_distance'
+        },
+        wraith_enemy: {
+            id: 'wraith_enemy', name: 'Wraith', hp: 220, damage: 40, moveSpeed: 1,
+            type: 'phaser', color: '#664488', behavior: 'teleport'
+        },
+        void_walker: {
+            id: 'void_walker', name: 'Void Walker', hp: 300, damage: 35, moveSpeed: 1,
+            type: 'melee', color: '#443366', behavior: 'charge'
+        },
+        shade: {
+            id: 'shade', name: 'Shade', hp: 180, damage: 30, moveSpeed: 1,
+            type: 'ranged', color: '#555577', behavior: 'keep_distance'
+        },
+        angel: {
+            id: 'angel', name: 'Angel', hp: 250, damage: 35, moveSpeed: 1,
+            type: 'ranged', color: '#ffdd88', behavior: 'keep_distance'
+        },
+        cherub: {
+            id: 'cherub', name: 'Cherub', hp: 200, damage: 30, moveSpeed: 2,
+            type: 'melee', color: '#ffeeaa', behavior: 'charge'
+        },
+        seraph: {
+            id: 'seraph', name: 'Seraph', hp: 300, damage: 25, moveSpeed: 0,
+            type: 'summoner', color: '#ffffcc', behavior: 'stay_far'
         }
     },
 
@@ -482,10 +566,118 @@ var Data = {
                 { name: 'Tail Sweep', shape: 'ring', range: 1, damage: 80, cooldown: 2, current: 0 },
                 { name: 'Fly Up', shape: 'fly_up', damage: 150, cooldown: 5, current: 0 }
             ]
+        },
+        ancient_tree: {
+            id: 'ancient_tree', name: 'Ancient Tree', hp: 1800, damage: 50,
+            color: '#446622', behavior: 'boss', size: 2,
+            attacks: [
+                { name: 'Root Grasp', shape: 'root', damage: 0, cooldown: 3, current: 0 },
+                { name: 'Summon Saplings', shape: 'summon_sapling', damage: 0, cooldown: 4, current: 0 },
+                { name: 'Leaf Storm', shape: 'aoe', range: 2, damage: 70, cooldown: 2, current: 0 }
+            ]
+        },
+        hydra: {
+            id: 'hydra', name: 'Hydra', hp: 2000, damage: 45,
+            color: '#446644', behavior: 'boss', size: 2,
+            attacks: [
+                { name: 'Multi-Head', shape: 'multi_direction', damage: 80, cooldown: 2, current: 0 },
+                { name: 'Regen', shape: 'self_heal', damage: 0, cooldown: 4, current: 0 },
+                { name: 'Poison Spit', shape: 'cone', range: 3, damage: 60, cooldown: 2, current: 0 }
+            ]
+        },
+        sandworm: {
+            id: 'sandworm', name: 'Sandworm', hp: 2200, damage: 55,
+            color: '#ccaa44', behavior: 'boss', size: 2,
+            attacks: [
+                { name: 'Burrow', shape: 'burrow', damage: 0, cooldown: 4, current: 0 },
+                { name: 'Tail Whip', shape: 'ring', range: 1, damage: 90, cooldown: 2, current: 0 },
+                { name: 'Swallow', shape: 'execute_line', damage: 120, cooldown: 5, current: 0 }
+            ]
+        },
+        frost_giant: {
+            id: 'frost_giant', name: 'Frost Giant', hp: 2400, damage: 50,
+            color: '#88bbdd', behavior: 'boss', size: 2,
+            attacks: [
+                { name: 'Ice Boulder', shape: 'line', range: 4, damage: 80, cooldown: 2, current: 0 },
+                { name: 'Ground Pound', shape: 'cross', range: 1, damage: 100, cooldown: 3, current: 0 },
+                { name: 'Blizzard', shape: 'aoe', range: 3, damage: 60, cooldown: 3, current: 0 }
+            ]
+        },
+        fire_dragon: {
+            id: 'fire_dragon', name: 'Fire Dragon', hp: 2600, damage: 60,
+            color: '#ff4400', behavior: 'boss', size: 2,
+            attacks: [
+                { name: 'Fire Breath', shape: 'cone', range: 3, damage: 110, cooldown: 2, current: 0 },
+                { name: 'Wing Buffet', shape: 'push_player', damage: 0, cooldown: 3, current: 0 },
+                { name: 'Eruption', shape: 'aoe', range: 2, damage: 90, cooldown: 3, current: 0 }
+            ]
+        },
+        shadow_lord: {
+            id: 'shadow_lord', name: 'Shadow Lord', hp: 2000, damage: 50,
+            color: '#6633aa', behavior: 'boss', size: 2,
+            attacks: [
+                { name: 'Shadow Clone', shape: 'clone', damage: 0, cooldown: 5, current: 0 },
+                { name: 'Void Bolt', shape: 'line', range: 4, damage: 80, cooldown: 2, current: 0 },
+                { name: 'Darkness', shape: 'aoe', range: 3, damage: 50, cooldown: 3, current: 0 }
+            ]
+        },
+        archangel: {
+            id: 'archangel', name: 'Archangel', hp: 2800, damage: 55,
+            color: '#ffddaa', behavior: 'boss', size: 2,
+            attacks: [
+                { name: 'Holy Nova', shape: 'aoe', range: 2, damage: 90, cooldown: 2, current: 0 },
+                { name: 'Divine Shield', shape: 'shield_self', damage: 0, cooldown: 5, current: 0 },
+                { name: 'Smite', shape: 'single', range: 3, damage: 130, cooldown: 3, current: 0 }
+            ]
         }
     },
 
     BOSS_ORDER: ['colossus', 'wraith', 'dragon'],
+
+    BIOMES: {
+        dungeon: {
+            id: 'dungeon', name: 'DUNGEON',
+            bg: '#0f0a1a', tileBase: '#1a1525', tileBorder: '#2a2040', accent: '#ff8800',
+            enemies: ['goblin', 'archer', 'necromancer'], bossId: 'colossus'
+        },
+        forest: {
+            id: 'forest', name: 'FOREST',
+            bg: '#0a1a0a', tileBase: '#1a2a1a', tileBorder: '#2a3a2a', accent: '#44aa44',
+            enemies: ['wolf', 'druid', 'treant'], bossId: 'ancient_tree'
+        },
+        swamp: {
+            id: 'swamp', name: 'SWAMP',
+            bg: '#0a0a1a', tileBase: '#1a1a2a', tileBorder: '#2a2a3a', accent: '#44aa88',
+            enemies: ['toad', 'plaguebearer', 'mud_golem'], bossId: 'hydra'
+        },
+        desert: {
+            id: 'desert', name: 'DESERT',
+            bg: '#1a1500', tileBase: '#2a2510', tileBorder: '#3a3520', accent: '#ddaa44',
+            enemies: ['scorpion', 'mummy', 'sand_wraith'], bossId: 'sandworm'
+        },
+        frozen: {
+            id: 'frozen', name: 'FROZEN',
+            bg: '#0a1a2a', tileBase: '#1a2a3a', tileBorder: '#2a3a4a', accent: '#88ddff',
+            enemies: ['frost_elemental', 'ice_wyrm', 'yeti'], bossId: 'frost_giant'
+        },
+        volcanic: {
+            id: 'volcanic', name: 'VOLCANIC',
+            bg: '#1a0a0a', tileBase: '#2a1a1a', tileBorder: '#3a2a2a', accent: '#ff4422',
+            enemies: ['fire_elemental', 'magma_slime', 'phoenix'], bossId: 'fire_dragon'
+        },
+        shadow_realm: {
+            id: 'shadow_realm', name: 'SHADOW',
+            bg: '#0a0a15', tileBase: '#1a1a25', tileBorder: '#2a2a35', accent: '#8844aa',
+            enemies: ['wraith_enemy', 'void_walker', 'shade'], bossId: 'shadow_lord'
+        },
+        celestial: {
+            id: 'celestial', name: 'CELESTIAL',
+            bg: '#1a1a0a', tileBase: '#2a2a1a', tileBorder: '#3a3a2a', accent: '#ffdd88',
+            enemies: ['angel', 'cherub', 'seraph'], bossId: 'archangel'
+        }
+    },
+
+    BIOME_ORDER: ['dungeon', 'forest', 'swamp', 'desert', 'frozen', 'volcanic', 'shadow_realm', 'celestial'],
 
     OBSTACLES: {
         stone: { id: 'stone', name: 'Stone Wall', desc: 'Impassable wall. Cannot be destroyed.', hp: -1, destructible: false, color: '#555566', blocksMove: true, blocksLOS: true },

@@ -242,23 +242,6 @@ html, body {
     box-sizing: border-box;
 }
 
-.game-tooltip {
-    position: fixed;
-    background: var(--bg-dark);
-    color: var(--gold);
-    padding: 0.5rem 0.7rem;
-    font-size: 0.6rem;
-    white-space: normal;
-    width: max-content;
-    max-width: 200px;
-    border: 1px solid var(--gold);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.15s;
-    z-index: 9999;
-    line-height: 1.5;
-}
-
 .pixel-btn {
     font-family: var(--font-pixel);
     font-size: 1rem;
@@ -388,6 +371,7 @@ html, body {
     border-left: 2px solid var(--border);
     height: 100%;
     word-break: break-word;
+    overflow-wrap: break-word;
 }
 
 .panel {
@@ -398,6 +382,7 @@ html, body {
     max-width: 100%;
     overflow: visible;
     box-sizing: border-box;
+    flex-shrink: 0;
 }
 
 .panel-title {
@@ -601,12 +586,16 @@ html, body {
 .enemy-info {
     flex: 1;
     min-width: 0;
+    overflow: hidden;
 }
 
 .enemy-name {
     font-size: 0.55rem;
     color: var(--text-secondary);
     display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .enemy-hp-bar {
@@ -630,11 +619,20 @@ html, body {
 
 #combat-log {
     height: 130px;
+    min-height: 100px;
+    max-height: 130px;
     overflow-y: auto;
     overflow-x: hidden;
     font-size: 0.5rem;
     line-height: 1.6;
     word-break: break-word;
+    overflow-wrap: break-word;
+    flex-shrink: 0;
+}
+
+#log-panel {
+    flex: 0 0 auto;
+    max-height: 180px;
 }
 
 .log-entry {
@@ -643,6 +641,7 @@ html, body {
     color: var(--text-secondary);
     word-break: break-word;
     overflow-wrap: break-word;
+    white-space: normal;
 }
 
 .log-player { color: #5599ff; }

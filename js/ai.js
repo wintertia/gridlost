@@ -61,6 +61,10 @@ var AI = {
                     }
                 }
 
+                if (State.player.chilled > 0) {
+                    moveCost *= 2;
+                }
+
                 var totalCost = current.cost + moveCost;
                 if (totalCost <= energy) {
                     visited[key] = true;
@@ -93,11 +97,7 @@ var AI = {
             if (enemy.frozen > 0) {
                 State.addFloatingText(enemy.x, enemy.y, 'FROZEN', '#88ddff');
                 if (enemy.isBoss) {
-                    if (enemy.isBoss) {
-                        Boss.processTurn(enemy, processNext);
-                    } else {
-                        AI.processEnemy(enemy, processNext);
-                    }
+                    Boss.processTurn(enemy, processNext);
                 } else {
                     processNext();
                 }
@@ -216,6 +216,10 @@ var AI = {
                 State.addLog(name + ' shoots player for ' + dmg + ' dmg', 'enemy');
                 Combat.dealDamageToPlayer(dmg);
                 State.addFloatingText(tx, ty, 'ARROW!', '#ee8833');
+                if (enemy.defId === 'frost_elemental') {
+                    State.player.chilled = 2;
+                    State.addFloatingText(State.player.x, State.player.y, 'CHILLED!', '#88ddff');
+                }
                 break;
             }
         }

@@ -77,8 +77,10 @@ var Stages = {
     },
 
     generateBossStage: function() {
-        var bossKeys = Object.keys(Data.BOSS_DEFS);
-        var bossKey = bossKeys[Math.floor(Math.random() * bossKeys.length)];
+        var bossKey = 'colossus';
+        if (State.currentBiome && Data.BIOMES[State.currentBiome] && Data.BIOMES[State.currentBiome].bossId) {
+            bossKey = Data.BIOMES[State.currentBiome].bossId;
+        }
         var bossDef = Data.BOSS_DEFS[bossKey];
 
         var scaling = Math.pow(1 + Data.BOSS_STAT_SCALE, Math.floor(State.stage / 15));
@@ -180,11 +182,22 @@ var Stages = {
 
     placeEnemies: function(count) {
         var stage = State.stage;
-        var availableTypes = ['goblin'];
-        if (stage >= 2) availableTypes.push('archer');
-        if (stage >= 3) availableTypes.push('slime');
-        if (stage >= 4) availableTypes.push('necromancer');
-        if (stage >= 5) availableTypes.push('shadow');
+        var availableTypes = [];
+
+        if (State.currentBiome && Data.BIOMES[State.currentBiome]) {
+            var biomeEnemies = Data.BIOMES[State.currentBiome].enemies;
+            if (stage <= 1) {
+                availableTypes = [biomeEnemies[0]];
+            } else {
+                availableTypes = biomeEnemies.slice();
+            }
+        } else {
+            availableTypes = ['goblin'];
+            if (stage >= 2) availableTypes.push('archer');
+            if (stage >= 3) availableTypes.push('slime');
+            if (stage >= 4) availableTypes.push('necromancer');
+            if (stage >= 5) availableTypes.push('shadow');
+        }
 
         var placed = 0;
         var attempts = 0;

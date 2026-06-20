@@ -80,6 +80,10 @@ var Combat = {
         var conditionalBonus = this.getConditionalDamageBonus(target);
         var dmg = baseDmg + bonus + itemPowerBonus + conditionalBonus;
 
+        if (State.player.diseased) {
+            dmg = Math.floor(dmg * 0.7);
+        }
+
         if (skill && skill.id) {
             var skillStacks = State.player.skillStacks[skill.id] || 0;
             if (skillStacks > 0 && !['war_cry', 'heal', 'lifesteal_aura', 'rejuvenation', 'mark', 'berserk', 'guard'].includes(skill.id)) {
@@ -168,6 +172,17 @@ var Combat = {
         if (target.marked && target.marked > 0) {
             actualDmg = Math.floor(actualDmg * target.marked);
             target.marked = 0;
+        }
+
+        if (target.shield && target.shield > 0) {
+            if (actualDmg <= target.shield) {
+                target.shield -= actualDmg;
+                State.addFloatingText(target.x, target.y, 'BLOCKED!', '#ffdd88');
+                return;
+            } else {
+                actualDmg -= target.shield;
+                target.shield = 0;
+            }
         }
 
         target.hp -= actualDmg;
@@ -272,7 +287,7 @@ var Combat = {
             }
         }
 
-        if (items['frozen_core'] > 0 && !target.isBoss && target.frozen === 0) {
+        if (items['frozen_core'] > 0 && target.frozen === 0) {
             var chance = 10 * items['frozen_core'];
             if (hasElementalMastery) chance *= 2;
             if (Math.random() * 100 < chance) {
@@ -308,7 +323,7 @@ var Combat = {
             if (Math.random() * 100 < chance) {
                 var statuses = ['burn', 'freeze', 'poison'];
                 var status = statuses[Math.floor(Math.random() * statuses.length)];
-                if (status === 'freeze' && !target.isBoss && target.frozen === 0) {
+                if (status === 'freeze' && target.frozen === 0) {
                     target.frozen = 2;
                     target.freezeImmune = true;
                     State.addFloatingText(hitX, hitY, 'CHAOS FREEZE!', '#88ddff');
@@ -372,6 +387,10 @@ var Combat = {
             reduction = Math.max(0.3, reduction);
         }
         var reducedDmg = Math.max(1, Math.floor(dmg * reduction));
+
+        if (State.player.cursed) {
+            reducedDmg = Math.floor(reducedDmg * 1.3);
+        }
 
         var p = State.player;
         var cls = Data.CLASSES[p.classId];
@@ -438,7 +457,7 @@ var Combat = {
                         hitEnemies.push(aoeEnemy);
                         var result = this.calculateDamage(skill.damage, skill, aoeEnemy);
                         this.dealDamage(aoeEnemy, result.damage, 'player', result.isCrit);
-                        if (skill.effects.indexOf('freeze') !== -1 && !aoeEnemy.isBoss && !aoeEnemy.freezeImmune && aoeEnemy.frozen === 0) {
+                        if (skill.effects.indexOf('freeze') !== -1 && !aoeEnemy.freezeImmune && aoeEnemy.frozen === 0) {
                             aoeEnemy.frozen = 2;
                             aoeEnemy.freezeImmune = true;
                         }
@@ -528,7 +547,7 @@ var Combat = {
                 State.addFloatingText(tx, ty, 'PUSHED!', '#8888ff');
             }
 
-            if (skill.effects.indexOf('freeze') !== -1 && !enemy.isBoss && !enemy.freezeImmune && enemy.frozen === 0) {
+            if (skill.effects.indexOf('freeze') !== -1 && !enemy.freezeImmune && enemy.frozen === 0) {
                 enemy.frozen = 2;
                 enemy.freezeImmune = true;
             }
@@ -666,7 +685,7 @@ var Combat = {
                 hitSomething = true;
                 lastHitEnemy = enemy;
 
-                if (skill.effects.indexOf('freeze') !== -1 && !enemy.isBoss && !enemy.freezeImmune && enemy.frozen === 0) enemy.frozen = 2;
+                if (skill.effects.indexOf('freeze') !== -1 && !enemy.freezeImmune && enemy.frozen === 0) enemy.frozen = 2;
                 if (skill.effects.indexOf('burn') !== -1) State.burnTiles.push({ x: t.x, y: t.y, turns: 3 });
                 if (skill.effects.indexOf('poison') !== -1) {
                     var poisonDmg = Math.floor(20 * (1 + State.player.power / 100));
@@ -741,7 +760,7 @@ var Combat = {
                     State.burnTiles.push({ x: tiles[i].x, y: tiles[i].y, turns: 3 });
                 }
 
-                if (skill.effects.indexOf('freeze') !== -1 && !enemy.isBoss && !enemy.freezeImmune && enemy.frozen === 0) {
+                if (skill.effects.indexOf('freeze') !== -1 && !enemy.freezeImmune && enemy.frozen === 0) {
                     enemy.frozen = 2;
                     enemy.freezeImmune = true;
                 }
@@ -1147,5 +1166,28 @@ var Combat = {
                 State.addFloatingText(State.player.x, State.player.y, 'LIFESTEAL AURA ENDED', '#cc4444');
             }
         }
+
+        if (State.player.chilled > 0) {
+            State.player.chilled--;
+            if (State.player.chilled === 0) {
+                State.addFloatingText(State.player.x, State.player.y, 'CHILLED ENDED', '#88ddff');
+            }
+        }
+
+        var alive = State.getAliveEnemies();
+        var nearPlague = false;
+        var nearMummy = false;
+        for (var i = 0; i < alive.length; i++) {
+            var e = alive[i];
+            if (e.hp <= 0) continue;
+            var dx = Math.abs(e.x - State.player.x);
+            var dy = Math.abs(e.y - State.player.y);
+            if (dx <= 1 && dy <= 1) {
+                if (e.defId === 'plaguebearer') nearPlague = true;
+                if (e.defId === 'mummy') nearMummy = true;
+            }
+        }
+        State.player.diseased = nearPlague;
+        State.player.cursed = nearMummy;
     }
 };

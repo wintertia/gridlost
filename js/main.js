@@ -2,7 +2,6 @@ var Main = {
     init: function() {
         Grid.init();
         Input.init();
-        UI.initTooltip();
         this.bindEvents();
     },
 
@@ -188,6 +187,7 @@ var Main = {
 
     proceedToNextStage: function() {
         State.stage++;
+        State.updateBiome();
         State.player.energy = State.player.maxEnergy;
         State.player.tempPower = 0;
         State.clearFloatingTexts();

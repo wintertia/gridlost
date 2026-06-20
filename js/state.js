@@ -26,7 +26,10 @@ var State = {
         berserk: 0,
         rejuvenation: 0,
         damageReduction: 0,
-        skillStacks: {}
+        skillStacks: {},
+        chilled: 0,
+        diseased: false,
+        cursed: false
     },
 
     enemies: [],
@@ -45,6 +48,8 @@ var State = {
     currentBossDef: null,
     bossTurnCount: 0,
     selectedClass: 'knight',
+    biomeOrder: [],
+    currentBiome: null,
 
     combatLog: [],
     maxLogEntries: 50,
@@ -92,6 +97,9 @@ var State = {
         this.player.rejuvenation = 0;
         this.player.damageReduction = 0;
         this.player.skillStacks = {};
+        this.player.chilled = 0;
+        this.player.diseased = false;
+        this.player.cursed = false;
         this.player.classId = this.selectedClass || 'knight';
 
         var cls = Data.CLASSES[this.player.classId];
@@ -100,6 +108,14 @@ var State = {
         this.player.energy = cls.energy;
         this.player.maxEnergy = cls.energy;
         this.player.skills = [null, Data.SKILLS[cls.basicAttack], null, null, null];
+
+        this.biomeOrder = Data.BIOME_ORDER.slice().sort(function() { return Math.random() - 0.5; });
+        this.currentBiome = this.biomeOrder[0];
+    },
+
+    updateBiome: function() {
+        var biomeIndex = Math.floor((this.stage - 1) / Data.BOSS_EVERY) % this.biomeOrder.length;
+        this.currentBiome = this.biomeOrder[biomeIndex];
     },
 
     getPlayerDamage: function() {
