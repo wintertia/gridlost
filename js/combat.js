@@ -124,7 +124,7 @@ var Combat = {
         if (cls && cls.passiveId === 'crit_master') {
             critChance += 10 + (p._rogueCritChanceBonus || 0);
         }
-        if (target && items['lone_wolf'] > 0) {
+        if (target && p.items['lone_wolf'] > 0) {
             var alive = State.getAliveEnemies();
             var adjacentAllies = 0;
             for (var lw = 0; lw < alive.length; lw++) {
@@ -134,7 +134,7 @@ var Combat = {
                 }
             }
             if (adjacentAllies === 0) {
-                critChance += 10 * items['lone_wolf'];
+                critChance += 10 * p.items['lone_wolf'];
             }
         }
         var excessCrit = 0;
