@@ -26,6 +26,8 @@ var State = {
         berserk: 0,
         rejuvenation: 0,
         damageReduction: 0,
+        tempPowerTurns: 0,
+        damageReductionTurns: 0,
         skillStacks: {},
         chilled: 0,
         diseased: false,
@@ -37,7 +39,6 @@ var State = {
     burnTiles: [],
     poisonTiles: [],
     poisonEffects: [],
-    activeSynergies: [],
     extraItemDrops: 0,
 
     debugMode: false,
@@ -73,7 +74,6 @@ var State = {
         this.burnTiles = [];
         this.poisonTiles = [];
         this.poisonEffects = [];
-        this.activeSynergies = [];
         this.hoveredTile = null;
         this.attackPreview = [];
         this.floatingTexts = [];
@@ -100,6 +100,8 @@ var State = {
         this.player.berserk = 0;
         this.player.rejuvenation = 0;
         this.player.damageReduction = 0;
+        this.player.tempPowerTurns = 0;
+        this.player.damageReductionTurns = 0;
         this.player.skillStacks = {};
         this.player.chilled = 0;
         this.player.diseased = false;
@@ -115,7 +117,24 @@ var State = {
         this.player.maxEnergy = cls.energy;
         this.player.skills = [null, Data.SKILLS[cls.basicAttack], null, null, null];
 
-        this.biomeOrder = Data.BIOME_ORDER.slice().sort(function() { return Math.random() - 0.5; });
+        this.biomeOrder = Data.BIOME_ORDER.slice();
+        for (var i = this.biomeOrder.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            var tmp = this.biomeOrder[i];
+            this.biomeOrder[i] = this.biomeOrder[j];
+            this.biomeOrder[j] = tmp;
+        }
+        var earlyBiomes = ['dungeon', 'forest', 'swamp', 'desert'];
+        if (earlyBiomes.indexOf(this.biomeOrder[0]) === -1) {
+            for (var k = 1; k < this.biomeOrder.length; k++) {
+                if (earlyBiomes.indexOf(this.biomeOrder[k]) !== -1) {
+                    var swap = this.biomeOrder[0];
+                    this.biomeOrder[0] = this.biomeOrder[k];
+                    this.biomeOrder[k] = swap;
+                    break;
+                }
+            }
+        }
         this.currentBiome = this.biomeOrder[0];
     },
 
@@ -181,31 +200,6 @@ var State = {
             if (this.player.items[id] > 0 && Data.ITEMS[id] && Data.ITEMS[id].rarity === rarity) {
                 result.push(id);
             }
-        }
-        return result;
-    },
-
-    hasItemSet: function(setId) {
-        var set = Data.ITEM_SETS[setId];
-        if (!set) return false;
-        for (var i = 0; i < set.requires.length; i++) {
-            if (!this.hasItem(set.requires[i])) return false;
-        }
-        return true;
-    },
-
-    hasSkillInteraction: function(skillId) {
-        for (var key in Data.ITEM_SKILL_INTERACTIONS) {
-            var inter = Data.ITEM_SKILL_INTERACTIONS[key];
-            if (inter.skill === skillId && this.hasItem(inter.item)) return inter.bonus;
-        }
-        return null;
-    },
-
-    getActiveItemSets: function() {
-        var result = [];
-        for (var setId in Data.ITEM_SETS) {
-            if (this.hasItemSet(setId)) result.push(setId);
         }
         return result;
     },
@@ -309,26 +303,6 @@ var State = {
             }
         }
         return true;
-    },
-
-    updateSynergies: function() {
-        var owned = [];
-        for (var i = 1; i < this.player.skills.length; i++) {
-            if (this.player.skills[i]) owned.push(this.player.skills[i].id);
-        }
-        this.activeSynergies = [];
-        for (var key in Data.SYNERGIES) {
-            var syn = Data.SYNERGIES[key];
-            var hasAll = true;
-            for (var j = 0; j < syn.requires.length; j++) {
-                if (owned.indexOf(syn.requires[j]) === -1) { hasAll = false; break; }
-            }
-            if (hasAll) this.activeSynergies.push(key);
-        }
-    },
-
-    hasSynergy: function(name) {
-        return this.activeSynergies.indexOf(name) !== -1;
     },
 
     getSelectedSkill: function() {

@@ -98,14 +98,6 @@
                     </div>
                 </div>
 
-                <!-- Synergies -->
-                <div id="synergies-panel" class="panel">
-                    <h3 class="panel-title">SYNERGIES</h3>
-                    <div id="synergies-list">
-                        <p class="empty-text">No synergies active</p>
-                    </div>
-                </div>
-
                 <!-- Items -->
                 <div id="items-panel" class="panel">
                     <h3 class="panel-title">ITEMS</h3>
@@ -127,6 +119,9 @@
                 </div>
             </div>
         </div>
+
+        <!-- Buff/Debuff Bar -->
+        <div id="buff-bar"></div>
 
         <!-- Skill Bar -->
         <div id="skill-bar">
@@ -225,12 +220,11 @@
                 <div class="stat-line"><span>Enemies Killed:</span><span id="stat-kills">0</span></div>
                 <div class="stat-line"><span>Bosses Killed:</span><span id="stat-bosses">0</span></div>
                 <div class="stat-divider"></div>
-                <div class="stat-line"><span>Max HP:</span><span id="stat-maxhp">100</span></div>
-                <div class="stat-line"><span>Attack Power:</span><span id="stat-power">0</span></div>
-                <div class="stat-line"><span>Crit Chance:</span><span id="stat-crit">0%</span></div>
-                <div class="stat-divider"></div>
                 <div class="stat-line"><span>Items Collected:</span><span id="stat-items">0</span></div>
                 <div id="stat-items-list" class="death-items-list"></div>
+                <div class="stat-divider"></div>
+                <div class="stat-line"><span>Skills Learned:</span></div>
+                <div id="stat-skills-list" class="death-items-list"></div>
             </div>
             <button id="btn-retry" class="pixel-btn">TRY AGAIN</button>
         </div>

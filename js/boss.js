@@ -53,8 +53,6 @@ var Boss = {
                     tiles.push({ x: centerX + stepX * i, y: centerY + stepY * i });
                 }
                 break;
-            case 'Tail Sweep':
-            case 'Life Drain':
             case 'Tail Whip':
                 tiles = [
                     { x: centerX, y: centerY },
@@ -160,13 +158,8 @@ var Boss = {
 
         var alertMessages = {
             'Summon Rubble': boss.name + ' summoned rubble on yourself! Destroy the rubble to move',
-            'Fly Up': boss.name + ' is flying up high! Avoid the dangerous landing area',
-            'Shadow Step': boss.name + ' is teleporting behind you!',
-            'Clone': boss.name + ' is creating a clone!',
             'Boulder Throw': 'A boulder is heading your way!',
-            'Lightning Breath': 'Lightning breath incoming! Dodge the cone!',
             'Ground Slam': 'Ground slam! Move away from the center!',
-            'Tail Sweep': 'Tail sweep! Stay clear of adjacent tiles!',
             'Root Grasp': 'Roots erupting from the ground! Move to dodge!',
             'Summon Saplings': boss.name + ' is summoning saplings!',
             'Leaf Storm': 'Leaf storm incoming! Stay clear!',
@@ -196,13 +189,6 @@ var Boss = {
             case 'Ground Slam': this.groundSlam(boss, attack, callback); break;
             case 'Boulder Throw': this.boulderThrow(boss, attack, callback); break;
             case 'Summon Rubble': this.summonRubble(boss, callback); break;
-            case 'Shadow Step': this.shadowStep(boss, attack, callback); break;
-            case 'Life Drain': this.lifeDrain(boss, attack, callback); break;
-            case 'Clone': this.cloneWraith(boss, callback); break;
-            case 'Lightning Breath': this.lightningBreath(boss, attack, callback); break;
-            case 'Wing Gust': this.wingGust(boss, callback); break;
-            case 'Tail Sweep': this.tailSweep(boss, attack, callback); break;
-            case 'Fly Up': this.flyUp(boss, attack, callback); break;
             case 'Root Grasp': this.rootGrasp(boss, attack, callback); break;
             case 'Summon Saplings': this.summonSaplings(boss, callback); break;
             case 'Leaf Storm': this.aoeAttack(boss, attack, callback); break;
@@ -367,49 +353,6 @@ var Boss = {
         callback();
     },
 
-    shadowStep: function(boss, attack, callback) {
-        var size = boss.size || 2;
-        var centerX = boss.x + Math.floor(size / 2);
-        var centerY = boss.y + Math.floor(size / 2);
-
-        var behindX = State.player.x;
-        var behindY = State.player.y;
-
-        if (boss.facing === 'up') behindY = State.player.y + 1;
-        else if (boss.facing === 'down') behindY = State.player.y - 1;
-        else if (boss.facing === 'left') behindX = State.player.x + 1;
-        else behindX = State.player.x - 1;
-
-        if (behindX >= 0 && behindX < Data.GRID_SIZE && behindY >= 0 && behindY < Data.GRID_SIZE) {
-            if (!State.isBlocked(behindX, behindY)) {
-                boss.x = behindX;
-                boss.y = behindY;
-            }
-        }
-
-        Combat.dealDamageToPlayer(attack.damage);
-
-        Grid.render();
-        UI.updateAll();
-        callback();
-    },
-
-    lifeDrain: function(boss, attack, callback) {
-        var size = boss.size || 2;
-        var centerX = boss.x + Math.floor(size / 2);
-        var centerY = boss.y + Math.floor(size / 2);
-        var dist = AI.distance(centerX, centerY, State.player.x, State.player.y);
-        if (dist <= 2) {
-            Combat.dealDamageToPlayer(attack.damage);
-            boss.hp = Math.min(boss.maxHp, boss.hp + (attack.heal || 0));
-            State.addFloatingText(centerX, centerY, '+' + (attack.heal || 0), '#44ff44');
-        }
-
-        Grid.render();
-        UI.updateAll();
-        callback();
-    },
-
     cloneWraith: function(boss, callback) {
         var dirs = [
             { x: -1, y: 0 }, { x: 1, y: 0 },
@@ -438,37 +381,6 @@ var Boss = {
                 });
                 State.addFloatingText(nx, ny, 'CLONE!', '#443366');
                 break;
-            }
-        }
-
-        Grid.render();
-        UI.updateAll();
-        callback();
-    },
-
-    lightningBreath: function(boss, attack, callback) {
-        var size = boss.size || 2;
-        var centerX = boss.x + Math.floor(size / 2);
-        var centerY = boss.y + Math.floor(size / 2);
-        var dx = State.player.x - centerX;
-        var dy = State.player.y - centerY;
-        var dirX = dx === 0 ? 0 : (dx > 0 ? 1 : -1);
-        var dirY = dy === 0 ? 0 : (dy > 0 ? 1 : -1);
-
-        for (var i = 1; i <= attack.range; i++) {
-            for (var spread = -1; spread <= 1; spread++) {
-                var tx, ty;
-                if (dirX !== 0) {
-                    tx = centerX + dirX * i;
-                    ty = centerY + spread;
-                } else {
-                    tx = centerX + spread;
-                    ty = centerY + dirY * i;
-                }
-
-                if (tx === State.player.x && ty === State.player.y) {
-                    Combat.dealDamageToPlayer(attack.damage);
-                }
             }
         }
 
@@ -527,54 +439,6 @@ var Boss = {
         Grid.render();
         UI.updateAll();
         callback();
-    },
-
-    flyUp: function(boss, attack, callback) {
-        boss.untargetable = true;
-        var size = boss.size || 2;
-        var centerX = boss.x + Math.floor(size / 2);
-        var centerY = boss.y + Math.floor(size / 2);
-        State.addFloatingText(centerX, centerY, 'FLYING!', '#2244aa');
-
-        setTimeout(function() {
-            if (boss.hp <= 0) {
-                boss.untargetable = false;
-                Grid.render();
-                UI.updateAll();
-                callback();
-                return;
-            }
-
-            var attempts = 0;
-            do {
-                boss.x = Math.floor(Math.random() * (Data.GRID_SIZE - size + 1));
-                boss.y = Math.floor(Math.random() * (Data.GRID_SIZE - size + 1));
-                attempts++;
-            } while (attempts < 100 && (Stages.isReserved(boss.x, boss.y) || Stages.isReserved(boss.x + size - 1, boss.y) || Stages.isReserved(boss.x, boss.y + size - 1) || Stages.isReserved(boss.x + size - 1, boss.y + size - 1)));
-
-            boss.untargetable = false;
-
-            var newCenterX = boss.x + Math.floor(size / 2);
-            var newCenterY = boss.y + Math.floor(size / 2);
-            var tiles = [
-                { x: newCenterX, y: newCenterY },
-                { x: newCenterX + 1, y: newCenterY },
-                { x: newCenterX - 1, y: newCenterY },
-                { x: newCenterX, y: newCenterY + 1 },
-                { x: newCenterX, y: newCenterY - 1 }
-            ];
-
-            for (var i = 0; i < tiles.length; i++) {
-                if (tiles[i].x === State.player.x && tiles[i].y === State.player.y) {
-                    Combat.dealDamageToPlayer(attack.damage);
-                }
-            }
-
-            State.addFloatingText(newCenterX, newCenterY, 'CRASH!', '#ff4466');
-            Grid.render();
-            UI.updateAll();
-            callback();
-        }, 800);
     },
 
     rootGrasp: function(boss, attack, callback) {

@@ -10,7 +10,7 @@ var Data = {
         knight: {
             id: 'knight', name: 'KNIGHT', desc: 'Frontline melee warrior',
             passiveName: 'Melee Expert',
-            passive: 'Deals bonus damage to nearby enemies',
+            passive: 'Deals bonus damage to nearby enemies with more items.',
             passiveId: 'melee_expert',
             hp: 1000, energy: 6,
             basicAttack: 'slash',
@@ -21,7 +21,7 @@ var Data = {
         ranger: {
             id: 'ranger', name: 'RANGER', desc: 'Ranged skirmisher',
             passiveName: 'Range Master',
-            passive: 'Deals bonus damage to distant enemies',
+            passive: 'Deals bonus damage to distant enemies with more items.',
             passiveId: 'range_master',
             hp: 700, energy: 5,
             basicAttack: 'arrow_shot',
@@ -103,11 +103,6 @@ var Data = {
             rarity: 'common', effect: { type: 'on_hit', chance: 10, status: 'freeze', value: 2 },
             icon: '\u25C7', iconBg: '#44ccff'
         },
-        blood_focus: {
-            id: 'blood_focus', name: 'Blood Focus', desc: '+1 energy on kill',
-            rarity: 'common', effect: { type: 'on_kill', energyRestore: 1 },
-            icon: '\u26A1', iconBg: '#ffcc00'
-        },
 
         // === UNCOMMON (Green) ===
         critical_lens: {
@@ -153,8 +148,8 @@ var Data = {
             icon: '\u2756', iconBg: '#ff88cc'
         },
         chaos_embrace: {
-            id: 'chaos_embrace', name: 'Chaos Embrace', desc: 'On hit: random status',
-            rarity: 'rare', effect: { type: 'on_hit', chance: 25, status: 'random' },
+            id: 'chaos_embrace', name: 'Chaos Embrace', desc: 'On hit: 15% random status',
+            rarity: 'rare', effect: { type: 'on_hit', chance: 15, status: 'random' },
             icon: '\u2727', iconBg: '#aa44ff'
         },
         berserker_blood: {
@@ -162,96 +157,37 @@ var Data = {
             rarity: 'rare', effect: { type: 'conditional', condition: 'missingHp', stat: 'power', valuePer10: 15 },
             icon: '\u2665', iconBg: '#aa0022'
         },
-        shield_generator: {
-            id: 'shield_generator', name: 'Shield Generator', desc: '+125 shield, regen 7%/turn',
-            rarity: 'rare', effect: { type: 'passive', stat: 'shield', value: 125, shieldRegenPercent: 7 },
-            icon: '\u25CE', iconBg: '#4488ff'
-        },
         vampiric_edge: {
             id: 'vampiric_edge', name: 'Vampiric Edge', desc: 'On crit: heal 1% max HP',
             rarity: 'rare', effect: { type: 'on_crit', healPercent: 1 },
             icon: '\u2620', iconBg: '#cc2244'
         },
         blight_amulet: {
-            id: 'blight_amulet', name: 'Blight Amulet', desc: '+30% crit dmg vs enemies on DoT',
-            rarity: 'rare', effect: { type: 'passive', stat: 'critDamageDot', value: 30 },
+            id: 'blight_amulet', name: 'Blight Amulet', desc: '+100% DoT damage',
+            rarity: 'rare', effect: { type: 'passive', stat: 'dotDamage', value: 100 },
             icon: '\u2601', iconBg: '#66aa44'
         },
         lone_wolf: {
-            id: 'lone_wolf', name: 'Lone Wolf', desc: '+10% crit chance & dmg vs isolated',
-            rarity: 'rare', effect: { type: 'passive', stat: 'critIsolated', value: 10 },
+            id: 'lone_wolf', name: 'Lone Wolf', desc: '+25% crit chance & +50% crit dmg vs isolated',
+            rarity: 'rare', effect: { type: 'passive', stat: 'critIsolated', value: 25 },
             icon: '\u263A', iconBg: '#8888aa'
         },
 
         // === BOSS (Gold) ===
-        boss_heart: {
-            id: 'boss_heart', name: 'Boss Heart', desc: '+25% max HP (stacks)',
-            rarity: 'boss', effect: { type: 'passive', stat: 'maxHpPercent', value: 25 },
-            icon: '\u2665', iconBg: '#ffaa00'
+        boss_tome: {
+            id: 'boss_tome', name: 'Boss Tome', desc: '+50% basic attack potency (stacks)',
+            rarity: 'boss', effect: { type: 'passive', stat: 'basicPotency', value: 30 },
+            icon: '\u2666', iconBg: '#ffaa00'
         },
         boss_weapon: {
-            id: 'boss_weapon', name: 'Boss Weapon', desc: '+20% flat damage',
-            rarity: 'boss', effect: { type: 'passive', stat: 'power', value: 20 },
+            id: 'boss_weapon', name: 'Boss Weapon', desc: '+10% flat damage',
+            rarity: 'boss', effect: { type: 'passive', stat: 'power', value: 10 },
             icon: '\u2694', iconBg: '#ff4444'
         },
         boss_crown: {
             id: 'boss_crown', name: 'Boss Crown', desc: '+1 skill reroll per stage',
             rarity: 'boss', effect: { type: 'passive', stat: 'extraRerolls', value: 1 },
             icon: '\u265B', iconBg: '#ffdd00'
-        }
-    },
-
-    ITEM_SETS: {
-        elemental_mastery: {
-            name: 'Elemental Mastery',
-            requires: ['burning_touch', 'frozen_core', 'chain_lightning'],
-            desc: 'All on-hit effects chance doubled',
-            bonus: { type: 'double_onhit_chance' }
-        },
-        juggernaut_set: {
-            name: 'Juggernaut',
-            requires: ['tough_shell', 'iron_skin', 'thorns_armor'],
-            desc: '+50% max HP, reflect 30% damage',
-            bonus: { type: 'juggernaut_bonus' }
-        },
-        glass_cannon_synergy: {
-            name: 'Glass Cannon+',
-            requires: ['glass_cannon', 'critical_lens'],
-            desc: 'Crits deal 3x instead of 2x',
-            bonus: { type: 'triple_crit' }
-        }
-    },
-
-    ITEM_SKILL_INTERACTIONS: {
-        fireball_burning: {
-            skill: 'fireball', item: 'burning_touch',
-            desc: 'Fireball AoE becomes 5x5',
-            bonus: { type: 'aoe_expand', range: 2 }
-        },
-        ice_shard_shatter: {
-            skill: 'ice_shard', item: 'frozen_core',
-            desc: 'Frozen enemies take 2x damage',
-            bonus: { type: 'frozen_damage', multiplier: 2 }
-        },
-        shield_bash_stun: {
-            skill: 'shield_bash', item: 'iron_skin',
-            desc: 'Shield bash knocks back + stuns 1 turn',
-            bonus: { type: 'add_stun', duration: 1 }
-        },
-        dash_heal: {
-            skill: 'dash', item: 'second_wind',
-            desc: 'Dash heals 5% HP on use',
-            bonus: { type: 'dash_heal', healPercent: 5 }
-        },
-        war_cry_empower: {
-            skill: 'war_cry', item: 'berserker_blood',
-            desc: 'War Cry grants +100% damage',
-            bonus: { type: 'empower_boost', value: 100 }
-        },
-        poison_burn: {
-            skill: 'poison_cloud', item: 'burning_touch',
-            desc: 'Poison tiles deal double DoT',
-            bonus: { type: 'dot_double' }
         }
     },
 
@@ -283,7 +219,7 @@ var Data = {
         },
         fireball: {
             id: 'fireball', name: 'Fireball', desc: 'Explosive 3x3 AoE',
-            energyCost: 4, damage: 60, shape: 'aoe', range: 3,
+            energyCost: 2, damage: 50, shape: 'aoe', range: 3,
             color: '#ff6622', isBasic: false, effects: []
         },
         whirlwind: {
@@ -337,9 +273,9 @@ var Data = {
             color: '#6688aa', isBasic: true, effects: ['guard']
         },
         blink_strike: {
-            id: 'blink_strike', name: 'Blink Strike', desc: 'Teleport to target, attack',
-            energyCost: 3, damage: 70, shape: 'blink', range: 3,
-            color: '#cc44ff', isBasic: false, effects: []
+            id: 'blink_strike', name: 'Blink Strike', desc: 'Teleport and 3x3 AoE',
+            energyCost: 3, damage: 60, shape: 'blink', range: 3,
+            color: '#cc44ff', isBasic: false, effects: ['blink_aoe']
         },
         rend: {
             id: 'rend', name: 'Rend', desc: 'Bleed: 15 dmg/turn for 3 turns',
@@ -398,7 +334,7 @@ var Data = {
         },
         piercing_arrow: {
             id: 'piercing_arrow', name: 'Piercing Arrow', desc: 'Long range piercing line',
-            energyCost: 3, damage: 60, shape: 'line', range: 5,
+            energyCost: 3, damage: 50, shape: 'line', range: 5,
             color: '#88ff44', isBasic: false, effects: []
         },
         ricochet: {
@@ -407,153 +343,126 @@ var Data = {
             color: '#ffaa44', isBasic: false, effects: ['chain_2']
         },
         arrow_rain: {
-            id: 'arrow_rain', name: 'Arrow Rain', desc: 'Ranged AoE arrow volley',
-            energyCost: 3, damage: 40, shape: 'aoe', range: 3,
+            id: 'arrow_rain', name: 'Arrow Rain', desc: 'Long range AoE arrow volley',
+            energyCost: 3, damage: 60, shape: 'aoe', range: 4,
             color: '#aadd44', isBasic: false, effects: []
         },
         snipe: {
             id: 'snipe', name: 'Snipe', desc: 'High damage long range shot',
-            energyCost: 4, damage: 100, shape: 'single', range: 5,
+            energyCost: 5, damage: 100, shape: 'single', range: 5,
             color: '#ff4488', isBasic: false, effects: []
         }
     },
 
     SKILL_POOL: ['thrust', 'fireball', 'whirlwind', 'holy_smite', 'ice_shard', 'backstab', 'shield_bash', 'lightning', 'poison_cloud', 'war_cry', 'dash', 'blink_strike', 'rend', 'execute', 'cleave', 'heal', 'reave', 'fire_nova', 'frost_nova', 'mark', 'lifesteal_aura', 'berserk', 'rejuvenation', 'piercing_arrow', 'ricochet', 'arrow_rain', 'snipe'],
 
-    SYNERGIES: {
-        firestorm: {
-            name: 'Firestorm', requires: ['fireball', 'thrust'],
-            desc: 'Fireball AoE becomes 5x5'
-        },
-        shatter: {
-            name: 'Shatter', requires: ['ice_shard', 'lightning'],
-            desc: 'Frozen enemies take 2x damage'
-        },
-        juggernaut: {
-            name: 'Juggernaut', requires: ['shield_bash', 'thrust'],
-            desc: 'Push then pierce through enemies'
-        },
-        assassin: {
-            name: 'Assassin', requires: ['backstab', 'dash'],
-            desc: 'Dash freezes nearby enemies, Shatter Strike costs 0'
-        },
-        empowered: {
-            name: 'Empowered', requires: ['war_cry'],
-            desc: '+50% damage on next attack'
-        },
-        combust: {
-            name: 'Combust', requires: ['poison_cloud', 'fireball'],
-            desc: 'Poison tiles deal double damage'
-        }
-    },
-
     ENEMIES: {
         goblin: {
-            id: 'goblin', name: 'Goblin', hp: 240, damage: 30, moveSpeed: 1,
+            id: 'goblin', name: 'Goblin', hp: 170, damage: 30, moveSpeed: 1,
             type: 'melee', color: '#44cc44', behavior: 'charge'
         },
         archer: {
-            id: 'archer', name: 'Archer', hp: 180, damage: 40, moveSpeed: 1,
+            id: 'archer', name: 'Archer', hp: 130, damage: 40, moveSpeed: 1,
             type: 'ranged', color: '#ee8833', behavior: 'keep_distance'
         },
         slime: {
-            id: 'slime', name: 'Slime', hp: 450, damage: 20, moveSpeed: 0.5,
+            id: 'slime', name: 'Slime', hp: 315, damage: 20, moveSpeed: 0.5,
             type: 'melee', color: '#aa44dd', behavior: 'charge'
         },
         necromancer: {
-            id: 'necromancer', name: 'Necromancer', hp: 300, damage: 20, moveSpeed: 0,
+            id: 'necromancer', name: 'Necromancer', hp: 210, damage: 20, moveSpeed: 0,
             type: 'summoner', color: '#7722aa', behavior: 'stay_far'
         },
         shadow: {
-            id: 'shadow', name: 'Shadow', hp: 200, damage: 50, moveSpeed: 1,
+            id: 'shadow', name: 'Shadow', hp: 140, damage: 50, moveSpeed: 1,
             type: 'phaser', color: '#555566', behavior: 'teleport'
         },
         skeleton: {
-            id: 'skeleton', name: 'Skeleton', hp: 100, damage: 15, moveSpeed: 1,
+            id: 'skeleton', name: 'Skeleton', hp: 70, damage: 15, moveSpeed: 1,
             type: 'melee', color: '#ccccaa', behavior: 'charge', isSummon: true
         },
         wolf: {
-            id: 'wolf', name: 'Wolf', hp: 200, damage: 25, moveSpeed: 2,
+            id: 'wolf', name: 'Wolf', hp: 140, damage: 25, moveSpeed: 2,
             type: 'melee', color: '#886644', behavior: 'charge'
         },
         druid: {
-            id: 'druid', name: 'Druid', hp: 180, damage: 30, moveSpeed: 1,
+            id: 'druid', name: 'Druid', hp: 130, damage: 30, moveSpeed: 1,
             type: 'ranged', color: '#448844', behavior: 'keep_distance'
         },
         treant: {
-            id: 'treant', name: 'Treant', hp: 600, damage: 25, moveSpeed: 0.5,
+            id: 'treant', name: 'Treant', hp: 420, damage: 25, moveSpeed: 0.5,
             type: 'melee', color: '#664422', behavior: 'charge'
         },
         toad: {
-            id: 'toad', name: 'Toad', hp: 300, damage: 35, moveSpeed: 1,
+            id: 'toad', name: 'Toad', hp: 210, damage: 35, moveSpeed: 1,
             type: 'melee', color: '#558844', behavior: 'charge'
         },
         plaguebearer: {
-            id: 'plaguebearer', name: 'Plague Bearer', hp: 250, damage: 25, moveSpeed: 1,
+            id: 'plaguebearer', name: 'Plague Bearer', hp: 175, damage: 25, moveSpeed: 1,
             type: 'ranged', color: '#88aa44', behavior: 'keep_distance'
         },
         mud_golem: {
-            id: 'mud_golem', name: 'Mud Golem', hp: 700, damage: 20, moveSpeed: 0.5,
+            id: 'mud_golem', name: 'Mud Golem', hp: 490, damage: 20, moveSpeed: 0.5,
             type: 'melee', color: '#886644', behavior: 'charge'
         },
         scorpion: {
-            id: 'scorpion', name: 'Scorpion', hp: 220, damage: 40, moveSpeed: 1,
+            id: 'scorpion', name: 'Scorpion', hp: 155, damage: 40, moveSpeed: 1,
             type: 'melee', color: '#cc8844', behavior: 'charge'
         },
         mummy: {
-            id: 'mummy', name: 'Mummy', hp: 350, damage: 30, moveSpeed: 1,
+            id: 'mummy', name: 'Mummy', hp: 245, damage: 30, moveSpeed: 1,
             type: 'ranged', color: '#ccaa88', behavior: 'keep_distance'
         },
         sand_wraith: {
-            id: 'sand_wraith', name: 'Sand Wraith', hp: 200, damage: 45, moveSpeed: 1,
+            id: 'sand_wraith', name: 'Sand Wraith', hp: 140, damage: 45, moveSpeed: 1,
             type: 'phaser', color: '#ddcc88', behavior: 'teleport'
         },
         frost_elemental: {
-            id: 'frost_elemental', name: 'Frost Elemental', hp: 280, damage: 30, moveSpeed: 1,
+            id: 'frost_elemental', name: 'Frost Elemental', hp: 195, damage: 30, moveSpeed: 1,
             type: 'ranged', color: '#88bbee', behavior: 'keep_distance'
         },
         ice_wyrm: {
-            id: 'ice_wyrm', name: 'Ice Wyrm', hp: 400, damage: 35, moveSpeed: 1,
+            id: 'ice_wyrm', name: 'Ice Wyrm', hp: 280, damage: 35, moveSpeed: 1,
             type: 'melee', color: '#aaddff', behavior: 'charge'
         },
         yeti: {
-            id: 'yeti', name: 'Yeti', hp: 500, damage: 40, moveSpeed: 1,
+            id: 'yeti', name: 'Yeti', hp: 350, damage: 40, moveSpeed: 1,
             type: 'melee', color: '#ccddee', behavior: 'charge'
         },
         fire_elemental: {
-            id: 'fire_elemental', name: 'Fire Elemental', hp: 250, damage: 35, moveSpeed: 1,
+            id: 'fire_elemental', name: 'Fire Elemental', hp: 175, damage: 35, moveSpeed: 1,
             type: 'ranged', color: '#ff6622', behavior: 'keep_distance'
         },
         magma_slime: {
-            id: 'magma_slime', name: 'Magma Slime', hp: 80, damage: 25, moveSpeed: 1,
+            id: 'magma_slime', name: 'Magma Slime', hp: 55, damage: 25, moveSpeed: 1,
             type: 'melee', color: '#ff4400', behavior: 'charge'
         },
         phoenix: {
-            id: 'phoenix', name: 'Phoenix', hp: 80, damage: 30, moveSpeed: 1,
+            id: 'phoenix', name: 'Phoenix', hp: 55, damage: 30, moveSpeed: 1,
             type: 'ranged', color: '#ffaa00', behavior: 'keep_distance'
         },
         wraith_enemy: {
-            id: 'wraith_enemy', name: 'Wraith', hp: 220, damage: 40, moveSpeed: 1,
+            id: 'wraith_enemy', name: 'Wraith', hp: 155, damage: 40, moveSpeed: 1,
             type: 'phaser', color: '#664488', behavior: 'teleport'
         },
         void_walker: {
-            id: 'void_walker', name: 'Void Walker', hp: 300, damage: 35, moveSpeed: 1,
+            id: 'void_walker', name: 'Void Walker', hp: 210, damage: 35, moveSpeed: 1,
             type: 'melee', color: '#443366', behavior: 'charge'
         },
         shade: {
-            id: 'shade', name: 'Shade', hp: 180, damage: 30, moveSpeed: 1,
+            id: 'shade', name: 'Shade', hp: 130, damage: 30, moveSpeed: 1,
             type: 'ranged', color: '#555577', behavior: 'keep_distance'
         },
         angel: {
-            id: 'angel', name: 'Angel', hp: 250, damage: 35, moveSpeed: 1,
+            id: 'angel', name: 'Angel', hp: 175, damage: 35, moveSpeed: 1,
             type: 'ranged', color: '#ffdd88', behavior: 'keep_distance'
         },
         cherub: {
-            id: 'cherub', name: 'Cherub', hp: 200, damage: 30, moveSpeed: 2,
+            id: 'cherub', name: 'Cherub', hp: 140, damage: 30, moveSpeed: 2,
             type: 'melee', color: '#ffeeaa', behavior: 'charge'
         },
         seraph: {
-            id: 'seraph', name: 'Seraph', hp: 300, damage: 25, moveSpeed: 0,
+            id: 'seraph', name: 'Seraph', hp: 210, damage: 25, moveSpeed: 0,
             type: 'summoner', color: '#ffffcc', behavior: 'stay_far'
         }
     },
@@ -566,25 +475,6 @@ var Data = {
                 { name: 'Ground Slam', shape: 'cross', range: 1, damage: 160, cooldown: 3, current: 0 },
                 { name: 'Boulder Throw', shape: 'line', range: 4, damage: 110, cooldown: 2, current: 0 },
                 { name: 'Summon Rubble', shape: 'summon_rubble', damage: 0, cooldown: 4, current: 0 }
-            ]
-        },
-        wraith: {
-            id: 'wraith', name: 'Shadow Wraith', hp: 1300, damage: 60,
-            color: '#443366', behavior: 'boss', size: 2,
-            attacks: [
-                { name: 'Shadow Step', shape: 'shadow_step', damage: 140, cooldown: 3, current: 0 },
-                { name: 'Life Drain', shape: 'ring', range: 1, damage: 80, heal: 40, cooldown: 2, current: 0 },
-                { name: 'Clone', shape: 'clone', damage: 0, cooldown: 5, current: 0 }
-            ]
-        },
-        dragon: {
-            id: 'dragon', name: 'Storm Dragon', hp: 2000, damage: 80,
-            color: '#2244aa', behavior: 'boss', size: 2,
-            attacks: [
-                { name: 'Lightning Breath', shape: 'cone', range: 3, damage: 130, cooldown: 2, current: 0 },
-                { name: 'Wing Gust', shape: 'push_player', damage: 0, cooldown: 3, current: 0 },
-                { name: 'Tail Sweep', shape: 'ring', range: 1, damage: 110, cooldown: 2, current: 0 },
-                { name: 'Fly Up', shape: 'fly_up', damage: 200, cooldown: 5, current: 0 }
             ]
         },
         ancient_tree: {
@@ -652,7 +542,7 @@ var Data = {
         }
     },
 
-    BOSS_ORDER: ['colossus', 'wraith', 'dragon'],
+    BOSS_ORDER: ['colossus'],
 
     BIOMES: {
         dungeon: {
@@ -709,14 +599,14 @@ var Data = {
 
     ENEMIES_PER_STAGE_BASE: 3,
     ENEMIES_PER_STAGE_MAX: 6,
-    OBSTACLES_PER_STAGE_BASE: 2,
-    OBSTACLES_PER_STAGE_MAX: 5,
+    OBSTACLES_PER_STAGE_BASE: 3,
+    OBSTACLES_PER_STAGE_MAX: 12,
 
-        SCALING_HP_MULT: 0.30,
-        SCALING_DMG_MULT: 0.15,
+    SCALING_HP_MULT: 0.30,
+    SCALING_DMG_MULT: 0.25,
 
     BOSS_EVERY: 5,
-        BOSS_STAT_SCALE: 0.40,
+        BOSS_STAT_SCALE: 0.50,
 
     COLORS: {
         bg: '#0f0a1a',
@@ -838,5 +728,7 @@ var Data = {
     },
 
     ELITE_HP_MULT: 2,
+    ELITE_DMG_MULT: 1.25,
+    ELITE_TELEGRAPH_MULT: 1.7,
     ELITE_SPECIAL_INTERVAL: 2
 };

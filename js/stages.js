@@ -83,8 +83,8 @@ var Stages = {
         }
         var bossDef = Data.BOSS_DEFS[bossKey];
 
-        var scaling = Math.pow(1 + Data.BOSS_STAT_SCALE, Math.floor(State.stage / 15));
-        var loopScaling = 1 + Math.floor(State.stage / 15) * Data.BOSS_STAT_SCALE;
+        var bossScaleSteps = Math.floor(State.stage / Data.BOSS_EVERY);
+        var loopScaling = 1 + bossScaleSteps * Data.BOSS_STAT_SCALE;
 
         State.currentBossDef = bossDef;
         State.bossTurnCount = 0;
@@ -108,7 +108,10 @@ var Stages = {
             isBoss: true,
             color: bossDef.color,
             name: bossDef.name,
-            attacks: JSON.parse(JSON.stringify(bossDef.attacks)),
+            attacks: JSON.parse(JSON.stringify(bossDef.attacks)).map(function(a) {
+                if (a.damage > 0) a.damage = Math.floor(a.damage * loopScaling);
+                return a;
+            }),
             nextAttack: null,
             telegraph: null
         };
@@ -232,6 +235,7 @@ var Stages = {
             var dmg = Math.floor(def.damage * dmgScaling);
             if (isElite) {
                 hp = Math.floor(hp * Data.ELITE_HP_MULT);
+                dmg = Math.floor(dmg * Data.ELITE_DMG_MULT);
                 elitesSpawned++;
             }
 

@@ -51,10 +51,6 @@ var Combat = {
                 break;
             case 'aoe':
                 var aoeRange = 1;
-                var fireInter = State.hasSkillInteraction('fireball');
-                if (fireInter && fireInter.range && skill.id === 'fireball') {
-                    aoeRange = fireInter.range;
-                }
                 for (var dy2 = -aoeRange; dy2 <= aoeRange; dy2++) {
                     for (var dx2 = -aoeRange; dx2 <= aoeRange; dx2++) {
                         tiles.push({ x: tx + dx2, y: ty + dy2 });
@@ -87,7 +83,8 @@ var Combat = {
         if (skill && skill.id) {
             var skillStacks = State.player.skillStacks[skill.id] || 0;
             if (skillStacks > 0 && !['war_cry', 'heal', 'lifesteal_aura', 'rejuvenation', 'mark', 'berserk', 'guard'].includes(skill.id)) {
-                var stackMultiplier = 1 + (skillStacks * 0.2);
+                var perStack = skill.isBasic ? 0.5 : 0.2;
+                var stackMultiplier = 1 + (skillStacks * perStack);
                 dmg = Math.floor(dmg * stackMultiplier);
             }
         }
@@ -100,11 +97,6 @@ var Combat = {
             var berserkStacks = State.player.skillStacks['berserk'] || 0;
             var berserkMultiplier = 1.5 + (berserkStacks * 0.25);
             dmg = Math.floor(dmg * berserkMultiplier);
-        }
-
-        var empowerInter = State.hasSkillInteraction('war_cry');
-        if (empowerInter && empowerInter.value && State.player.tempPower > 0) {
-            dmg = Math.floor(dmg * (1 + empowerInter.value / 100));
         }
 
         var p = State.player;
@@ -134,7 +126,7 @@ var Combat = {
                 }
             }
             if (adjacentAllies === 0) {
-                critChance += 10 * p.items['lone_wolf'];
+                critChance += 25 * p.items['lone_wolf'];
             }
         }
         var excessCrit = 0;
@@ -145,22 +137,11 @@ var Combat = {
         var isCrit = Math.random() * 100 < critChance;
         if (isCrit) {
             var critMultiplier = 2;
-            var hasGlassCannonSet = State.hasItemSet('glass_cannon_synergy');
-            if (hasGlassCannonSet) critMultiplier = 3;
             var critDamageBonus = this.calculateItemStatBonus('critDamage') + excessCrit;
             if (cls && cls.passiveId === 'crit_master') {
                 critDamageBonus += (p._rogueCritDmgBonus || 0);
             }
-            if (target && items['blight_amulet'] > 0) {
-                var onDot = false;
-                for (var bi = 0; bi < State.burnTiles.length; bi++) {
-                    if (State.burnTiles[bi].x === target.x && State.burnTiles[bi].y === target.y) { onDot = true; break; }
-                }
-                if (!onDot && target.poison && target.poison.turns > 0) onDot = true;
-                if (!onDot && target.bleed && target.bleed.turns > 0) onDot = true;
-                if (onDot) critDamageBonus += 30 * items['blight_amulet'];
-            }
-            if (target && items['lone_wolf'] > 0) {
+            if (target && p.items['lone_wolf'] > 0) {
                 var alive2 = State.getAliveEnemies();
                 var adj2 = 0;
                 for (var lw2 = 0; lw2 < alive2.length; lw2++) {
@@ -169,7 +150,7 @@ var Combat = {
                         if (ld2 <= 1) adj2++;
                     }
                 }
-                if (adj2 === 0) critDamageBonus += 10 * items['lone_wolf'];
+                if (adj2 === 0) critDamageBonus += 50 * p.items['lone_wolf'];
             }
             dmg = Math.floor(dmg * (critMultiplier + critDamageBonus / 100));
         }
@@ -179,7 +160,7 @@ var Combat = {
             if (State.player.items[ik] > 0) totalItems += State.player.items[ik];
         }
         if (totalItems > 0) {
-            dmg = Math.floor(dmg * (1 + totalItems * 0.06));
+            dmg = Math.floor(dmg * (1 + totalItems * 0.08));
         }
 
         // Knight/Ranger class passive: +25% base + 5% per item
@@ -193,7 +174,10 @@ var Combat = {
                                     (cls.passiveId === 'range_master' && !inMeleeRange);
                 if (passiveActive) {
                     var passivePercent = 25 + totalItems * 5;
+                    p._classPassiveBonus = passivePercent;
                     dmg = Math.floor(dmg * (1 + passivePercent / 100));
+                } else {
+                    p._classPassiveBonus = 0;
                 }
             }
         }
@@ -206,16 +190,6 @@ var Combat = {
 
     dealDamage: function(target, dmg, source, isCrit) {
         var actualDmg = dmg;
-
-        var shatterInter = State.hasSkillInteraction('ice_shard');
-        if (target.frozen && target.frozen > 0 && shatterInter && shatterInter.multiplier) {
-            actualDmg = dmg * shatterInter.multiplier;
-        }
-
-        var iceShardShatter = State.hasItem('frozen_core') && State.hasSkillInteraction('ice_shard');
-        if (target.frozen && target.frozen > 0 && iceShardShatter) {
-            actualDmg = dmg * 2;
-        }
 
         if (target.marked && target.marked > 0) {
             actualDmg = Math.floor(actualDmg * target.marked);
@@ -294,7 +268,7 @@ var Combat = {
                 }
 
                 var defId = target.defId;
-                if (defId !== 'skeleton') {
+                if (defId !== 'skeleton' && !target.isSummon) {
                     var healPercent = 1 + Math.random() * 2;
                     var cls = Data.CLASSES[State.player.classId];
                     if (cls && cls.passiveId === 'holy_tank') {
@@ -303,8 +277,10 @@ var Combat = {
                     }
                     var healAmount = Math.floor(State.player.maxHp * healPercent / 100);
                     State.player.hp = Math.min(State.player.hp + healAmount, State.player.maxHp);
-                    State.addFloatingText(State.player.x, State.player.y, '+' + healAmount + ' HP', '#44ff44');
-                    State.addLog('Healed for ' + healAmount + ' HP', 'info');
+                    if (State.player.items['second_wind'] > 0) {
+                        State.addFloatingText(State.player.x, State.player.y, '+' + healAmount + ' HP', '#44ff44');
+                        State.addLog('Healed for ' + healAmount + ' HP', 'info');
+                    }
                 }
             }
         }
@@ -322,7 +298,7 @@ var Combat = {
         if (source === 'player') {
             var cls = Data.CLASSES[State.player.classId];
             if (cls && cls.passiveId === 'holy_tank') {
-                var paladinHeal = Math.floor(actualDmg * 0.3);
+                var paladinHeal = Math.floor(actualDmg * 0.15);
                 if (paladinHeal > 0) {
                     State.player.hp = Math.min(State.player.hp + paladinHeal, State.player.maxHp);
                     State.addFloatingText(State.player.x, State.player.y, '+' + paladinHeal + ' HOLY', '#ffdd44');
@@ -332,6 +308,8 @@ var Combat = {
 
         if (target.bleed && target.bleed.turns > 0) {
                 var bleedDmg = target.bleed.damage;
+                var blightStacks = State.player.items['blight_amulet'] || 0;
+                if (blightStacks > 0) bleedDmg = Math.floor(bleedDmg * (1 + blightStacks));
                 target.hp -= bleedDmg;
                 var def = Data.ENEMIES[target.defId];
                 var name = def ? def.name : 'Enemy';
@@ -357,20 +335,17 @@ var Combat = {
 
     processOnHitEffects: function(target, hitX, hitY) {
         var items = State.player.items;
-        var hasElementalMastery = State.hasItemSet('elemental_mastery');
 
         if (items['burning_touch'] > 0) {
             var chance = 10 * items['burning_touch'];
-            if (hasElementalMastery) chance *= 2;
             if (Math.random() * 100 < chance) {
-                State.burnTiles.push({ x: hitX, y: hitY, turns: 3 });
+                State.burnTiles.push({ x: hitX, y: hitY, turns: 3, damage: this.calculateDotDamage(15) });
                 State.addFloatingText(hitX, hitY, 'BURN!', '#ff6600');
             }
         }
 
         if (items['frozen_core'] > 0 && target.frozen === 0) {
             var chance = 10 * items['frozen_core'];
-            if (hasElementalMastery) chance *= 2;
             if (Math.random() * 100 < chance) {
                 target.frozen = 2;
                 target.freezeImmune = true;
@@ -380,7 +355,6 @@ var Combat = {
 
         if (items['chain_lightning'] > 0) {
             var chance = 20 * items['chain_lightning'];
-            if (hasElementalMastery) chance *= 2;
             if (Math.random() * 100 < chance) {
                 var alive = State.getAliveEnemies();
                 var nearby = [];
@@ -409,10 +383,10 @@ var Combat = {
                     target.freezeImmune = true;
                     State.addFloatingText(hitX, hitY, 'CHAOS FREEZE!', '#88ddff');
                 } else if (status === 'burn') {
-                    State.burnTiles.push({ x: hitX, y: hitY, turns: 3 });
+                    State.burnTiles.push({ x: hitX, y: hitY, turns: 3, damage: this.calculateDotDamage(15) });
                     State.addFloatingText(hitX, hitY, 'CHAOS BURN!', '#ff6600');
                 } else if (status === 'poison') {
-                    var poisonDmg = Math.floor(20 * (1 + State.player.power / 100));
+                    var poisonDmg = this.calculateDotDamage(20);
                     target.poison = { damage: poisonDmg, turns: 3 };
                     State.addFloatingText(hitX, hitY, 'CHAOS POISON!', '#44cc44');
                 }
@@ -451,10 +425,8 @@ var Combat = {
             State.addFloatingText(State.player.x, State.player.y, '+' + healAmount + ' HP', '#44ff44');
         }
 
-        if (items['blood_focus'] > 0 || items['battle_momentum'] > 0) {
-            var energyRestore = 0;
-            if (items['blood_focus']) energyRestore += items['blood_focus'];
-            if (items['battle_momentum']) energyRestore += items['battle_momentum'];
+        if (items['battle_momentum'] > 0) {
+            var energyRestore = items['battle_momentum'];
             State.player.energy = Math.min(State.player.energy + energyRestore, State.player.maxEnergy);
             State.addFloatingText(State.player.x, State.player.y, '+' + energyRestore + ' ⚡', '#ffaa00');
         }
@@ -542,50 +514,55 @@ var Combat = {
 
         var enemy = State.getEnemyAt(tx, ty);
         if (enemy) {
-            var result = this.calculateDamage(skill.damage, skill, enemy);
-            var dmg = result.damage;
-            var isCrit = result.isCrit;
+            var dmg = 0;
+            var isCrit = false;
 
-            if (skill.effects.indexOf('backstab') !== -1 && enemy.frozen > 0) {
-                var backstabResult = this.calculateDamage(skill.damage * 3, skill, enemy);
-                dmg = backstabResult.damage;
-                isCrit = backstabResult.isCrit;
-                State.addFloatingText(tx, ty, 'SHATTER!', '#ff8800');
-            }
+            if (skill.damage > 0) {
+                var result = this.calculateDamage(skill.damage, skill, enemy);
+                dmg = result.damage;
+                isCrit = result.isCrit;
 
-            if (skill.effects.indexOf('execute') !== -1) {
-                var hpPct = enemy.hp / enemy.maxHp;
-                if (hpPct < 0.5) {
-                    dmg = Math.floor(dmg * 2);
-                    State.addFloatingText(tx, ty, 'EXECUTE!', '#ff4444');
+                if (skill.effects.indexOf('backstab') !== -1 && enemy.frozen > 0) {
+                    var backstabResult = this.calculateDamage(skill.damage * 3, skill, enemy);
+                    dmg = backstabResult.damage;
+                    isCrit = backstabResult.isCrit;
+                    State.addFloatingText(tx, ty, 'SHATTER!', '#ff8800');
                 }
-            }
 
-            if (skill.effects.indexOf('reave') !== -1) {
-                var alive = State.getAliveEnemies();
-                var adjacentEnemies = 0;
-                for (var i = 0; i < alive.length; i++) {
-                    if (alive[i] !== enemy && alive[i].hp > 0) {
-                        var d = Math.abs(alive[i].x - tx) + Math.abs(alive[i].y - ty);
-                        if (d <= 1) adjacentEnemies++;
+                if (skill.effects.indexOf('execute') !== -1) {
+                    var hpPct = enemy.hp / enemy.maxHp;
+                    if (hpPct < 0.5) {
+                        dmg = Math.floor(dmg * 2);
+                        State.addFloatingText(tx, ty, 'EXECUTE!', '#ff4444');
                     }
                 }
-                if (adjacentEnemies === 0) {
-                    dmg = Math.floor(dmg * 1.5);
-                    State.addFloatingText(tx, ty, 'REAVE!', '#aa4444');
+
+                if (skill.effects.indexOf('reave') !== -1) {
+                    var alive = State.getAliveEnemies();
+                    var adjacentEnemies = 0;
+                    for (var i = 0; i < alive.length; i++) {
+                        if (alive[i] !== enemy && alive[i].hp > 0) {
+                            var d = Math.abs(alive[i].x - tx) + Math.abs(alive[i].y - ty);
+                            if (d <= 1) adjacentEnemies++;
+                        }
+                    }
+                    if (adjacentEnemies === 0) {
+                        dmg = Math.floor(dmg * 1.5);
+                        State.addFloatingText(tx, ty, 'REAVE!', '#aa4444');
+                    }
                 }
-            }
 
-            this.dealDamage(enemy, dmg, 'player', isCrit);
+                this.dealDamage(enemy, dmg, 'player', isCrit);
 
-            if (isCrit && State.player.items['vampiric_edge'] > 0) {
-                var healAmt = Math.floor(State.player.maxHp * 0.01 * State.player.items['vampiric_edge']);
-                State.player.hp = Math.min(State.player.hp + healAmt, State.player.maxHp);
-                State.addFloatingText(tx, ty, '+' + healAmt + ' HP', '#44ff88');
+                if (isCrit && State.player.items['vampiric_edge'] > 0) {
+                    var healAmt = Math.floor(State.player.maxHp * 0.01 * State.player.items['vampiric_edge']);
+                    State.player.hp = Math.min(State.player.hp + healAmt, State.player.maxHp);
+                    State.addFloatingText(tx, ty, '+' + healAmt + ' HP', '#44ff88');
+                }
             }
 
             if (skill.effects.indexOf('bleed') !== -1 && !enemy.isBoss) {
-                var bleedDmg = Math.floor(15 * (1 + State.player.power / 100));
+                var bleedDmg = this.calculateDotDamage(15);
                 if (!enemy.bleed) {
                     enemy.bleed = { damage: bleedDmg, turns: 3 };
                 } else {
@@ -618,10 +595,10 @@ var Combat = {
                 enemy.freezeImmune = true;
             }
             if (skill.effects.indexOf('burn') !== -1) {
-                State.burnTiles.push({ x: tx, y: ty, turns: 3 });
+                State.burnTiles.push({ x: tx, y: ty, turns: 3, damage: this.calculateDotDamage(15) });
             }
             if (skill.effects.indexOf('poison') !== -1) {
-                var poisonDmg = Math.floor(20 * (1 + State.player.power / 100));
+                var poisonDmg = this.calculateDotDamage(20);
                 enemy.poison = { damage: poisonDmg, turns: 3 };
             }
 
@@ -695,8 +672,24 @@ var Combat = {
         State.player.x = blinkX;
         State.player.y = blinkY;
 
-        var result = this.calculateDamage(skill.damage, skill, enemy);
-        this.dealDamage(enemy, result.damage, 'player', result.isCrit);
+        // 3x3 AoE centered on landing position
+        var hitEnemies = [];
+        for (var dx = -1; dx <= 1; dx++) {
+            for (var dy = -1; dy <= 1; dy++) {
+                var ax = blinkX + dx;
+                var ay = blinkY + dy;
+                if (ax < 0 || ax >= Data.GRID_SIZE || ay < 0 || ay >= Data.GRID_SIZE) continue;
+                var e = State.getEnemyAt(ax, ay);
+                if (e && hitEnemies.indexOf(e) === -1) {
+                    hitEnemies.push(e);
+                }
+            }
+        }
+
+        for (var i = 0; i < hitEnemies.length; i++) {
+            var result = this.calculateDamage(skill.damage, skill, hitEnemies[i]);
+            this.dealDamage(hitEnemies[i], result.damage, 'player', result.isCrit);
+        }
 
         this.endPlayerTurn();
     },
@@ -780,9 +773,9 @@ var Combat = {
                 lastHitEnemy = enemy;
 
                 if (skill.effects.indexOf('freeze') !== -1 && !enemy.freezeImmune && enemy.frozen === 0) enemy.frozen = 2;
-                if (skill.effects.indexOf('burn') !== -1) State.burnTiles.push({ x: t.x, y: t.y, turns: 3 });
+                if (skill.effects.indexOf('burn') !== -1) State.burnTiles.push({ x: t.x, y: t.y, turns: 3, damage: this.calculateDotDamage(15) });
                 if (skill.effects.indexOf('poison') !== -1) {
-                    var poisonDmg = Math.floor(20 * (1 + State.player.power / 100));
+                    var poisonDmg = this.calculateDotDamage(20);
                     enemy.poison = { damage: poisonDmg, turns: 3 };
                     State.poisonTiles.push({ x: t.x, y: t.y, turns: 3, damage: poisonDmg });
                 }
@@ -820,16 +813,14 @@ var Combat = {
             var empowerValue = 100;
             var warCryStacks = State.player.skillStacks['war_cry'] || 0;
             empowerValue += warCryStacks * 10;
-            var empowerInter = State.hasSkillInteraction('war_cry');
-            if (empowerInter && empowerInter.value) {
-                empowerValue = empowerInter.value;
-            }
             State.player.tempPower = empowerValue;
+            State.player.tempPowerTurns = 2;
             State.addFloatingText(State.player.x, State.player.y, 'EMPOWERED! +' + empowerValue + '%', '#ffaa00');
         }
 
         if (skill.effects.indexOf('damage_reduction') !== -1) {
             State.player.damageReduction = 1;
+            State.player.damageReductionTurns = 2;
             State.addFloatingText(State.player.x, State.player.y, 'DAMAGE REDUCTION!', '#ffaa00');
         }
 
@@ -839,8 +830,10 @@ var Combat = {
             var enemy = State.getEnemyAt(tiles[i].x, tiles[i].y);
             if (enemy && hitEnemies.indexOf(enemy) === -1) {
                 hitEnemies.push(enemy);
-                var result = this.calculateDamage(skill.damage, skill, enemy);
-                this.dealDamage(enemy, result.damage, 'player', result.isCrit);
+                if (skill.damage > 0) {
+                    var result = this.calculateDamage(skill.damage, skill, enemy);
+                    this.dealDamage(enemy, result.damage, 'player', result.isCrit);
+                }
 
                 if (skill.effects.indexOf('knockback1') !== -1 && !enemy.isBoss) {
                     var kbDir = Grid.getDirection(State.player.x, State.player.y, tiles[i].x, tiles[i].y);
@@ -853,7 +846,7 @@ var Combat = {
                 }
 
                 if (skill.effects.indexOf('burn') !== -1) {
-                    State.burnTiles.push({ x: tiles[i].x, y: tiles[i].y, turns: 3 });
+                    State.burnTiles.push({ x: tiles[i].x, y: tiles[i].y, turns: 3, damage: this.calculateDotDamage(15) });
                 }
 
                 if (skill.effects.indexOf('freeze') !== -1 && !enemy.freezeImmune && enemy.frozen === 0) {
@@ -899,10 +892,10 @@ var Combat = {
                 }
 
                 if (skill.effects.indexOf('burn') !== -1) {
-                    State.burnTiles.push({ x: t.x, y: t.y, turns: 3 });
+                    State.burnTiles.push({ x: t.x, y: t.y, turns: 3, damage: this.calculateDotDamage(15) });
                 }
                 if (skill.effects.indexOf('poison') !== -1) {
-                    var poisonDmg = Math.floor(20 * (1 + State.player.power / 100));
+                    var poisonDmg = this.calculateDotDamage(20);
                     enemy.poison = { damage: poisonDmg, turns: 3 };
                 }
             } else if (!enemy) {
@@ -965,13 +958,6 @@ var Combat = {
             }
         }
 
-        var dashInter = State.hasSkillInteraction('dash');
-        if (dashInter && dashInter.healPercent) {
-            var healAmount = Math.floor(State.player.maxHp * dashInter.healPercent / 100);
-            State.player.hp = Math.min(State.player.hp + healAmount, State.player.maxHp);
-            State.addFloatingText(finalX, finalY, '+' + healAmount + ' HP', '#44ff44');
-        }
-
         this.endPlayerTurn();
     },
 
@@ -1007,8 +993,6 @@ var Combat = {
 
     endPlayerTurn: function() {
         State.phase = 'enemy';
-        State.player.tempPower = 0;
-        State.player.damageReduction = 0;
         State.hoveredTile = null;
         State.attackPreview = [];
         UI.updateAll();
@@ -1021,6 +1005,16 @@ var Combat = {
     startNewTurn: function() {
         State.turn++;
         State.phase = 'player';
+
+        if (State.player.tempPowerTurns > 0) {
+            State.player.tempPowerTurns--;
+            if (State.player.tempPowerTurns === 0) State.player.tempPower = 0;
+        }
+        if (State.player.damageReductionTurns > 0) {
+            State.player.damageReductionTurns--;
+            if (State.player.damageReductionTurns === 0) State.player.damageReduction = 0;
+        }
+
         var regenAmount = Math.ceil(State.player.maxEnergy / 2);
         State.player.energy = Math.min(State.player.energy + regenAmount, State.player.maxEnergy);
         State.player.guarding = false;
@@ -1056,7 +1050,8 @@ var Combat = {
                 if (e.frozen === 0) {
                     State.addFloatingText(e.x, e.y, 'THAWED', '#88ddff');
                     if (!e.isBoss) {
-                        e.freezeImmuneTurns = 2;
+                        e.freezeImmune = true;
+                        e.freezeImmuneTurns = 3;
                     }
                 }
             }
@@ -1070,10 +1065,8 @@ var Combat = {
 
             if (e.poison && e.poison.turns > 0) {
                 var poisonDmg = e.poison.damage;
-                if (State.hasSkillInteraction('poison_cloud')) {
-                    var onBurn = State.burnTiles.some(function(b) { return b.x === e.x && b.y === e.y; });
-                    if (onBurn) poisonDmg *= 2;
-                }
+                var blightStacks = State.player.items['blight_amulet'] || 0;
+                if (blightStacks > 0) poisonDmg = Math.floor(poisonDmg * (1 + blightStacks));
                 e.hp -= poisonDmg;
                 var def = Data.ENEMIES[e.defId];
                 var name = def ? def.name : 'Enemy';
@@ -1110,22 +1103,9 @@ var Combat = {
         var items = State.player.items;
         var p = State.player;
 
-        if (items['guardian_angel'] > 0 || items['shield_generator'] > 0) {
-            var maxShield = 0;
-            var regenPercent = 0;
-            if (items['guardian_angel']) {
-                maxShield += 75 * items['guardian_angel'];
-                regenPercent += 5 * items['guardian_angel'];
-            }
-            if (items['shield_generator']) {
-                maxShield += 125 * items['shield_generator'];
-                regenPercent += 7 * items['shield_generator'];
-            }
-
-            var hasJuggernaut = State.hasItemSet('juggernaut_set');
-            if (hasJuggernaut) {
-                maxShield = Math.floor(maxShield * 1.5);
-            }
+        if (items['guardian_angel'] > 0) {
+            var maxShield = 75 * items['guardian_angel'];
+            var regenPercent = 5 * items['guardian_angel'];
 
             if (p.shield < maxShield) {
                 var regen = Math.max(1, Math.floor(maxShield * regenPercent / 100));
@@ -1135,6 +1115,25 @@ var Combat = {
                 }
             }
         }
+    },
+
+    calculateDotDamage: function(baseDmg) {
+        var p = State.player;
+        var dmg = baseDmg + Math.floor(p.power * 0.5);
+
+        if (p.diseased) {
+            dmg = Math.floor(dmg * 0.7);
+        }
+
+        var totalItems = 0;
+        for (var ik in p.items) {
+            if (p.items[ik] > 0) totalItems += p.items[ik];
+        }
+        if (totalItems > 0) {
+            dmg = Math.floor(dmg * (1 + totalItems * 0.03));
+        }
+
+        return Math.max(1, dmg);
     },
 
     calculateItemStatBonus: function(stat) {
@@ -1148,11 +1147,6 @@ var Combat = {
             if (item.effect.stat === stat) {
                 total += item.effect.value * items[id];
             }
-        }
-
-        var hasJuggernaut = State.hasItemSet('juggernaut_set');
-        if (hasJuggernaut && stat === 'maxHp') {
-            total += Math.floor(State.player.maxHp * 0.5);
         }
 
         return total;
@@ -1178,22 +1172,47 @@ var Combat = {
 
     processBurnTiles: function() {
         for (var i = State.burnTiles.length - 1; i >= 0; i--) {
-            State.burnTiles[i].turns--;
-            if (State.burnTiles[i].turns <= 0) {
+            var bt = State.burnTiles[i];
+            for (var j = 0; j < State.enemies.length; j++) {
+                var e = State.enemies[j];
+                if (e.hp <= 0) continue;
+                if (e.x === bt.x && e.y === bt.y) {
+                    var dmg = bt.damage || 15;
+                    e.hp -= dmg;
+                    var def = Data.ENEMIES[e.defId];
+                    var name = def ? def.name : 'Enemy';
+                    State.addLog(name + ' takes ' + dmg + ' burn ground dmg', 'dot');
+                    State.addFloatingText(e.x, e.y, '-' + dmg + ' BURN', '#ff6600');
+                    if (e.hp <= 0) {
+                        e.hp = 0;
+                        State.runStats.enemyKills++;
+                        State.addLog(name + ' killed by burn!', 'kill');
+                        var defId = e.defId;
+                        if (defId !== 'skeleton') {
+                            var healPercent = 1 + Math.random() * 2;
+                            var healAmount = Math.floor(State.player.maxHp * healPercent / 100);
+                            State.player.hp = Math.min(State.player.hp + healAmount, State.player.maxHp);
+                            State.addFloatingText(State.player.x, State.player.y, '+' + healAmount + ' HP', '#44ff44');
+                            State.addLog('Healed for ' + healAmount + ' HP', 'info');
+                        }
+                    }
+                }
+            }
+            bt.turns--;
+            if (bt.turns <= 0) {
                 State.burnTiles.splice(i, 1);
             }
         }
     },
 
     processPoisonTiles: function() {
-        var hasCombust = State.hasSynergy('combust');
         for (var i = State.poisonTiles.length - 1; i >= 0; i--) {
             var pt = State.poisonTiles[i];
             for (var j = 0; j < State.enemies.length; j++) {
                 var e = State.enemies[j];
                 if (e.hp <= 0) continue;
                 if (e.x === pt.x && e.y === pt.y) {
-                    var dmg = hasCombust ? pt.damage * 2 : pt.damage;
+                    var dmg = pt.damage;
                     e.hp -= dmg;
                     var def = Data.ENEMIES[e.defId];
                     var name = def ? def.name : 'Enemy';

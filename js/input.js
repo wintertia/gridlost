@@ -33,6 +33,58 @@ var Input = {
 
         this.setupTooltips();
 
+        $(document).on('mouseenter', '.buff-icon', function() {
+            var name = $(this).attr('data-buff-name');
+            var desc = $(this).attr('data-buff-desc');
+            if (!name) return;
+            self.hideTooltip();
+            var $tip = $('<div class="js-tooltip"></div>').text(name + ': ' + desc);
+            $('body').append($tip);
+            var rect = $(this)[0].getBoundingClientRect();
+            var tipW = $tip.outerWidth();
+            var tipH = $tip.outerHeight();
+            var left = rect.left + rect.width / 2 - tipW / 2;
+            var top = rect.top - tipH - 8;
+            if (left < 8) left = 8;
+            if (left + tipW > $(window).width() - 8) left = $(window).width() - tipW - 8;
+            if (top < 8) top = rect.bottom + 8;
+            $tip.css({ left: left + 'px', top: top + 'px' });
+            self.activeTooltip = $tip;
+        });
+
+        $(document).on('mouseleave', '.buff-icon', function() {
+            self.hideTooltip();
+        });
+
+        $(document).on('touchstart', '.buff-icon', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var name = $(this).attr('data-buff-name');
+            var desc = $(this).attr('data-buff-desc');
+            if (!name) return;
+            if (self.activeTooltip && self.activeTooltipTarget && self.activeTooltipTarget[0] === this) {
+                self.hideTooltip();
+                return;
+            }
+            self.hideTooltip();
+            self.activeTooltipTarget = $(this);
+            var $tip = $('<div class="js-tooltip"></div>').text(name + ': ' + desc);
+            $('body').append($tip);
+            var rect = $(this)[0].getBoundingClientRect();
+            var tipW = $tip.outerWidth();
+            var tipH = $tip.outerHeight();
+            var left = rect.left + rect.width / 2 - tipW / 2;
+            var top = rect.top - tipH - 8;
+            if (left < 8) left = 8;
+            if (left + tipW > $(window).width() - 8) left = $(window).width() - tipW - 8;
+            if (top < 8) top = rect.bottom + 8;
+            $tip.css({ left: left + 'px', top: top + 'px' });
+            $tip.on('touchend', function(e2) {
+                e2.stopPropagation();
+            });
+            self.activeTooltip = $tip;
+        });
+
         $('.skill-slot').on('click', function() {
             var slot = parseInt($(this).data('slot'));
             State.player.selectedSlot = slot;
@@ -87,13 +139,13 @@ var Input = {
 
         function hideTooltipIfOutside($target) {
             if (!self.activeTooltip) return;
-            if ($target.closest('.js-tooltip, .skill-slot, .synergy-item, .item-entry, .stat-label, .player-passive').length === 0) {
+            if ($target.closest('.js-tooltip, .skill-slot, .synergy-item, .item-entry, .item-badge, .stat-label, .player-passive').length === 0) {
                 self.hideTooltip();
             }
         }
 
         if (isTouch) {
-            $(document).on('touchstart', '.skill-slot, .synergy-item, .item-entry, .stat-label, .player-passive', function(e) {
+            $(document).on('touchstart', '.skill-slot, .synergy-item, .item-entry, .item-badge, .stat-label, .player-passive, .js-tooltip', function(e) {
                 var $el = $(this);
                 if (self.activeTooltip && self.activeTooltipTarget && self.activeTooltipTarget[0] === $el[0]) {
                     self.hideTooltip();
@@ -104,16 +156,16 @@ var Input = {
             });
 
             $(document).on('touchstart', function(e) {
-                if (!$(e.target).closest('.skill-slot, .synergy-item, .item-entry, .stat-label, .player-passive, .js-tooltip').length) {
+                if (!$(e.target).closest('.skill-slot, .synergy-item, .item-entry, .item-badge, .stat-label, .player-passive, .js-tooltip').length) {
                     self.hideTooltip();
                 }
             });
         } else {
-            $(document).on('mouseenter', '.skill-slot, .synergy-item, .item-entry, .stat-label, .player-passive', function() {
+            $(document).on('mouseenter', '.skill-slot, .synergy-item, .item-entry, .item-badge, .stat-label, .player-passive, .js-tooltip', function() {
                 showTooltip($(this), false);
             });
 
-            $(document).on('mouseleave', '.skill-slot, .synergy-item, .item-entry, .stat-label, .player-passive', function() {
+            $(document).on('mouseleave', '.skill-slot, .synergy-item, .item-entry, .item-badge, .stat-label, .player-passive, .js-tooltip', function() {
                 self.hideTooltip();
             });
         }

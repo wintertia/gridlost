@@ -25,7 +25,6 @@ var Main = {
         State.selectedClass = classId || 'knight';
         State.reset();
         Stages.generate();
-        State.updateSynergies();
         State.phase = 'player';
         State.clearFloatingTexts();
         UI.showScreen('game-screen');
@@ -46,6 +45,7 @@ var Main = {
         if (State.isBossStage) {
             UI.showBossBonusChoices(function(bonusId) {
                 Main.applyBossBonus(bonusId);
+                UI.updateAll();
                 UI.showItemChoices(function(itemId) {
                     Main.applyItemReward(itemId);
 
@@ -101,11 +101,14 @@ var Main = {
         var name = item ? item.name : bonusId;
         State.addLog('Obtained boss item: ' + name, 'boss');
 
-        if (bonusId === 'boss_heart') {
-            var hpBonus = Math.floor(State.player.maxHp * 0.25);
-            State.player.maxHp += hpBonus;
-            State.player.hp += hpBonus;
-            State.addFloatingText(State.player.x, State.player.y, '+' + hpBonus + ' MAX HP', '#ffaa00');
+        if (bonusId === 'boss_tome') {
+            var basicSkill = State.player.skills[1];
+            if (basicSkill) {
+                var curStacks = State.player.skillStacks[basicSkill.id] || 0;
+                State.player.skillStacks[basicSkill.id] = curStacks + 1;
+                var newLv = curStacks + 2;
+                State.addFloatingText(State.player.x, State.player.y, basicSkill.name + ' Lv.' + newLv + '!', '#ffaa00');
+            }
         }
     },
 
@@ -179,7 +182,6 @@ var Main = {
             }
             State.addFloatingText(State.player.x, State.player.y, 'STACK +' + State.player.skillStacks[skillId] + '!', '#ffaa00');
             State.addLog(newSkill.name + ' stacked to ' + State.player.skillStacks[skillId], 'info');
-            State.updateSynergies();
             this.proceedToNextStage();
             return;
         }
@@ -194,14 +196,12 @@ var Main = {
 
         if (emptySlot !== -1) {
             State.player.skills[emptySlot] = newSkill;
-            State.updateSynergies();
             this.proceedToNextStage();
         } else {
             UI.showReplaceChoices(skillId, function(slot) {
                 if (slot >= 2) {
                     State.player.skills[slot] = newSkill;
                 }
-                State.updateSynergies();
                 Main.proceedToNextStage();
             });
         }
@@ -212,9 +212,11 @@ var Main = {
         State.updateBiome();
         State.player.energy = State.player.maxEnergy;
         State.player.tempPower = 0;
+        State.player.shield = 0;
+        State.burnTiles = [];
+        State.poisonTiles = [];
         State.clearFloatingTexts();
         Stages.generate();
-        State.updateSynergies();
         UI.updateAll();
         State.phase = 'player';
         State.turn = 1;

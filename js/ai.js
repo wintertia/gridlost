@@ -144,7 +144,13 @@ var AI = {
                 enemy.eliteTelegraphing = false;
                 enemy.eliteTelegraphName = null;
                 enemy.eliteTelegraphTiles = null;
-                this.executeEliteSpecial(enemy, callback);
+                this.executeEliteSpecial(enemy, function() {
+                    if (def.type === 'melee') {
+                        AI.moveToward(enemy, State.player.x, State.player.y, callback);
+                    } else {
+                        callback();
+                    }
+                });
                 return;
             }
             if (enemy.eliteTurnCount >= Data.ELITE_SPECIAL_INTERVAL) {
@@ -159,8 +165,6 @@ var AI = {
                     Grid.render();
                     UI.updateAll();
                 }
-                callback();
-                return;
             }
         }
 
@@ -215,6 +219,7 @@ var AI = {
         var special = Data.ELITE_SPECIALS[enemy.defId];
         var def = Data.ENEMIES[enemy.defId];
         var name = def ? def.name : 'Elite';
+        var scaledDamage = Math.floor(special.damage * Data.ELITE_DMG_MULT * Data.ELITE_TELEGRAPH_MULT);
         State.addLog('[ELITE] ' + name + ' uses ' + special.name + '!', 'boss');
 
         switch (special.shape) {
@@ -235,7 +240,7 @@ var AI = {
                 if (tx >= 0 && tx < Data.GRID_SIZE && ty >= 0 && ty < Data.GRID_SIZE && !State.isBlocked(tx, ty)) {
                     enemy.x = tx; enemy.y = ty;
                 }
-                Combat.dealDamageToPlayer(special.damage);
+                Combat.dealDamageToPlayer(scaledDamage);
                 State.addFloatingText(enemy.x, enemy.y, 'STRIKE!', '#ff4444');
                 Grid.render(); UI.updateAll(); callback();
                 break;
@@ -249,7 +254,7 @@ var AI = {
                     var lx = enemy.x + stepX * i;
                     var ly = enemy.y + stepY * i;
                     if (lx === State.player.x && ly === State.player.y) {
-                        Combat.dealDamageToPlayer(special.damage);
+                        Combat.dealDamageToPlayer(scaledDamage);
                     }
                 }
                 State.addFloatingText(State.player.x, State.player.y, 'VOLLEY!', '#ee8833');
@@ -280,7 +285,7 @@ var AI = {
                 for (var dy2 = -1; dy2 <= 1; dy2++) {
                     for (var dx2 = -1; dx2 <= 1; dx2++) {
                         if (State.player.x + dx2 === State.player.x && State.player.y + dy2 === State.player.y) {
-                            Combat.dealDamageToPlayer(special.damage);
+                            Combat.dealDamageToPlayer(scaledDamage);
                         }
                     }
                 }
@@ -299,7 +304,7 @@ var AI = {
                         var by = State.player.y + dy3;
                         if (bx >= 0 && bx < Data.GRID_SIZE && by >= 0 && by < Data.GRID_SIZE) {
                             if (bx === State.player.x && by === State.player.y) {
-                                Combat.dealDamageToPlayer(special.damage);
+                                Combat.dealDamageToPlayer(scaledDamage);
                             }
                             if (special.shape === 'aoe_3x3_burn') {
                                 State.burnTiles.push({ x: bx, y: by, turns: 3 });
@@ -320,7 +325,7 @@ var AI = {
                 ];
                 for (var cti = 0; cti < crossTiles.length; cti++) {
                     if (crossTiles[cti].x === State.player.x && crossTiles[cti].y === State.player.y) {
-                        Combat.dealDamageToPlayer(special.damage);
+                        Combat.dealDamageToPlayer(scaledDamage);
                     }
                 }
                 if (special.summonObstacle) {
@@ -352,7 +357,7 @@ var AI = {
                         State.player.x = pnx; State.player.y = pny;
                     }
                 }
-                Combat.dealDamageToPlayer(special.damage);
+                Combat.dealDamageToPlayer(scaledDamage);
                 State.addFloatingText(State.player.x, State.player.y, 'PULLED!', '#558844');
                 Grid.render(); UI.updateAll(); callback();
                 break;
@@ -360,14 +365,14 @@ var AI = {
             case 'apply_disease': {
                 State.player.diseased = true;
                 State.addFloatingText(State.player.x, State.player.y, 'DISEASED!', '#aacc22');
-                Combat.dealDamageToPlayer(special.damage);
+                Combat.dealDamageToPlayer(scaledDamage);
                 Grid.render(); UI.updateAll(); callback();
                 break;
             }
             case 'apply_chilled': {
                 State.player.chilled = Math.max(State.player.chilled, 3);
                 State.addFloatingText(State.player.x, State.player.y, 'CHILLED!', '#88ddff');
-                Combat.dealDamageToPlayer(special.damage);
+                Combat.dealDamageToPlayer(scaledDamage);
                 Grid.render(); UI.updateAll(); callback();
                 break;
             }
@@ -378,7 +383,7 @@ var AI = {
                         var qy = enemy.y + dy5;
                         if (qx >= 0 && qx < Data.GRID_SIZE && qy >= 0 && qy < Data.GRID_SIZE) {
                             if (qx === State.player.x && qy === State.player.y) {
-                                Combat.dealDamageToPlayer(special.damage);
+                                Combat.dealDamageToPlayer(scaledDamage);
                             }
                             if (special.summonObstacle === 'water' && !Stages.isReserved(qx, qy) && Math.abs(dx5) + Math.abs(dy5) <= 2) {
                                 State.obstacles.push({ x: qx, y: qy, id: 'water', hp: -1, destructible: false, blocksMove: false, color: '#2266cc', energyCost: 2 });
@@ -394,7 +399,7 @@ var AI = {
                 var singleRange = special.shape === 'single_3' ? 3 : 2;
                 var sd = this.distance(enemy.x, enemy.y, State.player.x, State.player.y);
                 if (sd <= singleRange) {
-                    Combat.dealDamageToPlayer(special.damage);
+                    Combat.dealDamageToPlayer(scaledDamage);
                     if (special.effects && special.effects.indexOf('poison') !== -1) {
                         var poisonDmg = Math.floor(15 * (1 + (State.stage - 1) * Data.SCALING_DMG_MULT / 5));
                         State.player.statusEffects.push({ type: 'poison', damage: poisonDmg, turns: 3 });
@@ -436,7 +441,7 @@ var AI = {
                         if (cdirX !== 0) { ctx2 = enemy.x + cdirX * ci2; cty2 = enemy.y + spread; }
                         else { ctx2 = enemy.x + spread; cty2 = enemy.y + cdirY * ci2; }
                         if (ctx2 === State.player.x && cty2 === State.player.y) {
-                            Combat.dealDamageToPlayer(special.damage);
+                            Combat.dealDamageToPlayer(scaledDamage);
                         }
                     }
                 }
@@ -467,7 +472,7 @@ var AI = {
                 ];
                 for (var ctj = 0; ctj < crossTiles2.length; ctj++) {
                     if (crossTiles2[ctj].x === State.player.x && crossTiles2[ctj].y === State.player.y) {
-                        Combat.dealDamageToPlayer(special.damage);
+                        Combat.dealDamageToPlayer(scaledDamage);
                     }
                 }
                 enemy.x = State.player.x; enemy.y = State.player.y;
@@ -482,7 +487,7 @@ var AI = {
                 if (phX >= 0 && phX < Data.GRID_SIZE && phY >= 0 && phY < Data.GRID_SIZE && !State.isBlocked(phX, phY)) {
                     enemy.x = phX; enemy.y = phY;
                 }
-                Combat.dealDamageToPlayer(special.damage);
+                Combat.dealDamageToPlayer(scaledDamage);
                 State.addFloatingText(enemy.x, enemy.y, 'PHASE!', '#664488');
                 Grid.render(); UI.updateAll(); callback();
                 break;
@@ -509,7 +514,7 @@ var AI = {
                     enemy.untargetable = false;
                     var dist2 = self.distance(enemy.x, enemy.y, State.player.x, State.player.y);
                     if (dist2 <= 1) {
-                        Combat.dealDamageToPlayer(special.damage);
+                        Combat.dealDamageToPlayer(scaledDamage);
                         State.addFloatingText(State.player.x, State.player.y, 'BACKSTAB!', '#555577');
                     }
                     Grid.render(); UI.updateAll(); callback();
@@ -524,7 +529,7 @@ var AI = {
                 break;
             }
             default: {
-                Combat.dealDamageToPlayer(special.damage);
+                Combat.dealDamageToPlayer(scaledDamage);
                 Grid.render(); UI.updateAll(); callback();
                 break;
             }
