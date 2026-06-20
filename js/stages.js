@@ -9,11 +9,11 @@ var Stages = {
         var stage = State.stage;
         State.isBossStage = (stage % Data.BOSS_EVERY === 0);
 
-        this.placePlayer();
-
         if (State.isBossStage) {
             this.generateBossStage();
+            this.placePlayer();
         } else {
+            this.placePlayer();
             this.generateRegularStage(stage);
         }
     },
@@ -201,6 +201,8 @@ var Stages = {
 
         var placed = 0;
         var attempts = 0;
+        var isEliteStage = (stage % 5 === 3 || stage % 5 === 4);
+        var eliteSpawned = false;
 
         while (placed < count && attempts < 100) {
             var x = Math.floor(Math.random() * Data.GRID_SIZE);
@@ -216,12 +218,20 @@ var Stages = {
 
             var scaling = 1 + (stage - 1) * Data.SCALING_HP_MULT;
             var dmgScaling = 1 + (stage - 1) * Data.SCALING_DMG_MULT;
+            var isElite = isEliteStage && !eliteSpawned;
+
+            var hp = Math.floor(def.hp * scaling);
+            var dmg = Math.floor(def.damage * dmgScaling);
+            if (isElite) {
+                hp = Math.floor(hp * Data.ELITE_HP_MULT);
+                eliteSpawned = true;
+            }
 
             State.enemies.push({
                 x: x, y: y,
-                hp: Math.floor(def.hp * scaling),
-                maxHp: Math.floor(def.hp * scaling),
-                damage: Math.floor(def.damage * dmgScaling),
+                hp: hp,
+                maxHp: hp,
+                damage: dmg,
                 defId: typeKey,
                 facing: 'down',
                 frozen: 0,
@@ -229,6 +239,9 @@ var Stages = {
                 freezeImmuneTurns: 0,
                 poison: null,
                 isBoss: false,
+                isElite: isElite,
+                eliteTurnCount: 0,
+                eliteTelegraphing: false,
                 color: def.color,
                 summonTimer: 0,
                 teleportTimer: 0

@@ -6,6 +6,9 @@ var Grid = {
     offsetY: 0,
     animFrame: 0,
     animLoop: null,
+    lastTimestamp: 0,
+    animAccumulator: 0,
+    TICK_MS: 1000 / 60,
 
     init: function() {
         this.canvas = document.getElementById('game-canvas');
@@ -16,14 +19,23 @@ var Grid = {
 
     startAnimLoop: function() {
         var self = this;
-        function loop() {
+        self.lastTimestamp = 0;
+        self.animAccumulator = 0;
+        function loop(timestamp) {
             self.animLoop = requestAnimationFrame(loop);
-            if (State.screen === 'game') {
+            if (State.screen !== 'game') return;
+            if (self.lastTimestamp === 0) { self.lastTimestamp = timestamp; return; }
+            var dt = timestamp - self.lastTimestamp;
+            self.lastTimestamp = timestamp;
+            self.animAccumulator += dt;
+            while (self.animAccumulator >= self.TICK_MS) {
                 self.animFrame++;
-                self.render();
+                State.updateFloatingTexts();
+                self.animAccumulator -= self.TICK_MS;
             }
+            self.render();
         }
-        loop();
+        loop(0);
     },
 
     stopAnimLoop: function() {
@@ -65,8 +77,6 @@ var Grid = {
     render: function() {
         var ctx = this.ctx;
         var ts = this.tileSize;
-
-        State.updateFloatingTexts();
 
         var bgColor = Data.COLORS.bg;
         if (State.currentBiome && Data.BIOMES[State.currentBiome]) {
@@ -334,15 +344,57 @@ var Grid = {
             ctx.fillRect(px + 1, py + 1, ts - 2, ts - 2);
         }
 
+        if (e.isElite) {
+            ctx.strokeStyle = '#ffaa00';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(px + 2, py + 2, ts - 4, ts - 4);
+            ctx.strokeStyle = '#ffff00';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(px + 4, py + 4, ts - 8, ts - 8);
+        }
+
+        if (e.isElite && e.eliteTelegraphing) {
+            ctx.fillStyle = 'rgba(255, 255, 0, 0.3)';
+            ctx.fillRect(px + 2, py + 2, ts - 4, ts - 4);
+            var eliteTeleText = 'NEXT: ' + e.eliteTelegraphName;
+            ctx.fillStyle = '#ff4444';
+            ctx.font = Math.max(6, Math.floor(ts * 0.18)) + 'px "Press Start 2P"';
+            ctx.textAlign = 'center';
+            ctx.fillText(eliteTeleText, px + ts / 2, py - ts * 0.5);
+
+            if (e.eliteTelegraphTiles && e.eliteTelegraphTiles.length > 0) {
+                for (var t = 0; t < e.eliteTelegraphTiles.length; t++) {
+                    var tile = e.eliteTelegraphTiles[t];
+                    var tilePx = tile.x * ts;
+                    var tilePy = tile.y * ts;
+                    ctx.fillStyle = 'rgba(255, 68, 68, 0.2)';
+                    ctx.fillRect(tilePx + 2, tilePy + 2, ts - 4, ts - 4);
+                    ctx.strokeStyle = 'rgba(255, 68, 68, 0.6)';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(tilePx + 2, tilePy + 2, ts - 4, ts - 4);
+                }
+            }
+        }
+
         if (State.player.diseased && e.defId === 'plaguebearer') {
             ctx.strokeStyle = '#aacc22';
             ctx.lineWidth = 2;
-            ctx.strokeRect(px + 2, py + 2, ts - 4, ts - 4);
+            var range3x3 = ts * 3;
+            var offsetX3 = px - ts;
+            var offsetY3 = py - ts;
+            ctx.strokeRect(offsetX3 + 2, offsetY3 + 2, range3x3 - 4, range3x3 - 4);
+            ctx.fillStyle = 'rgba(170, 204, 34, 0.08)';
+            ctx.fillRect(offsetX3 + 2, offsetY3 + 2, range3x3 - 4, range3x3 - 4);
         }
         if (State.player.cursed && e.defId === 'mummy') {
             ctx.strokeStyle = '#cc44ff';
             ctx.lineWidth = 2;
-            ctx.strokeRect(px + 2, py + 2, ts - 4, ts - 4);
+            var range3x3m = ts * 3;
+            var offsetX3m = px - ts;
+            var offsetY3m = py - ts;
+            ctx.strokeRect(offsetX3m + 2, offsetY3m + 2, range3x3m - 4, range3x3m - 4);
+            ctx.fillStyle = 'rgba(204, 68, 255, 0.08)';
+            ctx.fillRect(offsetX3m + 2, offsetY3m + 2, range3x3m - 4, range3x3m - 4);
         }
     },
 
@@ -443,6 +495,7 @@ var Grid = {
             if (e.hp <= 0) continue;
             var def = e.isBoss ? null : Data.ENEMIES[e.defId];
             var name = e.isBoss ? e.name : (def ? def.name : '');
+            if (e.isElite) name = 'Elite ' + name;
             if (!name) continue;
 
             var barOffset = e.isBoss ? 16 : 8;
@@ -453,6 +506,8 @@ var Grid = {
     },
 
     drawFloatingTexts: function(ctx, ts) {
+        var canvasW = this.canvas.width;
+        var canvasH = this.canvas.height;
         for (var i = 0; i < State.floatingTexts.length; i++) {
             var ft = State.floatingTexts[i];
             var lifeRatio = ft.life / ft.maxLife;
@@ -462,7 +517,9 @@ var Grid = {
             ctx.font = 'bold ' + Math.floor(ts * 0.28) + 'px "Press Start 2P"';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(ft.text, ft.x * ts + ts / 2, ft.y * ts + ts / 2);
+            var drawX = Math.max(ts * 0.5, Math.min(canvasW - ts * 0.5, ft.x * ts + ts / 2));
+            var drawY = Math.max(ts * 0.3, Math.min(canvasH - ts * 0.3, ft.y * ts + ts / 2));
+            ctx.fillText(ft.text, drawX, drawY);
             ctx.globalAlpha = 1;
         }
     },

@@ -3,9 +3,12 @@ var Boss = {
         State.bossTurnCount++;
 
         if (boss.telegraph) {
-            this.executeTelegraphedAttack(boss, boss.telegraph, callback);
-            boss.telegraph = null;
-            boss.telegraphTiles = null;
+            var self = this;
+            this.executeTelegraphedAttack(boss, boss.telegraph, function() {
+                boss.telegraph = null;
+                boss.telegraphTiles = null;
+                self.bossBasicMoveAndAttack(boss, callback);
+            });
             return;
         }
 
@@ -18,7 +21,7 @@ var Boss = {
             UI.updateAll();
             callback();
         } else {
-            this.basicAttack(boss, callback);
+            this.bossBasicMoveAndAttack(boss, callback);
         }
     },
 
@@ -236,6 +239,38 @@ var Boss = {
         }
         var dir = Grid.getDirection(centerX, centerY, State.player.x, State.player.y);
         boss.facing = dir;
+        Grid.render();
+        UI.updateAll();
+        callback();
+    },
+
+    bossBasicMoveAndAttack: function(boss, callback) {
+        var size = boss.size || 2;
+        var centerX = boss.x + Math.floor(size / 2);
+        var centerY = boss.y + Math.floor(size / 2);
+        var dist = AI.distance(centerX, centerY, State.player.x, State.player.y);
+
+        if (dist <= size) {
+            State.addLog(boss.name + ' uses Basic Attack', 'boss');
+            Combat.dealDamageToPlayer(boss.damage);
+            var dir = Grid.getDirection(centerX, centerY, State.player.x, State.player.y);
+            boss.facing = dir;
+        } else {
+            var dx = State.player.x - centerX;
+            var dy = State.player.y - centerY;
+            var moveX = dx === 0 ? 0 : (dx > 0 ? 1 : -1);
+            var moveY = dy === 0 ? 0 : (dy > 0 ? 1 : -1);
+
+            var newX = boss.x + moveX;
+            var newY = boss.y + moveY;
+            if (newX >= 0 && newX < Data.GRID_SIZE && newY >= 0 && newY < Data.GRID_SIZE && !State.isBlocked(newX, newY)) {
+                boss.x = newX;
+                boss.y = newY;
+            }
+            var dir2 = Grid.getDirection(boss.x + Math.floor(size / 2), boss.y + Math.floor(size / 2), State.player.x, State.player.y);
+            boss.facing = dir2;
+        }
+
         Grid.render();
         UI.updateAll();
         callback();

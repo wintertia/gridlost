@@ -38,6 +38,10 @@ var State = {
     poisonTiles: [],
     poisonEffects: [],
     activeSynergies: [],
+    extraItemDrops: 0,
+
+    debugMode: false,
+    debugBiomeOverride: null,
 
     hoveredTile: null,
     attackPreview: [],
@@ -100,6 +104,8 @@ var State = {
         this.player.chilled = 0;
         this.player.diseased = false;
         this.player.cursed = false;
+        this.player.judgment = 0;
+        this.extraItemDrops = 0;
         this.player.classId = this.selectedClass || 'knight';
 
         var cls = Data.CLASSES[this.player.classId];
@@ -114,6 +120,11 @@ var State = {
     },
 
     updateBiome: function() {
+        if (this.debugBiomeOverride) {
+            this.currentBiome = this.debugBiomeOverride;
+            this.addLog('[DEBUG] Biome forced to: ' + Data.BIOMES[this.debugBiomeOverride].name, 'info');
+            return;
+        }
         var biomeIndex = Math.floor((this.stage - 1) / Data.BOSS_EVERY) % this.biomeOrder.length;
         this.currentBiome = this.biomeOrder[biomeIndex];
     },
@@ -133,14 +144,14 @@ var State = {
         }
         this.floatingTexts.push({
             x: x, y: y - offset, text: text, color: color,
-            life: 70, maxLife: 70
+            life: 90, maxLife: 90
         });
     },
 
     updateFloatingTexts: function() {
         for (var i = this.floatingTexts.length - 1; i >= 0; i--) {
-            this.floatingTexts[i].life--;
-            this.floatingTexts[i].y -= 0.25;
+        this.floatingTexts[i].life--;
+        this.floatingTexts[i].y -= 0.08;
             if (this.floatingTexts[i].life <= 0) {
                 this.floatingTexts.splice(i, 1);
             }

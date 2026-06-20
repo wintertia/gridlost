@@ -260,9 +260,10 @@ var Input = {
         if (dist !== 1) return;
 
         var cost = 1;
+        if (State.player.chilled > 0) cost = 2;
         for (var i = 0; i < State.obstacles.length; i++) {
             if (State.obstacles[i].x === x && State.obstacles[i].y === y && State.obstacles[i].id === 'water') {
-                cost = 2;
+                cost = Math.max(cost, 2);
                 break;
             }
         }
@@ -296,8 +297,20 @@ var Input = {
     },
 
     handleKey: function(e) {
-        if (State.phase !== 'player') return;
         var key = e.key;
+        if (key === '`') {
+            State.debugMode = !State.debugMode;
+            State.addLog('[DEBUG] Debug mode ' + (State.debugMode ? 'ON' : 'OFF'), 'info');
+            State.addFloatingText(State.player.x, State.player.y, State.debugMode ? 'DEBUG ON' : 'DEBUG OFF', '#ff00ff');
+            UI.updateStats();
+            Grid.render();
+            return;
+        }
+        if (State.debugMode && (key === 'b' || key === 'B')) {
+            UI.showDebugBiomePicker();
+            return;
+        }
+        if (State.phase !== 'player') return;
         if (key >= '1' && key <= '6') {
             var slot = parseInt(key) - 1;
             State.player.selectedSlot = slot;

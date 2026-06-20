@@ -62,15 +62,37 @@ var Main = {
             UI.showItemChoices(function(itemId) {
                 Main.applyItemReward(itemId);
 
-                UI.showSkillChoices(function(skillId) {
-                    if (skillId) {
-                        Main.handleSkillAcquisition(skillId);
-                    } else {
-                        Main.proceedToNextStage();
-                    }
+                Main.grantEliteItemDrops(function() {
+                    UI.showSkillChoices(function(skillId) {
+                        if (skillId) {
+                            Main.handleSkillAcquisition(skillId);
+                        } else {
+                            Main.proceedToNextStage();
+                        }
+                    });
                 });
             });
         }
+    },
+
+    grantEliteItemDrops: function(callback) {
+        if (State.extraItemDrops <= 0) { callback(); return; }
+
+        var remaining = State.extraItemDrops;
+        State.extraItemDrops = 0;
+
+        function grantOne() {
+            UI.showItemChoices(function(itemId) {
+                Main.applyItemReward(itemId);
+                remaining--;
+                if (remaining > 0) {
+                    grantOne();
+                } else {
+                    callback();
+                }
+            });
+        }
+        grantOne();
     },
 
     applyBossBonus: function(bonusId) {

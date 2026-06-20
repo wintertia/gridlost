@@ -452,17 +452,15 @@ var UI = {
 
         function generateChoices() {
             var pool = Data.SKILL_POOL.slice();
-            var owned = [];
-            for (var i = 1; i < State.player.skills.length; i++) {
-                if (State.player.skills[i]) owned.push(State.player.skills[i].id);
+            var shuffled = pool.sort(function() { return Math.random() - 0.5; });
+            var choices = [];
+            var seen = {};
+            for (var si = 0; si < shuffled.length && choices.length < 3; si++) {
+                if (!seen[shuffled[si]]) {
+                    seen[shuffled[si]] = true;
+                    choices.push(shuffled[si]);
+                }
             }
-
-            var available = pool.filter(function(id) {
-                return owned.indexOf(id) === -1;
-            });
-
-            var shuffled = available.sort(function() { return Math.random() - 0.5; });
-            var choices = shuffled.slice(0, 3);
 
             var $grid = $('#skill-choices');
             $grid.empty();
@@ -608,5 +606,42 @@ var UI = {
         });
 
         this.showScreen('boss-bonus-screen');
+    },
+
+    showDebugBiomePicker: function() {
+        var biomeIds = Object.keys(Data.BIOMES);
+        var html = '<div class="screen active" id="debug-biome-overlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center">' +
+            '<div style="background:#111;border:2px solid #ff00ff;border-radius:8px;padding:24px;max-width:400px;width:90%">' +
+            '<h3 style="color:#ff00ff;font-family:\'Press Start 2P\';font-size:12px;margin:0 0 16px;text-align:center">DEBUG: PICK BIOME</h3>' +
+            '<div style="display:flex;flex-direction:column;gap:8px">';
+
+        for (var i = 0; i < biomeIds.length; i++) {
+            var id = biomeIds[i];
+            var b = Data.BIOMES[id];
+            var isActive = State.debugBiomeOverride === id;
+            html += '<button class="debug-biome-btn" data-biome="' + id + '" style="' +
+                'background:' + (isActive ? b.color : '#222') + ';' +
+                'color:' + (isActive ? '#000' : b.color) + ';' +
+                'border:2px solid ' + b.color + ';' +
+                'padding:10px 12px;border-radius:4px;font-family:"Press Start 2P";font-size:10px;cursor:pointer;text-align:left' +
+                '">' + b.name + (isActive ? ' ✓' : '') + '</button>';
+        }
+
+        html += '<button class="debug-biome-btn" data-biome="" style="background:#222;color:#888;border:2px solid #444;padding:10px 12px;border-radius:4px;font-family:\'Press Start 2P\';font-size:10px;cursor:pointer;text-align:left">CLEAR OVERRIDE (random)</button>';
+        html += '</div></div></div>';
+
+        var $overlay = $(html);
+        $('body').append($overlay);
+
+        $overlay.find('.debug-biome-btn').on('click', function() {
+            var biomeId = $(this).data('biome');
+            State.debugBiomeOverride = biomeId || null;
+            if (biomeId) {
+                State.addLog('[DEBUG] Next biome locked to: ' + Data.BIOMES[biomeId].name, 'info');
+            } else {
+                State.addLog('[DEBUG] Biome override cleared', 'info');
+            }
+            $overlay.remove();
+        });
     }
 };

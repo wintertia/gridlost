@@ -130,6 +130,19 @@ var Combat = {
         if (cls && cls.passiveId === 'crit_master') {
             critChance += 10 + (p._rogueCritChanceBonus || 0);
         }
+        if (target && items['lone_wolf'] > 0) {
+            var alive = State.getAliveEnemies();
+            var adjacentAllies = 0;
+            for (var lw = 0; lw < alive.length; lw++) {
+                if (alive[lw] !== target && alive[lw].hp > 0) {
+                    var ld = Math.abs(alive[lw].x - target.x) + Math.abs(alive[lw].y - target.y);
+                    if (ld <= 1) adjacentAllies++;
+                }
+            }
+            if (adjacentAllies === 0) {
+                critChance += 10 * items['lone_wolf'];
+            }
+        }
         var isCrit = Math.random() * 100 < critChance;
         if (isCrit) {
             var critMultiplier = 2;
@@ -139,6 +152,26 @@ var Combat = {
             if (cls && cls.passiveId === 'crit_master') {
                 critDamageBonus += (p._rogueCritDmgBonus || 0);
             }
+            if (target && items['blight_amulet'] > 0) {
+                var onDot = false;
+                for (var bi = 0; bi < State.burnTiles.length; bi++) {
+                    if (State.burnTiles[bi].x === target.x && State.burnTiles[bi].y === target.y) { onDot = true; break; }
+                }
+                if (!onDot && target.poison && target.poison.turns > 0) onDot = true;
+                if (!onDot && target.bleed && target.bleed.turns > 0) onDot = true;
+                if (onDot) critDamageBonus += 30 * items['blight_amulet'];
+            }
+            if (target && items['lone_wolf'] > 0) {
+                var alive2 = State.getAliveEnemies();
+                var adj2 = 0;
+                for (var lw2 = 0; lw2 < alive2.length; lw2++) {
+                    if (alive2[lw2] !== target && alive2[lw2].hp > 0) {
+                        var ld2 = Math.abs(alive2[lw2].x - target.x) + Math.abs(alive2[lw2].y - target.y);
+                        if (ld2 <= 1) adj2++;
+                    }
+                }
+                if (adj2 === 0) critDamageBonus += 10 * items['lone_wolf'];
+            }
             dmg = Math.floor(dmg * (critMultiplier + critDamageBonus / 100));
         }
 
@@ -147,7 +180,7 @@ var Combat = {
             if (State.player.items[ik] > 0) totalItems += State.player.items[ik];
         }
         if (totalItems > 0) {
-            dmg = Math.floor(dmg * (1 + totalItems * 0.10));
+            dmg = Math.floor(dmg * (1 + totalItems * 0.06));
         }
 
         var roll = 0.9 + Math.random() * 0.1;
@@ -211,6 +244,39 @@ var Combat = {
                 State.runStats.enemyKills++;
                 State.addLog(targetName + ' killed!', 'kill');
                 this.processOnKillEffects(target);
+
+                if (target.defId === 'magma_slime' && !target.hasSplit) {
+                    var dirs = [{ x: -1, y: 0 }, { x: 1, y: 0 }, { x: 0, y: -1 }, { x: 0, y: 1 }];
+                    var splitCount = 0;
+                    for (var si = 0; si < dirs.length && splitCount < 2; si++) {
+                        var sx = target.x + dirs[si].x;
+                        var sy = target.y + dirs[si].y;
+                        if (sx >= 0 && sx < Data.GRID_SIZE && sy >= 0 && sy < Data.GRID_SIZE) {
+                            if (!Stages.isReserved(sx, sy) && !State.isBlocked(sx, sy)) {
+                                State.enemies.push({
+                                    x: sx, y: sy, hp: 40, maxHp: 40,
+                                    damage: Math.floor(target.damage * 0.6),
+                                    defId: 'magma_slime', facing: 'down',
+                                    frozen: 0, freezeImmune: false, freezeImmuneTurns: 0,
+                                    poison: null, isBoss: false, color: '#ff4400',
+                                    hasSplit: true
+                                });
+                                State.addFloatingText(sx, sy, 'SPLIT!', '#ff4400');
+                                splitCount++;
+                            }
+                        }
+                    }
+                }
+
+                if (target.defId === 'phoenix' && !target.hasRevived) {
+                    target.hp = Math.floor(target.maxHp * 0.5);
+                    target.hasRevived = true;
+                    State.addFloatingText(target.x, target.y, 'REVIVE!', '#ffaa00');
+                    State.addLog('Phoenix revives!', 'boss');
+                    Grid.render();
+                    UI.updateAll();
+                    return;
+                }
 
                 var defId = target.defId;
                 if (defId !== 'skeleton') {
@@ -377,6 +443,12 @@ var Combat = {
             State.player.energy = Math.min(State.player.energy + energyRestore, State.player.maxEnergy);
             State.addFloatingText(State.player.x, State.player.y, '+' + energyRestore + ' ⚡', '#ffaa00');
         }
+
+        if (target.isElite) {
+            State.extraItemDrops++;
+            State.addLog('Elite defeated! +1 item drop at stage end.', 'boss');
+            State.addFloatingText(centerX, centerY, 'ELITE KILL!', '#ffaa00');
+        }
     },
 
     dealDamageToPlayer: function(dmg) {
@@ -390,6 +462,12 @@ var Combat = {
 
         if (State.player.cursed) {
             reducedDmg = Math.floor(reducedDmg * 1.3);
+        }
+
+        if (State.player.judgment && State.player.judgment > 0) {
+            reducedDmg = Math.floor(reducedDmg * 2);
+            State.player.judgment = 0;
+            State.addFloatingText(State.player.x, State.player.y, 'JUDGMENT x2!', '#ffdd88');
         }
 
         var p = State.player;
@@ -518,6 +596,12 @@ var Combat = {
 
             this.dealDamage(enemy, dmg, 'player', isCrit);
 
+            if (isCrit && State.player.items['vampiric_edge'] > 0) {
+                var healAmt = Math.floor(State.player.maxHp * 0.01 * State.player.items['vampiric_edge']);
+                State.player.hp = Math.min(State.player.hp + healAmt, State.player.maxHp);
+                State.addFloatingText(tx, ty, '+' + healAmt + ' HP', '#44ff88');
+            }
+
             if (skill.effects.indexOf('bleed') !== -1 && !enemy.isBoss) {
                 var bleedDmg = Math.floor(15 * (1 + State.player.power / 100));
                 if (!enemy.bleed) {
@@ -564,6 +648,32 @@ var Combat = {
                 var markMultiplier = 2 + (markStacks * 0.25);
                 enemy.marked = markMultiplier;
                 State.addFloatingText(tx, ty, 'MARKED! ' + Math.floor(markMultiplier * 100) + '%', '#ff8800');
+            }
+
+            if (skill.effects.indexOf('chain_2') !== -1) {
+                var chainCount = 2;
+                var lastX = tx, lastY = ty;
+                var hitIds = [enemy.id || enemy.defId];
+                for (var ci = 0; ci < chainCount; ci++) {
+                    var nearby = State.getAliveEnemies();
+                    var candidates = [];
+                    for (var ni = 0; ni < nearby.length; ni++) {
+                        var ne = nearby[ni];
+                        if (ne.hp <= 0) continue;
+                        var nd = Math.abs(ne.x - lastX) + Math.abs(ne.y - lastY);
+                        if (nd <= 3 && hitIds.indexOf(ne.defId) === -1) {
+                            candidates.push(ne);
+                        }
+                    }
+                    if (candidates.length === 0) break;
+                    var next = candidates[Math.floor(Math.random() * candidates.length)];
+                    hitIds.push(next.defId);
+                    var chainResult = this.calculateDamage(Math.floor(skill.damage * 0.6), skill);
+                    this.dealDamage(next, chainResult.damage, 'player', chainResult.isCrit);
+                    State.addFloatingText(next.x, next.y, 'BOUNCE!', '#ffaa44');
+                    lastX = next.x;
+                    lastY = next.y;
+                }
             }
         } else {
             this.hitObstacle(tx, ty, skill.damage);
@@ -661,6 +771,7 @@ var Combat = {
         var tiles = this.getAffectedTiles(State.player.x, State.player.y, tx, ty, skill);
         var hitSomething = false;
         var lastHitEnemy = null;
+        var hitEnemies = [];
 
         State.player.energy -= skill.energyCost;
         State.addLog('Player uses ' + skill.name, 'action');
@@ -679,7 +790,8 @@ var Combat = {
             }
 
             var enemy = State.getEnemyAt(t.x, t.y);
-            if (enemy) {
+            if (enemy && hitEnemies.indexOf(enemy) === -1) {
+                hitEnemies.push(enemy);
                 var result = this.calculateDamage(skill.damage, skill, enemy);
                 this.dealDamage(enemy, result.damage, 'player', result.isCrit);
                 hitSomething = true;
@@ -740,9 +852,11 @@ var Combat = {
         }
 
         var tiles = this.getAffectedTiles(State.player.x, State.player.y, State.player.x, State.player.y, skill);
+        var hitEnemies = [];
         for (var i = 0; i < tiles.length; i++) {
             var enemy = State.getEnemyAt(tiles[i].x, tiles[i].y);
-            if (enemy) {
+            if (enemy && hitEnemies.indexOf(enemy) === -1) {
+                hitEnemies.push(enemy);
                 var result = this.calculateDamage(skill.damage, skill, enemy);
                 this.dealDamage(enemy, result.damage, 'player', result.isCrit);
 
@@ -1018,12 +1132,12 @@ var Combat = {
             var maxShield = 0;
             var regenPercent = 0;
             if (items['guardian_angel']) {
-                maxShield += 100 * items['guardian_angel'];
-                regenPercent += 7 * items['guardian_angel'];
+                maxShield += 75 * items['guardian_angel'];
+                regenPercent += 5 * items['guardian_angel'];
             }
             if (items['shield_generator']) {
-                maxShield += 200 * items['shield_generator'];
-                regenPercent += 10 * items['shield_generator'];
+                maxShield += 125 * items['shield_generator'];
+                regenPercent += 7 * items['shield_generator'];
             }
 
             var hasJuggernaut = State.hasItemSet('juggernaut_set');

@@ -45,7 +45,7 @@ var Data = {
             passiveName: 'Deadly Precision',
             passive: '10% base crit chance. Gains crit chance and crit damage with more items.',
             passiveId: 'crit_master',
-            hp: 700, energy: 8,
+            hp: 700, energy: 6,
             basicAttack: 'stab',
             color: '#cc44ff',
             icon: '&#128481;',
@@ -56,7 +56,7 @@ var Data = {
             passiveName: 'Arcane Surge',
             passive: 'Ranged attacks hit in a 3x3 area',
             passiveId: 'aoe_master',
-            hp: 700, energy: 6,
+            hp: 700, energy: 5,
             basicAttack: 'arcane_bolt',
             color: '#4488ff',
             icon: '&#10030;',
@@ -73,7 +73,8 @@ var Data = {
     ITEM_RARITY: {
         common: { name: 'Common', color: '#ffffff', weight: 60 },
         uncommon: { name: 'Uncommon', color: '#44ff44', weight: 30 },
-        rare: { name: 'Rare', color: '#ff4444', weight: 10 }
+        rare: { name: 'Rare', color: '#ff4444', weight: 10 },
+        boss: { name: 'Boss', color: '#ffdd00', weight: 0 }
     },
 
     ITEMS: {
@@ -126,8 +127,8 @@ var Data = {
             icon: '\u25CF', iconBg: '#aa44dd'
         },
         guardian_angel: {
-            id: 'guardian_angel', name: 'Guardian Angel', desc: '+100 shield, regen 7%/turn',
-            rarity: 'uncommon', effect: { type: 'passive', stat: 'shield', value: 100, shieldRegenPercent: 7 },
+            id: 'guardian_angel', name: 'Guardian Angel', desc: '+75 shield, regen 5%/turn',
+            rarity: 'uncommon', effect: { type: 'passive', stat: 'shield', value: 75, shieldRegenPercent: 5 },
             icon: '\u25C8', iconBg: '#ffdd44'
         },
         explosive_rounds: {
@@ -173,9 +174,24 @@ var Data = {
             icon: '\u2665', iconBg: '#aa0022'
         },
         shield_generator: {
-            id: 'shield_generator', name: 'Shield Generator', desc: '+200 shield, regen 10%/turn',
-            rarity: 'rare', effect: { type: 'passive', stat: 'shield', value: 200, shieldRegenPercent: 10 },
+            id: 'shield_generator', name: 'Shield Generator', desc: '+125 shield, regen 7%/turn',
+            rarity: 'rare', effect: { type: 'passive', stat: 'shield', value: 125, shieldRegenPercent: 7 },
             icon: '\u25CE', iconBg: '#4488ff'
+        },
+        vampiric_edge: {
+            id: 'vampiric_edge', name: 'Vampiric Edge', desc: 'On crit: heal 1% max HP',
+            rarity: 'rare', effect: { type: 'on_crit', healPercent: 1 },
+            icon: '\u2620', iconBg: '#cc2244'
+        },
+        blight_amulet: {
+            id: 'blight_amulet', name: 'Blight Amulet', desc: '+30% crit dmg vs enemies on DoT',
+            rarity: 'rare', effect: { type: 'passive', stat: 'critDamageDot', value: 30 },
+            icon: '\u2601', iconBg: '#66aa44'
+        },
+        lone_wolf: {
+            id: 'lone_wolf', name: 'Lone Wolf', desc: '+10% crit chance & dmg vs isolated',
+            rarity: 'rare', effect: { type: 'passive', stat: 'critIsolated', value: 10 },
+            icon: '\u263A', iconBg: '#8888aa'
         },
 
         // === BOSS (Gold) ===
@@ -395,10 +411,30 @@ var Data = {
             id: 'rejuvenation', name: 'Rejuvenation', desc: 'Heal 5% HP for 3 turns',
             energyCost: 3, damage: 0, shape: 'self', range: 0,
             color: '#44ff88', isBasic: false, effects: ['rejuvenation']
+        },
+        piercing_arrow: {
+            id: 'piercing_arrow', name: 'Piercing Arrow', desc: 'Long range piercing line',
+            energyCost: 3, damage: 60, shape: 'line', range: 5,
+            color: '#88ff44', isBasic: false, effects: []
+        },
+        ricochet: {
+            id: 'ricochet', name: 'Ricochet', desc: 'Bounce shot hits 3 enemies',
+            energyCost: 3, damage: 50, shape: 'single', range: 3,
+            color: '#ffaa44', isBasic: false, effects: ['chain_2']
+        },
+        arrow_rain: {
+            id: 'arrow_rain', name: 'Arrow Rain', desc: 'Ranged AoE arrow volley',
+            energyCost: 3, damage: 40, shape: 'aoe', range: 3,
+            color: '#aadd44', isBasic: false, effects: []
+        },
+        snipe: {
+            id: 'snipe', name: 'Snipe', desc: 'High damage long range shot',
+            energyCost: 4, damage: 100, shape: 'single', range: 5,
+            color: '#ff4488', isBasic: false, effects: []
         }
     },
 
-    SKILL_POOL: ['thrust', 'fireball', 'whirlwind', 'holy_smite', 'ice_shard', 'backstab', 'shield_bash', 'lightning', 'poison_cloud', 'war_cry', 'dash', 'blink_strike', 'rend', 'execute', 'cleave', 'heal', 'reave', 'fire_nova', 'frost_nova', 'mark', 'lifesteal_aura', 'berserk', 'rejuvenation'],
+    SKILL_POOL: ['thrust', 'fireball', 'whirlwind', 'holy_smite', 'ice_shard', 'backstab', 'shield_bash', 'lightning', 'poison_cloud', 'war_cry', 'dash', 'blink_strike', 'rend', 'execute', 'cleave', 'heal', 'reave', 'fire_nova', 'frost_nova', 'mark', 'lifesteal_aura', 'berserk', 'rejuvenation', 'piercing_arrow', 'ricochet', 'arrow_rain', 'snipe'],
 
     SYNERGIES: {
         firestorm: {
@@ -453,7 +489,7 @@ var Data = {
             type: 'melee', color: '#ccccaa', behavior: 'charge', isSummon: true
         },
         wolf: {
-            id: 'wolf', name: 'Wolf', hp: 200, damage: 35, moveSpeed: 2,
+            id: 'wolf', name: 'Wolf', hp: 200, damage: 25, moveSpeed: 2,
             type: 'melee', color: '#886644', behavior: 'charge'
         },
         druid: {
@@ -543,8 +579,8 @@ var Data = {
             id: 'colossus', name: 'Stone Colossus', hp: 1600, damage: 60,
             color: '#778899', behavior: 'boss', size: 2,
             attacks: [
-                { name: 'Ground Slam', shape: 'cross', range: 1, damage: 120, cooldown: 3, current: 0 },
-                { name: 'Boulder Throw', shape: 'line', range: 4, damage: 80, cooldown: 2, current: 0 },
+                { name: 'Ground Slam', shape: 'cross', range: 1, damage: 160, cooldown: 3, current: 0 },
+                { name: 'Boulder Throw', shape: 'line', range: 4, damage: 110, cooldown: 2, current: 0 },
                 { name: 'Summon Rubble', shape: 'summon_rubble', damage: 0, cooldown: 4, current: 0 }
             ]
         },
@@ -552,8 +588,8 @@ var Data = {
             id: 'wraith', name: 'Shadow Wraith', hp: 1300, damage: 60,
             color: '#443366', behavior: 'boss', size: 2,
             attacks: [
-                { name: 'Shadow Step', shape: 'shadow_step', damage: 100, cooldown: 3, current: 0 },
-                { name: 'Life Drain', shape: 'ring', range: 1, damage: 60, heal: 40, cooldown: 2, current: 0 },
+                { name: 'Shadow Step', shape: 'shadow_step', damage: 140, cooldown: 3, current: 0 },
+                { name: 'Life Drain', shape: 'ring', range: 1, damage: 80, heal: 40, cooldown: 2, current: 0 },
                 { name: 'Clone', shape: 'clone', damage: 0, cooldown: 5, current: 0 }
             ]
         },
@@ -561,10 +597,10 @@ var Data = {
             id: 'dragon', name: 'Storm Dragon', hp: 2000, damage: 80,
             color: '#2244aa', behavior: 'boss', size: 2,
             attacks: [
-                { name: 'Lightning Breath', shape: 'cone', range: 3, damage: 100, cooldown: 2, current: 0 },
+                { name: 'Lightning Breath', shape: 'cone', range: 3, damage: 130, cooldown: 2, current: 0 },
                 { name: 'Wing Gust', shape: 'push_player', damage: 0, cooldown: 3, current: 0 },
-                { name: 'Tail Sweep', shape: 'ring', range: 1, damage: 80, cooldown: 2, current: 0 },
-                { name: 'Fly Up', shape: 'fly_up', damage: 150, cooldown: 5, current: 0 }
+                { name: 'Tail Sweep', shape: 'ring', range: 1, damage: 110, cooldown: 2, current: 0 },
+                { name: 'Fly Up', shape: 'fly_up', damage: 200, cooldown: 5, current: 0 }
             ]
         },
         ancient_tree: {
@@ -573,16 +609,16 @@ var Data = {
             attacks: [
                 { name: 'Root Grasp', shape: 'root', damage: 0, cooldown: 3, current: 0 },
                 { name: 'Summon Saplings', shape: 'summon_sapling', damage: 0, cooldown: 4, current: 0 },
-                { name: 'Leaf Storm', shape: 'aoe', range: 2, damage: 70, cooldown: 2, current: 0 }
+                { name: 'Leaf Storm', shape: 'aoe', range: 2, damage: 100, cooldown: 2, current: 0 }
             ]
         },
         hydra: {
             id: 'hydra', name: 'Hydra', hp: 2000, damage: 45,
             color: '#446644', behavior: 'boss', size: 2,
             attacks: [
-                { name: 'Multi-Head', shape: 'multi_direction', damage: 80, cooldown: 2, current: 0 },
+                { name: 'Multi-Head', shape: 'multi_direction', damage: 110, cooldown: 2, current: 0 },
                 { name: 'Regen', shape: 'self_heal', damage: 0, cooldown: 4, current: 0 },
-                { name: 'Poison Spit', shape: 'cone', range: 3, damage: 60, cooldown: 2, current: 0 }
+                { name: 'Poison Spit', shape: 'cone', range: 3, damage: 90, cooldown: 2, current: 0 }
             ]
         },
         sandworm: {
@@ -590,26 +626,26 @@ var Data = {
             color: '#ccaa44', behavior: 'boss', size: 2,
             attacks: [
                 { name: 'Burrow', shape: 'burrow', damage: 0, cooldown: 4, current: 0 },
-                { name: 'Tail Whip', shape: 'ring', range: 1, damage: 90, cooldown: 2, current: 0 },
-                { name: 'Swallow', shape: 'execute_line', damage: 120, cooldown: 5, current: 0 }
+                { name: 'Tail Whip', shape: 'ring', range: 1, damage: 120, cooldown: 2, current: 0 },
+                { name: 'Swallow', shape: 'execute_line', damage: 160, cooldown: 5, current: 0 }
             ]
         },
         frost_giant: {
             id: 'frost_giant', name: 'Frost Giant', hp: 2400, damage: 50,
             color: '#88bbdd', behavior: 'boss', size: 2,
             attacks: [
-                { name: 'Ice Boulder', shape: 'line', range: 4, damage: 80, cooldown: 2, current: 0 },
-                { name: 'Ground Pound', shape: 'cross', range: 1, damage: 100, cooldown: 3, current: 0 },
-                { name: 'Blizzard', shape: 'aoe', range: 3, damage: 60, cooldown: 3, current: 0 }
+                { name: 'Ice Boulder', shape: 'line', range: 4, damage: 110, cooldown: 2, current: 0 },
+                { name: 'Ground Pound', shape: 'cross', range: 1, damage: 140, cooldown: 3, current: 0 },
+                { name: 'Blizzard', shape: 'aoe', range: 3, damage: 90, cooldown: 3, current: 0 }
             ]
         },
         fire_dragon: {
             id: 'fire_dragon', name: 'Fire Dragon', hp: 2600, damage: 60,
             color: '#ff4400', behavior: 'boss', size: 2,
             attacks: [
-                { name: 'Fire Breath', shape: 'cone', range: 3, damage: 110, cooldown: 2, current: 0 },
+                { name: 'Fire Breath', shape: 'cone', range: 3, damage: 140, cooldown: 2, current: 0 },
                 { name: 'Wing Buffet', shape: 'push_player', damage: 0, cooldown: 3, current: 0 },
-                { name: 'Eruption', shape: 'aoe', range: 2, damage: 90, cooldown: 3, current: 0 }
+                { name: 'Eruption', shape: 'aoe', range: 2, damage: 120, cooldown: 3, current: 0 }
             ]
         },
         shadow_lord: {
@@ -617,17 +653,17 @@ var Data = {
             color: '#6633aa', behavior: 'boss', size: 2,
             attacks: [
                 { name: 'Shadow Clone', shape: 'clone', damage: 0, cooldown: 5, current: 0 },
-                { name: 'Void Bolt', shape: 'line', range: 4, damage: 80, cooldown: 2, current: 0 },
-                { name: 'Darkness', shape: 'aoe', range: 3, damage: 50, cooldown: 3, current: 0 }
+                { name: 'Void Bolt', shape: 'line', range: 4, damage: 110, cooldown: 2, current: 0 },
+                { name: 'Darkness', shape: 'aoe', range: 3, damage: 80, cooldown: 3, current: 0 }
             ]
         },
         archangel: {
             id: 'archangel', name: 'Archangel', hp: 2800, damage: 55,
             color: '#ffddaa', behavior: 'boss', size: 2,
             attacks: [
-                { name: 'Holy Nova', shape: 'aoe', range: 2, damage: 90, cooldown: 2, current: 0 },
+                { name: 'Holy Nova', shape: 'aoe', range: 2, damage: 120, cooldown: 2, current: 0 },
                 { name: 'Divine Shield', shape: 'shield_self', damage: 0, cooldown: 5, current: 0 },
-                { name: 'Smite', shape: 'single', range: 3, damage: 130, cooldown: 3, current: 0 }
+                { name: 'Smite', shape: 'single', range: 3, damage: 170, cooldown: 3, current: 0 }
             ]
         }
     },
@@ -696,7 +732,7 @@ var Data = {
         SCALING_DMG_MULT: 0.15,
 
     BOSS_EVERY: 5,
-        BOSS_STAT_SCALE: 0.30,
+        BOSS_STAT_SCALE: 0.40,
 
     COLORS: {
         bg: '#0f0a1a',
@@ -716,5 +752,107 @@ var Data = {
         portalGlow: '#cc44ff',
         damageText: '#ff4444',
         healText: '#44ff44'
-    }
+    },
+
+    ELITE_SPECIALS: {
+        goblin: {
+            name: 'Steal', desc: 'Teleport near player and attack',
+            shape: 'teleport_strike', damage: 40
+        },
+        archer: {
+            name: 'Piercing Volley', desc: '8-range line AoE',
+            shape: 'line_8', damage: 50
+        },
+        necromancer: {
+            name: 'Mass Raise', desc: 'Summon 2 skeletons',
+            shape: 'summon_skeletons', damage: 0
+        },
+        wolf: {
+            name: 'Pack Howl', desc: 'Teleport behind player + attack',
+            shape: 'teleport_strike', damage: 50
+        },
+        druid: {
+            name: 'Entangling Roots', desc: '3x3 AoE around player, applies chilled',
+            shape: 'aoe_3x3', damage: 30, effects: ['chilled']
+        },
+        treant: {
+            name: 'Quake', desc: 'Cross AoE range 2 + spawns obstacle',
+            shape: 'cross_2', damage: 60, summonObstacle: true
+        },
+        toad: {
+            name: 'Tongue Lash', desc: 'Pull player 2 tiles + damage',
+            shape: 'pull_2', damage: 30
+        },
+        plaguebearer: {
+            name: 'Pandemic', desc: 'Apply disease for 3 turns',
+            shape: 'apply_disease', damage: 0
+        },
+        mud_golem: {
+            name: 'Quagmire', desc: '5x5 AoE around self, spawns water tiles',
+            shape: 'aoe_5x5_self', damage: 30, summonObstacle: 'water'
+        },
+        scorpion: {
+            name: 'Venom Strike', desc: 'Single target + poison',
+            shape: 'single', damage: 50, effects: ['poison']
+        },
+        mummy: {
+            name: 'Curse of Ages', desc: 'Apply curse + summon sand wraith',
+            shape: 'apply_curse_summon', damage: 0
+        },
+        sand_wraith: {
+            name: 'Sandstorm', desc: '3x3 AoE around player + chilled',
+            shape: 'aoe_3x3', damage: 40, effects: ['chilled']
+        },
+        frost_elemental: {
+            name: 'Flash Freeze', desc: 'Apply chilled to player',
+            shape: 'apply_chilled', damage: 30
+        },
+        ice_wyrm: {
+            name: 'Frost Breath', desc: 'Cone AoE range 3 + chilled',
+            shape: 'cone_3', damage: 60, effects: ['chilled']
+        },
+        yeti: {
+            name: 'Boulder Hurl', desc: '3x3 AoE at player position',
+            shape: 'aoe_3x3_target', damage: 70
+        },
+        fire_elemental: {
+            name: 'Inferno', desc: '3x3 AoE around player + burn tiles',
+            shape: 'aoe_3x3_burn', damage: 50
+        },
+        magma_slime: {
+            name: 'Eruption', desc: 'Spawn 5 lava tiles around player',
+            shape: 'eruption', damage: 0
+        },
+        phoenix: {
+            name: 'Dive Bomb', desc: 'Cross AoE at player + teleport',
+            shape: 'cross_teleport', damage: 50
+        },
+        wraith_enemy: {
+            name: 'Phase Strike', desc: 'Teleport behind + 60 dmg ignores guard',
+            shape: 'phase_strike', damage: 60, ignoreGuard: true
+        },
+        void_walker: {
+            name: 'Void Rift', desc: 'Spawn portal near player',
+            shape: 'spawn_portal', damage: 0
+        },
+        shade: {
+            name: 'Shadow Cloak', desc: 'Untargetable 1 turn, then 70 dmg',
+            shape: 'cloak_strike', damage: 70
+        },
+        angel: {
+            name: 'Holy Beam', desc: 'Single target 3-range 80 dmg',
+            shape: 'single_3', damage: 80
+        },
+        cherub: {
+            name: 'Smite', desc: 'Cross AoE range 2 + knockback',
+            shape: 'cross_2', damage: 50, effects: ['knockback1']
+        },
+        seraph: {
+            name: 'Divine Judgment', desc: 'Player takes double damage next hit',
+            shape: 'apply_judgment', damage: 0
+        }
+    },
+
+    ELITE_HP_MULT: 2,
+    ELITE_SPECIAL_INTERVAL: 2
 };
