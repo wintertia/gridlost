@@ -262,18 +262,22 @@ var Grid = {
         var px = State.player.x * ts;
         var py = State.player.y * ts;
         var bounce = Math.sin(this.animFrame * 0.06) * 2;
+        var cls = Data.CLASSES[State.player.classId];
+        var bodyColor = cls ? cls.spriteBody : Data.COLORS.playerBody;
+        var headColor = cls ? cls.spriteHead : Data.COLORS.playerHead;
+        var armColor = cls ? cls.spriteArms : '#3366cc';
 
-        ctx.fillStyle = Data.COLORS.playerBody;
+        ctx.fillStyle = bodyColor;
         ctx.fillRect(px + ts * 0.2, py + ts * 0.3 + bounce, ts * 0.6, ts * 0.6);
 
-        ctx.fillStyle = Data.COLORS.playerHead;
+        ctx.fillStyle = headColor;
         ctx.fillRect(px + ts * 0.25, py + ts * 0.1 + bounce, ts * 0.5, ts * 0.3);
 
         ctx.fillStyle = Data.COLORS.playerEyes;
         ctx.fillRect(px + ts * 0.32, py + ts * 0.18 + bounce, ts * 0.08, ts * 0.08);
         ctx.fillRect(px + ts * 0.55, py + ts * 0.18 + bounce, ts * 0.08, ts * 0.08);
 
-        ctx.fillStyle = '#3366cc';
+        ctx.fillStyle = armColor;
         ctx.fillRect(px + ts * 0.15, py + ts * 0.4 + bounce, ts * 0.15, ts * 0.4);
         ctx.fillRect(px + ts * 0.7, py + ts * 0.4 + bounce, ts * 0.15, ts * 0.4);
     },
@@ -341,13 +345,6 @@ var Grid = {
         ctx.fillRect(px + ox + w * 0.28, py + oy + h * 0.17 + bounce, w * 0.06, h * 0.06);
         ctx.fillRect(px + ox + w * 0.63, py + oy + h * 0.17 + bounce, w * 0.06, h * 0.06);
 
-        if (e.name) {
-            ctx.fillStyle = '#ff4466';
-            ctx.font = Math.floor(ts * 0.2) + 'px "Press Start 2P"';
-            ctx.textAlign = 'center';
-            ctx.fillText(e.name, px + bossW / 2, py - 20);
-        }
-
         if (e.telegraph) {
             ctx.fillStyle = 'rgba(255, 255, 0, 0.3)';
             ctx.fillRect(px + 2, py + 2, bossW - 4, bossH - 4);
@@ -411,8 +408,9 @@ var Grid = {
         ctx.textBaseline = 'bottom';
 
         var nameY = Math.max(fontSize + 2, State.player.y * ts - 8);
-        ctx.fillStyle = '#ffffff';
-        ctx.fillText('KNIGHT', State.player.x * ts + ts / 2, nameY);
+        var cls = Data.CLASSES[State.player.classId];
+        ctx.fillStyle = cls ? cls.color : '#ffffff';
+        ctx.fillText(cls ? cls.name : 'PLAYER', State.player.x * ts + ts / 2, nameY);
 
         for (var i = 0; i < State.enemies.length; i++) {
             var e = State.enemies[i];

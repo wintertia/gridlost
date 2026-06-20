@@ -1,4 +1,48 @@
 var UI = {
+    tooltipEl: null,
+
+    initTooltip: function() {
+        var self = this;
+        this.tooltipEl = $('#tooltip');
+        $(document).on('mouseenter', '[data-tooltip]', function(e) {
+            var text = $(this).attr('data-tooltip');
+            self.tooltipEl.text(text).css('opacity', 1);
+            self.positionTooltip(e);
+        });
+        $(document).on('mousemove', '[data-tooltip]', function(e) {
+            self.positionTooltip(e);
+        });
+        $(document).on('mouseleave', '[data-tooltip]', function() {
+            self.tooltipEl.css('opacity', 0);
+        });
+        $(document).on('touchstart', '[data-tooltip]', function(e) {
+            e.preventDefault();
+            var text = $(this).attr('data-tooltip');
+            self.tooltipEl.text(text).css('opacity', 1);
+            var touch = e.originalEvent.touches[0];
+            self.positionTooltip({ clientX: touch.clientX, clientY: touch.clientY });
+        });
+        $(document).on('touchstart', function(e) {
+            if (!$(e.target).closest('[data-tooltip]').length) {
+                self.tooltipEl.css('opacity', 0);
+            }
+        });
+    },
+
+    positionTooltip: function(e) {
+        var tt = this.tooltipEl;
+        var x = e.clientX + 12;
+        var y = e.clientY - 10;
+        var ttW = tt.outerWidth();
+        var ttH = tt.outerHeight();
+        var winW = $(window).width();
+        var winH = $(window).height();
+        if (x + ttW > winW - 8) x = e.clientX - ttW - 12;
+        if (y - ttH < 8) y = e.clientY + 20;
+        if (x < 8) x = 8;
+        tt.css({ left: x + 'px', top: y + 'px' });
+    },
+
     updateAll: function() {
         this.updateStats();
         this.updateSkillBar();
@@ -14,6 +58,12 @@ var UI = {
         var p = State.player;
         var hpPct = (p.hp / p.maxHp) * 100;
         var nrjPct = (p.energy / p.maxEnergy) * 100;
+
+        var cls = Data.CLASSES[p.classId];
+        if (cls) {
+            $('#player-class-name').text(cls.name);
+            $('#player-passive').text(cls.passiveName).attr('data-tooltip', cls.passive);
+        }
 
         $('#hp-bar').css('width', hpPct + '%');
         var hpText = p.hp + '/' + p.maxHp;
@@ -38,6 +88,13 @@ var UI = {
         }
 
         var totalCrit = p.critChance + Combat.calculateItemStatBonus('critChance');
+        if (cls && cls.passiveId === 'crit_master') {
+            var itemCount = 0;
+            for (var k in p.items) {
+                if (p.items[k] > 0) itemCount++;
+            }
+            totalCrit += 10 + itemCount * 2.5;
+        }
         if (totalCrit > 0) {
             $('#stat-crit-row').show();
             $('#crit-text').text(totalCrit + '%');
@@ -46,6 +103,13 @@ var UI = {
         }
 
         var critDmg = Combat.calculateItemStatBonus('critDamage');
+        if (cls && cls.passiveId === 'crit_master') {
+            var itemCount = 0;
+            for (var k in p.items) {
+                if (p.items[k] > 0) itemCount++;
+            }
+            critDmg += itemCount * 10;
+        }
         if (critDmg > 0) {
             $('#stat-critdmg-row').show();
             $('#critdmg-text').text('+' + critDmg + '%');
@@ -78,9 +142,13 @@ var UI = {
                 $slot.find('.skill-cost').text('1⚡');
                 $slot.attr('data-tooltip', 'Move to an adjacent tile\nCost: 1 energy');
             } else if (i === 1) {
-                $slot.find('.skill-name').text('Slash');
+                var basicSkill = p.skills[1];
+                var basicName = basicSkill ? basicSkill.name : 'Slash';
+                var basicDmg = basicSkill ? basicSkill.damage : 60;
+                var basicRange = basicSkill ? basicSkill.range : 1;
+                $slot.find('.skill-name').text(basicName);
                 $slot.find('.skill-cost').text('1⚡');
-                $slot.attr('data-tooltip', 'Basic melee attack\nDamage: 60\nCost: 1 energy\nShape: Single target (adjacent)');
+                $slot.attr('data-tooltip', basicName + '\nDamage: ' + basicDmg + '\nCost: 1 energy\nRange: ' + basicRange);
             } else if (i === 5) {
                 $slot.find('.skill-name').text('Guard');
                 $slot.find('.skill-cost').text('All⚡');
@@ -300,6 +368,38 @@ var UI = {
 
     hideScreen: function(screenId) {
         $('#' + screenId).removeClass('active');
+    },
+
+    showClassSelect: function() {
+        var $grid = $('#class-grid');
+        $grid.empty();
+
+        var classIds = Object.keys(Data.CLASSES);
+        var lockedClasses = [];
+
+        for (var i = 0; i < classIds.length; i++) {
+            var cls = Data.CLASSES[classIds[i]];
+            var isLocked = lockedClasses.indexOf(cls.id) !== -1;
+            var $card = $('<div class="class-card' + (isLocked ? ' disabled' : '') + '" data-class="' + cls.id + '">' +
+                '<div class="class-icon" style="color:' + cls.color + '">' + cls.icon + '</div>' +
+                '<div class="class-name">' + cls.name + '</div>' +
+                '<div class="class-desc">' + cls.desc + '</div>' +
+                '<div class="class-passive">' + cls.passive + '</div>' +
+                '<div class="class-stats">' +
+                    '<span class="stat-item"><span class="stat-icon hp-icon">&#9829;</span> ' + cls.hp + '</span>' +
+                    '<span class="stat-item"><span class="stat-icon energy-icon">&#9889;</span> ' + cls.energy + '</span>' +
+                '</div>' +
+                '</div>');
+            $grid.append($card);
+        }
+
+        $grid.find('.class-card:not(.disabled)').on('click', function() {
+            var classId = $(this).data('class');
+            $grid.find('.class-card').off('click');
+            Main.startGame(classId);
+        });
+
+        this.showScreen('class-screen');
     },
 
     showStatChoices: function(callback) {

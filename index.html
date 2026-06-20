@@ -11,19 +11,20 @@
 </head>
 <body>
     <!-- TITLE SCREEN -->
+    <div id="tooltip" class="game-tooltip"></div>
+
     <div id="title-screen" class="screen active">
         <div class="title-content">
             <h1 class="game-title">GRIDLOST</h1>
-            <p class="subtitle">A Roguelike Adventure</p>
             <button id="btn-start" class="pixel-btn">NEW ADVENTURE</button>
-            <div class="controls-hint">
-                <p><strong>CONTROLS</strong></p>
-                <p>Click adjacent tile = Move (1⚡ per tile)</p>
-                <p>Click enemy = Attack with selected skill</p>
-                <p>1-5 keys = Select skill slot</p>
-                <p>E / Space = End turn</p>
-                <p>Right-click = Deselect skill (back to Move)</p>
-            </div>
+        </div>
+    </div>
+
+    <!-- CLASS SELECT SCREEN -->
+    <div id="class-screen" class="screen">
+        <div class="class-content">
+            <h2 class="class-title">CHOOSE YOUR CLASS</h2>
+            <div class="class-grid" id="class-grid"></div>
         </div>
     </div>
 
@@ -61,7 +62,8 @@
             <div id="sidebar">
                 <!-- Player Info -->
                 <div id="player-info" class="panel">
-                    <h3 class="panel-title">KNIGHT</h3>
+                    <h3 class="panel-title" id="player-class-name">KNIGHT</h3>
+                    <div id="player-passive" class="player-passive" data-tooltip="Class Passive"></div>
                     <div class="stat-row">
                         <span class="stat-label" data-tooltip="Health Points">♥</span>
                         <div class="stat-bar-container">

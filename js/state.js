@@ -44,6 +44,7 @@ var State = {
     isBossStage: false,
     currentBossDef: null,
     bossTurnCount: 0,
+    selectedClass: 'knight',
 
     combatLog: [],
     maxLogEntries: 50,
@@ -77,12 +78,7 @@ var State = {
 
         this.player.x = 0;
         this.player.y = 0;
-        this.player.hp = Data.PLAYER_BASE_HP;
-        this.player.maxHp = Data.PLAYER_BASE_HP;
-        this.player.energy = Data.PLAYER_BASE_ENERGY;
-        this.player.maxEnergy = Data.PLAYER_BASE_ENERGY;
         this.player.power = Data.PLAYER_BASE_POWER;
-        this.player.skills = [null, Data.SKILLS.slash, null, null, null];
         this.player.selectedSlot = 0;
         this.player.statusEffects = [];
         this.player.tempPower = 0;
@@ -96,6 +92,14 @@ var State = {
         this.player.rejuvenation = 0;
         this.player.damageReduction = 0;
         this.player.skillStacks = {};
+        this.player.classId = this.selectedClass || 'knight';
+
+        var cls = Data.CLASSES[this.player.classId];
+        this.player.hp = cls.hp;
+        this.player.maxHp = cls.hp;
+        this.player.energy = cls.energy;
+        this.player.maxEnergy = cls.energy;
+        this.player.skills = [null, Data.SKILLS[cls.basicAttack], null, null, null];
     },
 
     getPlayerDamage: function() {

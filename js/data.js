@@ -6,6 +6,64 @@ var Data = {
     PLAYER_BASE_VITALITY: 0,
     PLAYER_BASE_AGILITY: 0,
 
+    CLASSES: {
+        knight: {
+            id: 'knight', name: 'KNIGHT', desc: 'Frontline melee warrior',
+            passiveName: 'Melee Expert',
+            passive: 'Deals bonus damage to nearby enemies',
+            passiveId: 'melee_expert',
+            hp: 1000, energy: 6,
+            basicAttack: 'slash',
+            color: '#ffffff',
+            icon: '&#9876;',
+            spriteBody: '#5599ff', spriteHead: '#88ccff', spriteArms: '#3366cc'
+        },
+        ranger: {
+            id: 'ranger', name: 'RANGER', desc: 'Ranged skirmisher',
+            passiveName: 'Range Master',
+            passive: 'Deals bonus damage to distant enemies',
+            passiveId: 'range_master',
+            hp: 700, energy: 5,
+            basicAttack: 'arrow_shot',
+            color: '#44cc44',
+            icon: '&#127993;',
+            spriteBody: '#33aa33', spriteHead: '#66cc66', spriteArms: '#228822'
+        },
+        paladin: {
+            id: 'paladin', name: 'PALADIN', desc: 'Holy tank who heals through combat',
+            passiveName: 'Holy Aura',
+            passive: 'Takes less damage when healthy. Heals more when low. Lifesteals all attacks.',
+            passiveId: 'holy_tank',
+            hp: 1200, energy: 6,
+            basicAttack: 'holy_strike',
+            color: '#ffdd44',
+            icon: '&#9883;',
+            spriteBody: '#ddaa22', spriteHead: '#ffcc44', spriteArms: '#bb8800'
+        },
+        rogue: {
+            id: 'rogue', name: 'ROGUE', desc: 'Critical hit specialist',
+            passiveName: 'Deadly Precision',
+            passive: '10% base crit chance. Gains crit chance and crit damage with more items.',
+            passiveId: 'crit_master',
+            hp: 700, energy: 8,
+            basicAttack: 'stab',
+            color: '#cc44ff',
+            icon: '&#128481;',
+            spriteBody: '#9944cc', spriteHead: '#bb77dd', spriteArms: '#7733aa'
+        },
+        mage: {
+            id: 'mage', name: 'MAGE', desc: 'AoE arcane caster',
+            passiveName: 'Arcane Surge',
+            passive: 'Ranged attacks hit in a 3x3 area',
+            passiveId: 'aoe_master',
+            hp: 700, energy: 6,
+            basicAttack: 'arcane_bolt',
+            color: '#4488ff',
+            icon: '&#10030;',
+            spriteBody: '#3366dd', spriteHead: '#5588ee', spriteArms: '#2244aa'
+        }
+    },
+
     STAT_UPGRADES: {
         vitality: { name: 'Vitality', desc: 'Heal 30% HP', healPercent: 30 },
         power: { name: 'Power', desc: '+10% damage', powerBonusPercent: 10 },
@@ -24,11 +82,6 @@ var Data = {
             id: 'tough_shell', name: 'Tough Shell', desc: '+50 max HP',
             rarity: 'common', effect: { type: 'passive', stat: 'maxHp', value: 50 },
             icon: '\u25C6', iconBg: '#4488cc'
-        },
-        power_stone: {
-            id: 'power_stone', name: 'Power Stone', desc: '+8% damage',
-            rarity: 'common', effect: { type: 'passive', stat: 'power', value: 8 },
-            icon: '\u25B2', iconBg: '#ff8844'
         },
         iron_skin: {
             id: 'iron_skin', name: 'Iron Skin', desc: '7% dmg reduction (log)',
@@ -203,6 +256,26 @@ var Data = {
             energyCost: 1, damage: 60, shape: 'single', range: 1,
             color: '#ffffff', isBasic: true, effects: []
         },
+        arrow_shot: {
+            id: 'arrow_shot', name: 'Arrow Shot', desc: 'Basic ranged attack',
+            energyCost: 1, damage: 40, shape: 'single', range: 3,
+            color: '#44cc44', isBasic: true, effects: []
+        },
+        holy_strike: {
+            id: 'holy_strike', name: 'Holy Strike', desc: 'Basic melee attack',
+            energyCost: 1, damage: 50, shape: 'single', range: 1,
+            color: '#ffdd44', isBasic: true, effects: []
+        },
+        stab: {
+            id: 'stab', name: 'Stab', desc: 'Basic melee attack',
+            energyCost: 1, damage: 40, shape: 'single', range: 1,
+            color: '#cc44ff', isBasic: true, effects: []
+        },
+        arcane_bolt: {
+            id: 'arcane_bolt', name: 'Arcane Bolt', desc: 'Basic ranged attack',
+            energyCost: 1, damage: 40, shape: 'single', range: 3,
+            color: '#4488ff', isBasic: true, effects: []
+        },
         thrust: {
             id: 'thrust', name: 'Thrust', desc: 'Piercing line attack',
             energyCost: 2, damage: 80, shape: 'line', range: 3,
@@ -225,7 +298,7 @@ var Data = {
         },
         ice_shard: {
             id: 'ice_shard', name: 'Ice Shard', desc: 'Freezing line, freezes enemies',
-            energyCost: 3, damage: 40, shape: 'line', range: 4,
+            energyCost: 4, damage: 40, shape: 'line', range: 4,
             color: '#88ddff', isBasic: false, effects: ['freeze']
         },
         backstab: {
@@ -427,11 +500,11 @@ var Data = {
     OBSTACLES_PER_STAGE_BASE: 2,
     OBSTACLES_PER_STAGE_MAX: 5,
 
-    SCALING_HP_MULT: 0.15,
-    SCALING_DMG_MULT: 0.10,
+        SCALING_HP_MULT: 0.25,
+        SCALING_DMG_MULT: 0.15,
 
     BOSS_EVERY: 5,
-    BOSS_STAT_SCALE: 0.20,
+        BOSS_STAT_SCALE: 0.30,
 
     COLORS: {
         bg: '#0f0a1a',

@@ -74,10 +74,10 @@ var Combat = {
         });
     },
 
-    calculateDamage: function(baseDmg, skill) {
+    calculateDamage: function(baseDmg, skill, target) {
         var bonus = State.getPlayerDamage();
         var itemPowerBonus = this.calculateItemStatBonus('power');
-        var conditionalBonus = this.getConditionalDamageBonus();
+        var conditionalBonus = this.getConditionalDamageBonus(target);
         var dmg = baseDmg + bonus + itemPowerBonus + conditionalBonus;
 
         if (skill && skill.id) {
@@ -103,13 +103,47 @@ var Combat = {
             dmg = Math.floor(dmg * (1 + empowerInter.value / 100));
         }
 
-        var isCrit = Math.random() * 100 < (State.player.critChance + this.calculateItemStatBonus('critChance'));
+        var p = State.player;
+        var cls = Data.CLASSES[p.classId];
+
+        if (cls && cls.passiveId === 'crit_master') {
+            var itemCount = 0;
+            for (var k in p.items) {
+                if (p.items[k] > 0) itemCount++;
+            }
+            p._rogueInnateCrit = 10;
+            p._rogueCritChanceBonus = itemCount * 2.5;
+            p._rogueCritDmgBonus = itemCount * 10;
+        }
+
+        if (cls && cls.passiveId === 'holy_tank') {
+            var hpRatio = p.hp / p.maxHp;
+            var dmgReduction = 0.4 - (hpRatio * 0.2);
+            dmg = Math.floor(dmg * (1 - dmgReduction));
+        }
+
+        var critChance = State.player.critChance + this.calculateItemStatBonus('critChance');
+        if (cls && cls.passiveId === 'crit_master') {
+            critChance += 10 + (p._rogueCritChanceBonus || 0);
+        }
+        var isCrit = Math.random() * 100 < critChance;
         if (isCrit) {
             var critMultiplier = 2;
             var hasGlassCannonSet = State.hasItemSet('glass_cannon_synergy');
             if (hasGlassCannonSet) critMultiplier = 3;
             var critDamageBonus = this.calculateItemStatBonus('critDamage');
+            if (cls && cls.passiveId === 'crit_master') {
+                critDamageBonus += (p._rogueCritDmgBonus || 0);
+            }
             dmg = Math.floor(dmg * (critMultiplier + critDamageBonus / 100));
+        }
+
+        var totalItems = 0;
+        for (var ik in State.player.items) {
+            if (State.player.items[ik] > 0) totalItems += State.player.items[ik];
+        }
+        if (totalItems > 0) {
+            dmg = Math.floor(dmg * (1 + totalItems * 0.10));
         }
 
         var roll = 0.9 + Math.random() * 0.1;
@@ -166,6 +200,11 @@ var Combat = {
                 var defId = target.defId;
                 if (defId !== 'skeleton') {
                     var healPercent = 1 + Math.random() * 2;
+                    var cls = Data.CLASSES[State.player.classId];
+                    if (cls && cls.passiveId === 'holy_tank') {
+                        var missingHpRatio = 1 - (State.player.hp / State.player.maxHp);
+                        healPercent *= (1 + missingHpRatio * 0.5);
+                    }
                     var healAmount = Math.floor(State.player.maxHp * healPercent / 100);
                     State.player.hp = Math.min(State.player.hp + healAmount, State.player.maxHp);
                     State.addFloatingText(State.player.x, State.player.y, '+' + healAmount + ' HP', '#44ff44');
@@ -181,6 +220,17 @@ var Combat = {
             if (lifestealHeal > 0) {
                 State.player.hp = Math.min(State.player.hp + lifestealHeal, State.player.maxHp);
                 State.addFloatingText(State.player.x, State.player.y, '+' + lifestealHeal + ' LIFESTEAL', '#cc4444');
+            }
+        }
+
+        if (source === 'player') {
+            var cls = Data.CLASSES[State.player.classId];
+            if (cls && cls.passiveId === 'holy_tank') {
+                var paladinHeal = Math.floor(actualDmg * 0.3);
+                if (paladinHeal > 0) {
+                    State.player.hp = Math.min(State.player.hp + paladinHeal, State.player.maxHp);
+                    State.addFloatingText(State.player.x, State.player.y, '+' + paladinHeal + ' HOLY', '#ffdd44');
+                }
             }
         }
 
@@ -323,6 +373,16 @@ var Combat = {
         }
         var reducedDmg = Math.max(1, Math.floor(dmg * reduction));
 
+        var p = State.player;
+        var cls = Data.CLASSES[p.classId];
+
+        if (cls && cls.passiveId === 'holy_tank') {
+            var hpRatio = p.hp / p.maxHp;
+            var classDR = 0.05 + (hpRatio * 0.2);
+            reducedDmg = Math.floor(reducedDmg * (1 - classDR));
+            State.addFloatingText(p.x, p.y, 'HOLY AURA -' + Math.floor(classDR * 100) + '%', '#ffdd44');
+        }
+
         if (State.player.guarding) {
             var guardMitigation = State.player.guardEnergy * 5;
             var guardReduction = 1 - (guardMitigation / 100);
@@ -366,14 +426,49 @@ var Combat = {
         State.player.energy -= skill.energyCost;
         State.addLog('Player uses ' + skill.name, 'action');
 
+        var cls = Data.CLASSES[State.player.classId];
+        if (cls && cls.passiveId === 'aoe_master' && skill.range > 1) {
+            var hitEnemies = [];
+            for (var dx = -1; dx <= 1; dx++) {
+                for (var dy = -1; dy <= 1; dy++) {
+                    var ex = tx + dx;
+                    var ey = ty + dy;
+                    var aoeEnemy = State.getEnemyAt(ex, ey);
+                    if (aoeEnemy && hitEnemies.indexOf(aoeEnemy) === -1) {
+                        hitEnemies.push(aoeEnemy);
+                        var result = this.calculateDamage(skill.damage, skill, aoeEnemy);
+                        this.dealDamage(aoeEnemy, result.damage, 'player', result.isCrit);
+                        if (skill.effects.indexOf('freeze') !== -1 && !aoeEnemy.isBoss && !aoeEnemy.freezeImmune && aoeEnemy.frozen === 0) {
+                            aoeEnemy.frozen = 2;
+                            aoeEnemy.freezeImmune = true;
+                        }
+                        if (skill.effects.indexOf('burn') !== -1) {
+                            State.burnTiles.push({ x: ex, y: ey, turns: 3 });
+                        }
+                        if (skill.effects.indexOf('poison') !== -1) {
+                            var poisonDmg = Math.floor(20 * (1 + State.player.power / 100));
+                            aoeEnemy.poison = { damage: poisonDmg, turns: 3 };
+                        }
+                        if (skill.effects.indexOf('mark') !== -1 && !aoeEnemy.isBoss) {
+                            var markStacks = State.player.skillStacks['mark'] || 0;
+                            var markMultiplier = 2 + (markStacks * 0.25);
+                            aoeEnemy.marked = markMultiplier;
+                        }
+                    }
+                }
+            }
+            this.endPlayerTurn();
+            return;
+        }
+
         var enemy = State.getEnemyAt(tx, ty);
         if (enemy) {
-            var result = this.calculateDamage(skill.damage, skill);
+            var result = this.calculateDamage(skill.damage, skill, enemy);
             var dmg = result.damage;
             var isCrit = result.isCrit;
 
             if (skill.effects.indexOf('backstab') !== -1 && enemy.frozen > 0) {
-                var backstabResult = this.calculateDamage(skill.damage * 3, skill);
+                var backstabResult = this.calculateDamage(skill.damage * 3, skill, enemy);
                 dmg = backstabResult.damage;
                 isCrit = backstabResult.isCrit;
                 State.addFloatingText(tx, ty, 'SHATTER!', '#ff8800');
@@ -489,7 +584,7 @@ var Combat = {
         State.player.x = blinkX;
         State.player.y = blinkY;
 
-        var result = this.calculateDamage(skill.damage, skill);
+        var result = this.calculateDamage(skill.damage, skill, enemy);
         this.dealDamage(enemy, result.damage, 'player', result.isCrit);
 
         this.endPlayerTurn();
@@ -566,7 +661,7 @@ var Combat = {
 
             var enemy = State.getEnemyAt(t.x, t.y);
             if (enemy) {
-                var result = this.calculateDamage(skill.damage, skill);
+                var result = this.calculateDamage(skill.damage, skill, enemy);
                 this.dealDamage(enemy, result.damage, 'player', result.isCrit);
                 hitSomething = true;
                 lastHitEnemy = enemy;
@@ -629,7 +724,7 @@ var Combat = {
         for (var i = 0; i < tiles.length; i++) {
             var enemy = State.getEnemyAt(tiles[i].x, tiles[i].y);
             if (enemy) {
-                var result = this.calculateDamage(skill.damage, skill);
+                var result = this.calculateDamage(skill.damage, skill, enemy);
                 this.dealDamage(enemy, result.damage, 'player', result.isCrit);
 
                 if (skill.effects.indexOf('knockback1') !== -1 && !enemy.isBoss) {
@@ -674,7 +769,7 @@ var Combat = {
             var enemy = State.getEnemyAt(t.x, t.y);
             if (enemy && hitEnemies.indexOf(enemy) === -1) {
                 hitEnemies.push(enemy);
-                var result = this.calculateDamage(skill.damage, skill);
+                var result = this.calculateDamage(skill.damage, skill, enemy);
                 this.dealDamage(enemy, result.damage, 'player', result.isCrit);
                 hitCount++;
 
@@ -750,7 +845,7 @@ var Combat = {
             var skill = Data.SKILLS.dash;
             for (var j = 0; j < enemiesHit.length; j++) {
                 var enemy = enemiesHit[j];
-                var result = this.calculateDamage(skill.damage, skill);
+                var result = this.calculateDamage(skill.damage, skill, enemy);
                 this.dealDamage(enemy, result.damage, 'player', result.isCrit);
             }
         }
@@ -948,7 +1043,7 @@ var Combat = {
         return total;
     },
 
-    getConditionalDamageBonus: function() {
+    getConditionalDamageBonus: function(target) {
         var items = State.player.items;
         var bonus = 0;
         var p = State.player;
@@ -961,6 +1056,21 @@ var Combat = {
             var missingHpPercent = Math.floor((1 - p.hp / p.maxHp) * 100);
             var stacks = Math.floor(missingHpPercent / 10);
             bonus += 15 * stacks * items['berserker_blood'];
+        }
+
+        if (target && target.x !== undefined && target.y !== undefined) {
+            var cls = Data.CLASSES[p.classId];
+            if (cls) {
+                var dx = Math.abs(target.x - p.x);
+                var dy = Math.abs(target.y - p.y);
+                var inMeleeRange = dx <= 1 && dy <= 1;
+
+                if (cls.passiveId === 'melee_expert' && inMeleeRange) {
+                    bonus += 25;
+                } else if (cls.passiveId === 'range_master' && !inMeleeRange) {
+                    bonus += 25;
+                }
+            }
         }
 
         return bonus;

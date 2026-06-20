@@ -2,16 +2,17 @@ var Main = {
     init: function() {
         Grid.init();
         Input.init();
+        UI.initTooltip();
         this.bindEvents();
     },
 
     bindEvents: function() {
         $('#btn-start').on('click', function() {
-            Main.startGame();
+            UI.showClassSelect();
         });
 
         $('#btn-retry').on('click', function() {
-            Main.startGame();
+            UI.showClassSelect();
         });
 
         $(window).on('resize', function() {
@@ -21,7 +22,8 @@ var Main = {
         });
     },
 
-    startGame: function() {
+    startGame: function(classId) {
+        State.selectedClass = classId || 'knight';
         State.reset();
         Stages.generate();
         State.updateSynergies();
