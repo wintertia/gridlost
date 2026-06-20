@@ -201,8 +201,16 @@ var Stages = {
 
         var placed = 0;
         var attempts = 0;
-        var isEliteStage = (stage % 5 === 3 || stage % 5 === 4);
-        var eliteSpawned = false;
+        var biomeNum = Math.floor((stage - 1) / 5);
+        var biomeStage = (stage - 1) % 5;
+        var elitesToSpawn = 0;
+        if (biomeNum >= 3) {
+            if (biomeStage === 0 || biomeStage === 1) elitesToSpawn = 1;
+            else if (biomeStage === 2 || biomeStage === 3) elitesToSpawn = 2;
+        } else {
+            if (biomeStage === 2 || biomeStage === 3) elitesToSpawn = 1;
+        }
+        var elitesSpawned = 0;
 
         while (placed < count && attempts < 100) {
             var x = Math.floor(Math.random() * Data.GRID_SIZE);
@@ -218,13 +226,13 @@ var Stages = {
 
             var scaling = 1 + (stage - 1) * Data.SCALING_HP_MULT;
             var dmgScaling = 1 + (stage - 1) * Data.SCALING_DMG_MULT;
-            var isElite = isEliteStage && !eliteSpawned;
+            var isElite = elitesSpawned < elitesToSpawn;
 
             var hp = Math.floor(def.hp * scaling);
             var dmg = Math.floor(def.damage * dmgScaling);
             if (isElite) {
                 hp = Math.floor(hp * Data.ELITE_HP_MULT);
-                eliteSpawned = true;
+                elitesSpawned++;
             }
 
             State.enemies.push({

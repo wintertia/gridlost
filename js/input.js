@@ -325,5 +325,15 @@ var Input = {
             e.preventDefault();
             Combat.endPlayerTurn();
         }
+        if (State.phase === 'player' && State.isMoveMode()) {
+            var wx = State.player.x, wy = State.player.y;
+            if (key === 'w' || key === 'W') wy--;
+            else if (key === 'a' || key === 'A') wx--;
+            else if (key === 's' || key === 'S') wy++;
+            else if (key === 'd' || key === 'D') wx++;
+            if (wx !== State.player.x || wy !== State.player.y) {
+                this.tryMove(wx, wy);
+            }
+        }
     }
 };

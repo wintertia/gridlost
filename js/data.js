@@ -32,7 +32,7 @@ var Data = {
         paladin: {
             id: 'paladin', name: 'PALADIN', desc: 'Holy tank who heals through combat',
             passiveName: 'Holy Aura',
-            passive: 'Takes less damage when healthy. Heals more when low. Lifesteals all attacks.',
+            passive: 'Heals more when low. Lifesteals all attacks.',
             passiveId: 'holy_tank',
             hp: 1200, energy: 6,
             basicAttack: 'holy_strike',
@@ -50,17 +50,6 @@ var Data = {
             color: '#cc44ff',
             icon: '&#128481;',
             spriteBody: '#9944cc', spriteHead: '#bb77dd', spriteArms: '#7733aa'
-        },
-        mage: {
-            id: 'mage', name: 'MAGE', desc: 'AoE arcane caster',
-            passiveName: 'Arcane Surge',
-            passive: 'Ranged attacks hit in a 3x3 area',
-            passiveId: 'aoe_master',
-            hp: 700, energy: 5,
-            basicAttack: 'arcane_bolt',
-            color: '#4488ff',
-            icon: '&#10030;',
-            spriteBody: '#3366dd', spriteHead: '#5588ee', spriteArms: '#2244aa'
         }
     },
 
@@ -286,11 +275,6 @@ var Data = {
             id: 'stab', name: 'Stab', desc: 'Basic melee attack',
             energyCost: 1, damage: 40, shape: 'single', range: 1,
             color: '#cc44ff', isBasic: true, effects: []
-        },
-        arcane_bolt: {
-            id: 'arcane_bolt', name: 'Arcane Bolt', desc: 'Basic ranged attack',
-            energyCost: 1, damage: 40, shape: 'single', range: 3,
-            color: '#4488ff', isBasic: true, effects: []
         },
         thrust: {
             id: 'thrust', name: 'Thrust', desc: 'Piercing line attack',
@@ -728,7 +712,7 @@ var Data = {
     OBSTACLES_PER_STAGE_BASE: 2,
     OBSTACLES_PER_STAGE_MAX: 5,
 
-        SCALING_HP_MULT: 0.25,
+        SCALING_HP_MULT: 0.30,
         SCALING_DMG_MULT: 0.15,
 
     BOSS_EVERY: 5,

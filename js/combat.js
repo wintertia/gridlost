@@ -120,12 +120,6 @@ var Combat = {
             p._rogueCritDmgBonus = itemCount * 10;
         }
 
-        if (cls && cls.passiveId === 'holy_tank') {
-            var hpRatio = p.hp / p.maxHp;
-            var dmgReduction = 0.4 - (hpRatio * 0.2);
-            dmg = Math.floor(dmg * (1 - dmgReduction));
-        }
-
         var critChance = State.player.critChance + this.calculateItemStatBonus('critChance');
         if (cls && cls.passiveId === 'crit_master') {
             critChance += 10 + (p._rogueCritChanceBonus || 0);
@@ -143,12 +137,17 @@ var Combat = {
                 critChance += 10 * items['lone_wolf'];
             }
         }
+        var excessCrit = 0;
+        if (critChance > 100) {
+            excessCrit = critChance - 100;
+            critChance = 100;
+        }
         var isCrit = Math.random() * 100 < critChance;
         if (isCrit) {
             var critMultiplier = 2;
             var hasGlassCannonSet = State.hasItemSet('glass_cannon_synergy');
             if (hasGlassCannonSet) critMultiplier = 3;
-            var critDamageBonus = this.calculateItemStatBonus('critDamage');
+            var critDamageBonus = this.calculateItemStatBonus('critDamage') + excessCrit;
             if (cls && cls.passiveId === 'crit_master') {
                 critDamageBonus += (p._rogueCritDmgBonus || 0);
             }
@@ -181,6 +180,22 @@ var Combat = {
         }
         if (totalItems > 0) {
             dmg = Math.floor(dmg * (1 + totalItems * 0.06));
+        }
+
+        // Knight/Ranger class passive: +25% base + 5% per item
+        if (target && target.x !== undefined && target.y !== undefined) {
+            var cls = Data.CLASSES[p.classId];
+            if (cls && (cls.passiveId === 'melee_expert' || cls.passiveId === 'range_master')) {
+                var dx = Math.abs(target.x - p.x);
+                var dy = Math.abs(target.y - p.y);
+                var inMeleeRange = dx <= 1 && dy <= 1;
+                var passiveActive = (cls.passiveId === 'melee_expert' && inMeleeRange) ||
+                                    (cls.passiveId === 'range_master' && !inMeleeRange);
+                if (passiveActive) {
+                    var passivePercent = 25 + totalItems * 5;
+                    dmg = Math.floor(dmg * (1 + passivePercent / 100));
+                }
+            }
         }
 
         var roll = 0.9 + Math.random() * 0.1;
@@ -524,39 +539,6 @@ var Combat = {
         State.addLog('Player uses ' + skill.name, 'action');
 
         var cls = Data.CLASSES[State.player.classId];
-        if (cls && cls.passiveId === 'aoe_master' && skill.range > 1) {
-            var hitEnemies = [];
-            for (var dx = -1; dx <= 1; dx++) {
-                for (var dy = -1; dy <= 1; dy++) {
-                    var ex = tx + dx;
-                    var ey = ty + dy;
-                    var aoeEnemy = State.getEnemyAt(ex, ey);
-                    if (aoeEnemy && hitEnemies.indexOf(aoeEnemy) === -1) {
-                        hitEnemies.push(aoeEnemy);
-                        var result = this.calculateDamage(skill.damage, skill, aoeEnemy);
-                        this.dealDamage(aoeEnemy, result.damage, 'player', result.isCrit);
-                        if (skill.effects.indexOf('freeze') !== -1 && !aoeEnemy.freezeImmune && aoeEnemy.frozen === 0) {
-                            aoeEnemy.frozen = 2;
-                            aoeEnemy.freezeImmune = true;
-                        }
-                        if (skill.effects.indexOf('burn') !== -1) {
-                            State.burnTiles.push({ x: ex, y: ey, turns: 3 });
-                        }
-                        if (skill.effects.indexOf('poison') !== -1) {
-                            var poisonDmg = Math.floor(20 * (1 + State.player.power / 100));
-                            aoeEnemy.poison = { damage: poisonDmg, turns: 3 };
-                        }
-                        if (skill.effects.indexOf('mark') !== -1 && !aoeEnemy.isBoss) {
-                            var markStacks = State.player.skillStacks['mark'] || 0;
-                            var markMultiplier = 2 + (markStacks * 0.25);
-                            aoeEnemy.marked = markMultiplier;
-                        }
-                    }
-                }
-            }
-            this.endPlayerTurn();
-            return;
-        }
 
         var enemy = State.getEnemyAt(tx, ty);
         if (enemy) {
@@ -1189,21 +1171,6 @@ var Combat = {
             var missingHpPercent = Math.floor((1 - p.hp / p.maxHp) * 100);
             var stacks = Math.floor(missingHpPercent / 10);
             bonus += 15 * stacks * items['berserker_blood'];
-        }
-
-        if (target && target.x !== undefined && target.y !== undefined) {
-            var cls = Data.CLASSES[p.classId];
-            if (cls) {
-                var dx = Math.abs(target.x - p.x);
-                var dy = Math.abs(target.y - p.y);
-                var inMeleeRange = dx <= 1 && dy <= 1;
-
-                if (cls.passiveId === 'melee_expert' && inMeleeRange) {
-                    bonus += 25;
-                } else if (cls.passiveId === 'range_master' && !inMeleeRange) {
-                    bonus += 25;
-                }
-            }
         }
 
         return bonus;
