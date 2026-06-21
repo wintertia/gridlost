@@ -1,4 +1,8 @@
 var Combat = {
+    hazardDamage: function(baseDamage) {
+        return Math.floor(baseDamage + (State.stage - 1) * 10);
+    },
+
     getAffectedTiles: function(px, py, tx, ty, skill) {
         var tiles = [];
         var dx = tx - px;
@@ -1302,5 +1306,31 @@ var Combat = {
         }
         State.player.diseased = nearPlague;
         State.player.cursed = nearMummy;
+
+        var onSpike = false;
+        for (var i = 0; i < State.obstacles.length; i++) {
+            var o = State.obstacles[i];
+            if (o.x === State.player.x && o.y === State.player.y && o.id === 'spike_trap') {
+                onSpike = true;
+                break;
+            }
+        }
+        if (onSpike) {
+            State.spikeTurns++;
+            if (State.spikeTurns >= 2) {
+                var spikeDmg = this.hazardDamage(100);
+                State.player.hp -= spikeDmg;
+                State.addFloatingText(State.player.x, State.player.y, '-' + spikeDmg + ' SPIKES!', '#ff4444');
+                State.addLog('Spike trap impales you for ' + spikeDmg + ' damage!', 'enemy');
+                State.spikeTurns = 0;
+            }
+        } else {
+            State.spikeTurns = 0;
+        }
+        if (State.player.hp <= 0) {
+            State.player.hp = 0;
+            UI.showDeathScreen();
+            return;
+        }
     }
 };

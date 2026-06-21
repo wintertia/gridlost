@@ -135,11 +135,14 @@ var Grid = {
                 ctx.fillStyle = '#444455';
                 ctx.fillRect(px + 4, py + ts/2, ts - 8, ts/2 - 4);
             } else if (o.id === 'wall') {
-                ctx.fillStyle = '#886644';
+                var wallC = o.color || '#886644';
+                ctx.fillStyle = wallC;
                 ctx.fillRect(px + 2, py + 2, ts - 4, ts - 4);
-                ctx.fillStyle = '#775533';
+                var wallDark = this.lightenColor(wallC, -30);
+                ctx.fillStyle = wallDark;
                 ctx.fillRect(px + 4, py + 4, ts - 8, ts/3);
-                var hpPct = o.hp / 150;
+                var maxHp = o.maxHp || 150;
+                var hpPct = o.hp / maxHp;
                 if (hpPct < 1) {
                     ctx.strokeStyle = '#442200';
                     ctx.lineWidth = 1;
@@ -175,6 +178,44 @@ var Grid = {
                 ctx.fillStyle = '#aa44ff';
                 ctx.beginPath();
                 ctx.arc(px + ts/2, py + ts/2, ts * 0.15, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (o.id === 'spike_trap') {
+                ctx.fillStyle = '#2a2a2a';
+                ctx.fillRect(px + 1, py + 1, ts - 2, ts - 2);
+                ctx.fillStyle = '#888899';
+                var spikeSize = ts * 0.12;
+                for (var si = 0; si < 3; si++) {
+                    for (var sj = 0; sj < 3; sj++) {
+                        var sx = px + ts * 0.2 + si * ts * 0.25;
+                        var sy = py + ts * 0.2 + sj * ts * 0.25;
+                        ctx.beginPath();
+                        ctx.moveTo(sx, sy + spikeSize);
+                        ctx.lineTo(sx + spikeSize * 0.5, sy);
+                        ctx.lineTo(sx + spikeSize, sy + spikeSize);
+                        ctx.fill();
+                    }
+                }
+            } else if (o.id === 'chill_water') {
+                var chillC = (Math.floor(this.animFrame / 35) % 2 === 0) ? '#4488cc' : '#66aaee';
+                ctx.fillStyle = chillC;
+                ctx.fillRect(px + 1, py + 1, ts - 2, ts - 2);
+                ctx.fillStyle = 'rgba(136, 221, 255, 0.4)';
+                var cwave = Math.sin(this.animFrame * 0.07 + o.x) * 2;
+                ctx.fillRect(px + 4, py + ts * 0.4 + cwave, ts - 8, 2);
+                ctx.fillStyle = '#aaddff';
+                ctx.fillRect(px + ts * 0.3, py + ts * 0.6, ts * 0.15, ts * 0.1);
+                ctx.fillRect(px + ts * 0.55, py + ts * 0.3, ts * 0.12, ts * 0.08);
+            } else if (o.id === 'swamp_pool') {
+                ctx.fillStyle = '#223311';
+                ctx.fillRect(px + 1, py + 1, ts - 2, ts - 2);
+                var swampC = (Math.floor(this.animFrame / 50) % 2 === 0) ? '#335522' : '#446633';
+                ctx.fillStyle = swampC;
+                ctx.fillRect(px + 3, py + 3, ts - 6, ts - 6);
+                ctx.fillStyle = 'rgba(100, 180, 60, 0.3)';
+                var bubX = px + ts * 0.3 + Math.sin(this.animFrame * 0.04 + o.y) * ts * 0.15;
+                var bubY = py + ts * 0.5 + Math.cos(this.animFrame * 0.06 + o.x) * ts * 0.1;
+                ctx.beginPath();
+                ctx.arc(bubX, bubY, ts * 0.06, 0, Math.PI * 2);
                 ctx.fill();
             }
         }
@@ -526,9 +567,9 @@ var Grid = {
 
     lightenColor: function(hex, percent) {
         var num = parseInt(hex.slice(1), 16);
-        var r = Math.min(255, (num >> 16) + percent);
-        var g = Math.min(255, ((num >> 8) & 0x00FF) + percent);
-        var b = Math.min(255, (num & 0x0000FF) + percent);
+        var r = Math.max(0, Math.min(255, (num >> 16) + percent));
+        var g = Math.max(0, Math.min(255, ((num >> 8) & 0x00FF) + percent));
+        var b = Math.max(0, Math.min(255, (num & 0x0000FF) + percent));
         return '#' + (r << 16 | g << 8 | b).toString(16).padStart(6, '0');
     },
 

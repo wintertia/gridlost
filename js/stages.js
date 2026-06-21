@@ -61,19 +61,8 @@ var Stages = {
             Data.ENEMIES_PER_STAGE_MAX
         );
 
-        var numObstacles = Math.min(
-            Data.OBSTACLES_PER_STAGE_BASE + Math.floor(stage / 4) + this.extraObstacles,
-            Data.OBSTACLES_PER_STAGE_MAX
-        );
-
-        this.placeObstacles(numObstacles);
         this.placeEnemies(numEnemies);
-
-        this.placePortalPair();
-
-        if (Math.random() < 0.3) {
-            this.extraObstacles++;
-        }
+        this.placeBiomeHazards(stage);
     },
 
     generateBossStage: function() {
@@ -117,69 +106,152 @@ var Stages = {
         };
 
         State.enemies.push(boss);
-
-        this.placeObstacles(2);
     },
 
-    placeObstacles: function(count) {
+    placeBiomeHazards: function(stage) {
+        var biome = State.currentBiome ? Data.BIOMES[State.currentBiome] : null;
+        if (!biome || !biome.hazards) return;
+
+        var wallHp = Math.floor(150 + (stage - 1) * 30);
+        var wallColor = biome.wallColor || '#886644';
+        var biomeStage = (stage - 1) % 5;
+        var isAbsoluteStage1 = stage === 1;
+
+        for (var h = 0; h < biome.hazards.length; h++) {
+            var hazardType = biome.hazards[h];
+            var spawnMode = biome.hazardSpawn || 'scatter';
+
+            if (hazardType === 'wall') {
+                var wallCount = biome.wallCount || (2 + Math.floor(Math.random() * 2));
+                this.spawnWalls(wallCount, wallHp, wallColor);
+            } else if (isAbsoluteStage1) {
+                continue;
+            } else if (hazardType === 'spike_trap' && spawnMode === 'line') {
+                this.spawnSpikeLine();
+                this.spawnSpikeTraps(2 + Math.floor(Math.random() * 3));
+            } else if (hazardType === 'spike_trap') {
+                this.spawnSpikeTraps(2 + Math.floor(Math.random() * 3));
+            } else if (hazardType === 'portal') {
+                this.spawnPortalPairs(1 + Math.floor(Math.random() * 2));
+            } else if (spawnMode === 'line') {
+                this.spawnWaterLine();
+            } else if (spawnMode === 'oasis') {
+                this.spawnOasis();
+            } else {
+                var count = biome.hazardCount || (2 + Math.floor(Math.random() * 4));
+                this.spawnScatter(hazardType, count);
+            }
+        }
+    },
+
+    spawnWalls: function(count, hp, color) {
         var placed = 0;
         var attempts = 0;
-
         while (placed < count && attempts < 100) {
             var x = Math.floor(Math.random() * Data.GRID_SIZE);
             var y = Math.floor(Math.random() * Data.GRID_SIZE);
-
             if (this.isReserved(x, y)) { attempts++; continue; }
-
-            var obstacleTypes = ['stone', 'wall', 'lava', 'water'];
-            var weights = [3, 2, 1, 1];
-            var totalWeight = weights.reduce(function(a, b) { return a + b; }, 0);
-            var roll = Math.random() * totalWeight;
-            var cumulative = 0;
-            var chosenType = obstacleTypes[0];
-
-            for (var i = 0; i < obstacleTypes.length; i++) {
-                cumulative += weights[i];
-                if (roll < cumulative) {
-                    chosenType = obstacleTypes[i];
-                    break;
-                }
-            }
-
-            var obstacleDef = Data.OBSTACLES[chosenType];
-            var obstacle = {
-                x: x, y: y,
-                id: chosenType,
-                hp: obstacleDef.hp > 0 ? obstacleDef.hp : -1,
-                destructible: obstacleDef.destructible,
-                blocksMove: obstacleDef.blocksMove,
-                blocksLOS: obstacleDef.blocksLOS || false,
-                color: obstacleDef.color
-            };
-
-            State.obstacles.push(obstacle);
+            State.obstacles.push({
+                x: x, y: y, id: 'wall', hp: hp, maxHp: hp,
+                destructible: true, blocksMove: true, blocksLOS: true, color: color
+            });
             placed++;
             attempts++;
         }
     },
 
-    placePortalPair: function() {
-        if (Math.random() > 0.3) return;
-
-        var portal1 = this.findOpenTile();
-        var portal2 = this.findOpenTile();
-
-        if (portal1 && portal2) {
+    spawnSpikeTraps: function(count) {
+        var placed = 0;
+        var attempts = 0;
+        while (placed < count && attempts < 100) {
+            var x = Math.floor(Math.random() * Data.GRID_SIZE);
+            var y = Math.floor(Math.random() * Data.GRID_SIZE);
+            if (this.isReserved(x, y)) { attempts++; continue; }
             State.obstacles.push({
-                x: portal1.x, y: portal1.y,
-                id: 'portal', hp: -1, destructible: false,
-                blocksMove: false, blocksLOS: false, color: '#cc44ff'
+                x: x, y: y, id: 'spike_trap', hp: -1, destructible: false,
+                blocksMove: false, color: '#888899'
             });
+            placed++;
+            attempts++;
+        }
+    },
+
+    spawnSpikeLine: function() {
+        var horizontal = Math.random() < 0.5;
+        var pos = 1 + Math.floor(Math.random() * (Data.GRID_SIZE - 2));
+        for (var i = 0; i < Data.GRID_SIZE; i++) {
+            var x = horizontal ? i : pos;
+            var y = horizontal ? pos : i;
+            if (this.isReserved(x, y)) continue;
             State.obstacles.push({
-                x: portal2.x, y: portal2.y,
-                id: 'portal', hp: -1, destructible: false,
-                blocksMove: false, blocksLOS: false, color: '#cc44ff'
+                x: x, y: y, id: 'spike_trap', hp: -1, destructible: false,
+                blocksMove: false, color: '#888899'
             });
+        }
+    },
+
+    spawnPortalPairs: function(count) {
+        for (var p = 0; p < count; p++) {
+            var portal1 = this.findOpenTile();
+            var portal2 = this.findOpenTile();
+            if (portal1 && portal2) {
+                State.obstacles.push({
+                    x: portal1.x, y: portal1.y, id: 'portal', hp: -1,
+                    destructible: false, blocksMove: false, blocksLOS: false, color: '#cc44ff'
+                });
+                State.obstacles.push({
+                    x: portal2.x, y: portal2.y, id: 'portal', hp: -1,
+                    destructible: false, blocksMove: false, blocksLOS: false, color: '#cc44ff'
+                });
+            }
+        }
+    },
+
+    spawnWaterLine: function() {
+        var horizontal = Math.random() < 0.5;
+        var pos = 1 + Math.floor(Math.random() * (Data.GRID_SIZE - 2));
+        for (var i = 0; i < Data.GRID_SIZE; i++) {
+            var x = horizontal ? i : pos;
+            var y = horizontal ? pos : i;
+            if (this.isReserved(x, y)) continue;
+            State.obstacles.push({
+                x: x, y: y, id: 'water', hp: -1, destructible: false,
+                blocksMove: false, color: '#2266cc'
+            });
+        }
+    },
+
+    spawnOasis: function() {
+        var cx = 2 + Math.floor(Math.random() * (Data.GRID_SIZE - 4));
+        var cy = 2 + Math.floor(Math.random() * (Data.GRID_SIZE - 4));
+        for (var dx = -1; dx <= 1; dx++) {
+            for (var dy = -1; dy <= 1; dy++) {
+                var x = cx + dx;
+                var y = cy + dy;
+                if (this.isReserved(x, y)) continue;
+                State.obstacles.push({
+                    x: x, y: y, id: 'water', hp: -1, destructible: false,
+                    blocksMove: false, color: '#2266cc'
+                });
+            }
+        }
+    },
+
+    spawnScatter: function(type, count) {
+        var placed = 0;
+        var attempts = 0;
+        while (placed < count && attempts < 100) {
+            var x = Math.floor(Math.random() * Data.GRID_SIZE);
+            var y = Math.floor(Math.random() * Data.GRID_SIZE);
+            if (this.isReserved(x, y)) { attempts++; continue; }
+            var def = Data.OBSTACLES[type];
+            State.obstacles.push({
+                x: x, y: y, id: type, hp: def.hp, destructible: def.destructible || false,
+                blocksMove: def.blocksMove || false, blocksLOS: def.blocksLOS || false,
+                color: def.color
+            });
+            placed++;
+            attempts++;
         }
     },
 

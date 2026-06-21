@@ -456,10 +456,11 @@ var UI = {
             for (var i = 0; i < choices.length; i++) {
                 var skill = Data.SKILLS[choices[i]];
                 var stacks = State.player.skillStacks[skill.id] || 0;
+                var alreadyLearned = State.player.skills.some(function(s) { return s && s.id === skill.id; });
                 var curLv = stacks + 1;
-                var displayName = stacks > 0 ? skill.name + ' Lv.' + curLv + '→Lv.' + (curLv + 1) : skill.name;
+                var displayName = alreadyLearned ? skill.name + ' Lv.' + curLv + '→Lv.' + (curLv + 1) : skill.name;
                 var dmgText = 'Damage: ' + skill.damage;
-                if (stacks > 0) {
+                if (alreadyLearned) {
                     var totalPct = (stacks + 1) * 20;
                     var newDmg = Math.floor(skill.damage * (1 + (stacks + 1) * 0.2));
                     dmgText = 'Damage: ' + skill.damage + ' → ' + newDmg + ' (+' + totalPct + '%)';

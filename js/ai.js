@@ -646,31 +646,55 @@ var AI = {
         }
 
         if (!moved) {
-            var sideDirs = [];
-            var awayDirs = [];
+            var candidates = [];
             for (var i = 0; i < dirs.length; i++) {
                 var nx = enemy.x + dirs[i].x;
                 var ny = enemy.y + dirs[i].y;
-                if (!State.isBlockedForEnemy(nx, ny)) {
-                    var d = this.distance(nx, ny, targetX, targetY);
-                    if (d <= bestDist) {
-                        sideDirs.push({ x: nx, y: ny });
-                    } else {
-                        awayDirs.push({ x: nx, y: ny });
+                if (State.isBlockedForEnemy(nx, ny)) continue;
+                var canImproveNextTurn = false;
+                for (var j = 0; j < dirs.length; j++) {
+                    var nx2 = nx + dirs[j].x;
+                    var ny2 = ny + dirs[j].y;
+                    if (State.isBlockedForEnemy(nx2, ny2)) continue;
+                    if (this.distance(nx2, ny2, targetX, targetY) < bestDist) {
+                        canImproveNextTurn = true;
+                        break;
                     }
                 }
+                candidates.push({ x: nx, y: ny, good: canImproveNextTurn });
             }
-            var pick = sideDirs.length > 0
-                ? sideDirs[Math.floor(Math.random() * sideDirs.length)]
-                : awayDirs.length > 0 ? awayDirs[Math.floor(Math.random() * awayDirs.length)] : null;
+            var goodOnes = candidates.filter(function(c) { return c.good; });
+            var pick;
+            if (goodOnes.length > 0) {
+                pick = goodOnes[Math.floor(Math.random() * goodOnes.length)];
+            } else if (candidates.length > 0) {
+                pick = candidates[Math.floor(Math.random() * candidates.length)];
+            }
             if (pick) { bestX = pick.x; bestY = pick.y; }
         }
 
         enemy.facing = Grid.getDirection(enemy.x, enemy.y, bestX, bestY);
         enemy.x = bestX;
         enemy.y = bestY;
+        this.checkEnemyPortal(enemy);
         Grid.render();
         callback();
+    },
+
+    checkEnemyPortal: function(enemy) {
+        for (var i = 0; i < State.obstacles.length; i++) {
+            var o = State.obstacles[i];
+            if (o.x === enemy.x && o.y === enemy.y && o.id === 'portal') {
+                for (var j = 0; j < State.obstacles.length; j++) {
+                    if (j !== i && State.obstacles[j].id === 'portal') {
+                        enemy.x = State.obstacles[j].x;
+                        enemy.y = State.obstacles[j].y;
+                        State.addFloatingText(enemy.x, enemy.y, 'TELEPORT!', '#cc44ff');
+                        return;
+                    }
+                }
+            }
+        }
     },
 
     moveAway: function(enemy, targetX, targetY, callback) {
@@ -720,6 +744,7 @@ var AI = {
 
         enemy.x = bestX;
         enemy.y = bestY;
+        this.checkEnemyPortal(enemy);
         Grid.render();
         callback();
     },

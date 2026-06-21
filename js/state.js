@@ -40,6 +40,7 @@ var State = {
     poisonTiles: [],
     poisonEffects: [],
     extraItemDrops: 0,
+    spikeTurns: 0,
 
     debugMode: false,
     debugBiomeOverride: null,
@@ -74,6 +75,7 @@ var State = {
         this.burnTiles = [];
         this.poisonTiles = [];
         this.poisonEffects = [];
+        this.spikeTurns = 0;
         this.hoveredTile = null;
         this.attackPreview = [];
         this.floatingTexts = [];

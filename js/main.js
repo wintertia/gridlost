@@ -216,6 +216,7 @@ var Main = {
         State.player.shield = 0;
         State.burnTiles = [];
         State.poisonTiles = [];
+        State.spikeTurns = 0;
         State.clearFloatingTexts();
         Stages.generate();
         UI.updateAll();

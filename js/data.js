@@ -372,7 +372,7 @@ var Data = {
             type: 'melee', color: '#ccccaa', behavior: 'charge', isSummon: true
         },
         wolf: {
-            id: 'wolf', name: 'Wolf', hp: 140, damage: 15, moveSpeed: 2,
+            id: 'wolf', name: 'Wolf', hp: 110, damage: 12, moveSpeed: 2,
             type: 'melee', color: '#886644', behavior: 'charge'
         },
         druid: {
@@ -448,7 +448,7 @@ var Data = {
             type: 'ranged', color: '#ffdd88', behavior: 'keep_distance'
         },
         chariot: {
-            id: 'chariot', name: 'Chariot', hp: 90, damage: 25, moveSpeed: 2,
+            id: 'chariot', name: 'Chariot', hp: 70, damage: 20, moveSpeed: 2,
             type: 'melee', color: '#ffeeaa', behavior: 'charge'
         },
         seraph: {
@@ -536,42 +536,58 @@ var Data = {
         dungeon: {
             id: 'dungeon', name: 'DUNGEON',
             bg: '#0f0a1a', tileBase: '#1a1525', tileBorder: '#2a2040', accent: '#ff8800',
-            enemies: ['goblin', 'archer', 'necromancer'], bossId: 'colossus'
+            enemies: ['goblin', 'archer', 'necromancer'], bossId: 'colossus',
+            hazards: ['wall', 'spike_trap'], wallColor: '#555566',
+            hazardSpawn: 'line'
         },
         forest: {
             id: 'forest', name: 'FOREST',
             bg: '#0a1a0a', tileBase: '#1a2a1a', tileBorder: '#2a3a2a', accent: '#44aa44',
-            enemies: ['wolf', 'druid', 'treant'], bossId: 'ancient_tree'
+            enemies: ['wolf', 'druid', 'treant'], bossId: 'ancient_tree',
+            hazards: ['wall', 'water'], wallColor: '#446622',
+            hazardSpawn: 'line'
         },
         swamp: {
             id: 'swamp', name: 'SWAMP',
             bg: '#0a0a1a', tileBase: '#1a1a2a', tileBorder: '#2a2a3a', accent: '#44aa88',
-            enemies: ['toad', 'plaguebearer', 'mud_golem'], bossId: 'hydra'
+            enemies: ['toad', 'plaguebearer', 'mud_golem'], bossId: 'hydra',
+            hazards: ['wall', 'swamp_pool'], wallColor: '#334433',
+            hazardCount: 12, wallCount: 4
         },
         desert: {
             id: 'desert', name: 'DESERT',
             bg: '#1a1500', tileBase: '#2a2510', tileBorder: '#3a3520', accent: '#ddaa44',
-            enemies: ['scorpion', 'mummy', 'sand_wraith'], bossId: 'sandworm'
+            enemies: ['scorpion', 'mummy', 'sand_wraith'], bossId: 'sandworm',
+            hazards: ['wall', 'water'], wallColor: '#aa8844',
+            hazardSpawn: 'oasis'
         },
         frozen: {
             id: 'frozen', name: 'FROZEN',
             bg: '#0a1a2a', tileBase: '#1a2a3a', tileBorder: '#2a3a4a', accent: '#88ddff',
-            enemies: ['frost_elemental', 'ice_wyrm', 'yeti'], bossId: 'frost_giant'
+            enemies: ['frost_elemental', 'ice_wyrm', 'yeti'], bossId: 'frost_giant',
+            hazards: ['wall', 'chill_water'], wallColor: '#6688aa',
+            hazardCount: 12, wallCount: 4
         },
         volcanic: {
             id: 'volcanic', name: 'VOLCANIC',
             bg: '#1a0a0a', tileBase: '#2a1a1a', tileBorder: '#3a2a2a', accent: '#ff4422',
-            enemies: ['fire_elemental', 'magma_slime', 'phoenix'], bossId: 'fire_dragon'
+            enemies: ['fire_elemental', 'magma_slime', 'phoenix'], bossId: 'fire_dragon',
+            hazards: ['wall', 'lava'], wallColor: '#663322',
+            hazardCount: 12, wallCount: 4
         },
         shadow_realm: {
             id: 'shadow_realm', name: 'SHADOW',
             bg: '#0a0a15', tileBase: '#1a1a25', tileBorder: '#2a2a35', accent: '#8844aa',
-            enemies: ['wraith_enemy', 'void_walker', 'shade'], bossId: 'shadow_lord'
+            enemies: ['wraith_enemy', 'void_walker', 'shade'], bossId: 'shadow_lord',
+            hazards: ['wall', 'portal', 'spike_trap'], wallColor: '#332244',
+            hazardCount: 8, wallCount: 3
         },
         celestial: {
             id: 'celestial', name: 'CELESTIAL',
             bg: '#1a1a0a', tileBase: '#2a2a1a', tileBorder: '#3a3a2a', accent: '#ffdd88',
-            enemies: ['angel', 'chariot', 'seraph'], bossId: 'archangel'
+            enemies: ['angel', 'chariot', 'seraph'], bossId: 'archangel',
+            hazards: ['wall'], wallColor: '#aa9966',
+            wallCount: 16
         }
     },
 
@@ -580,9 +596,12 @@ var Data = {
     OBSTACLES: {
         stone: { id: 'stone', name: 'Stone Wall', desc: 'Impassable wall. Cannot be destroyed.', hp: -1, destructible: false, color: '#555566', blocksMove: true, blocksLOS: true },
         wall: { id: 'wall', name: 'Crumbling Wall', desc: 'Breakable wall. Can be attacked.', hp: 150, destructible: true, color: '#886644', blocksMove: true, blocksLOS: true },
-        lava: { id: 'lava', name: 'Lava', desc: 'Deals 20 damage when stepped on.', hp: -1, destructible: false, color: '#ff4400', blocksMove: false, damage: 20 },
+        lava: { id: 'lava', name: 'Lava', desc: 'Deals damage when stepped on.', hp: -1, destructible: false, color: '#ff4400', blocksMove: false, baseDamage: 30 },
         water: { id: 'water', name: 'Water', desc: 'Costs 2 energy to move through.', hp: -1, destructible: false, color: '#2266cc', blocksMove: false, energyCost: 2 },
-        portal: { id: 'portal', name: 'Portal', desc: 'Teleports you to a random location.', hp: -1, destructible: false, color: '#cc44ff', blocksMove: false, teleport: true }
+        portal: { id: 'portal', name: 'Portal', desc: 'Teleports you to a random location.', hp: -1, destructible: false, color: '#cc44ff', blocksMove: false, teleport: true },
+        spike_trap: { id: 'spike_trap', name: 'Spike Trap', desc: 'Costs 2 energy and deals heavy damage if you stand on it for 2 consecutive turns.', hp: -1, destructible: false, color: '#888899', blocksMove: false, energyCost: 2, baseDamage: 100 },
+        chill_water: { id: 'chill_water', name: 'Frigid Water', desc: 'Costs 2 energy and applies Chilled.', hp: -1, destructible: false, color: '#4488cc', blocksMove: false, energyCost: 2, applyChilled: true },
+        swamp_pool: { id: 'swamp_pool', name: 'Toxic Pool', desc: 'Costs 3 energy to move through and deals damage.', hp: -1, destructible: false, color: '#335522', blocksMove: false, energyCost: 3, baseDamage: 16 }
     },
 
     ENEMIES_PER_STAGE_BASE: 3,

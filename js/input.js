@@ -321,9 +321,18 @@ var Input = {
         var cost = 1;
         if (State.player.chilled > 0) cost = 2;
         for (var i = 0; i < State.obstacles.length; i++) {
-            if (State.obstacles[i].x === x && State.obstacles[i].y === y && State.obstacles[i].id === 'water') {
+            var o = State.obstacles[i];
+            if (o.x === x && o.y === y && o.id === 'water') {
                 cost = Math.max(cost, 2);
-                break;
+            }
+            if (o.x === x && o.y === y && o.id === 'chill_water') {
+                cost = Math.max(cost, 2);
+            }
+            if (o.x === x && o.y === y && o.id === 'swamp_pool') {
+                cost = Math.max(cost, 3);
+            }
+            if (o.x === x && o.y === y && o.id === 'spike_trap') {
+                cost = Math.max(cost, 2);
             }
         }
 
@@ -339,11 +348,22 @@ var Input = {
     checkTileEffects: function(x, y) {
         for (var i = 0; i < State.obstacles.length; i++) {
             var o = State.obstacles[i];
-            if (o.x === x && o.y === y && o.id === 'lava') {
-                State.player.hp -= 2;
-                State.addFloatingText(x, y, '-2', '#ff4400');
+            if (o.x !== x || o.y !== y) continue;
+            if (o.id === 'lava') {
+                var lavaDmg = Combat.hazardDamage(30);
+                State.player.hp -= lavaDmg;
+                State.addFloatingText(x, y, '-' + lavaDmg, '#ff4400');
             }
-            if (o.x === x && o.y === y && o.id === 'portal') {
+            if (o.id === 'chill_water') {
+                State.player.chilled = Math.max(State.player.chilled, 2);
+                State.addFloatingText(x, y, 'CHILLED!', '#88ddff');
+            }
+            if (o.id === 'swamp_pool') {
+                var swampDmg = Combat.hazardDamage(16);
+                State.player.hp -= swampDmg;
+                State.addFloatingText(x, y, '-' + swampDmg, '#44cc44');
+            }
+            if (o.id === 'portal') {
                 for (var j = 0; j < State.obstacles.length; j++) {
                     if (j !== i && State.obstacles[j].id === 'portal') {
                         State.player.x = State.obstacles[j].x;
@@ -352,6 +372,10 @@ var Input = {
                     }
                 }
             }
+        }
+        if (State.player.hp <= 0) {
+            State.player.hp = 0;
+            UI.showDeathScreen();
         }
     },
 
