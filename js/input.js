@@ -94,6 +94,12 @@ var Input = {
 
         $('.skill-slot').on('click', function() {
             var slot = parseInt($(this).data('slot'));
+            if (slot === 0 && State.player.selectedSlot === 0 && State.turnStartState) {
+                if (State.undoMove()) {
+                    UI.updateAll();
+                }
+                return;
+            }
             State.player.selectedSlot = slot;
             UI.updateSkillBar();
             Input.updatePreview(State.hoveredTile);
@@ -102,6 +108,12 @@ var Input = {
         $('#btn-end-turn').on('click', function() {
             if (State.phase === 'player') {
                 Combat.endPlayerTurn();
+            }
+        });
+
+        $('#btn-undo').on('click', function() {
+            if (State.phase === 'player' && State.undoMove()) {
+                UI.updateAll();
             }
         });
     },
@@ -331,13 +343,13 @@ var Input = {
             if (o.x === x && o.y === y && o.id === 'swamp_pool') {
                 cost = Math.max(cost, 3);
             }
-            if (o.x === x && o.y === y && o.id === 'spike_trap') {
-                cost = Math.max(cost, 2);
-            }
         }
 
         if (State.player.energy >= cost) {
             State.player.energy -= cost;
+            var cls = Data.CLASSES[State.player.classId];
+            var moveColor = cls ? cls.color : '#44aaff';
+            State.animMove(State.player.x, State.player.y, x, y, moveColor);
             State.player.x = x;
             State.player.y = y;
             this.checkTileEffects(x, y);
@@ -353,24 +365,35 @@ var Input = {
                 var lavaDmg = Combat.hazardDamage(30);
                 State.player.hp -= lavaDmg;
                 State.addFloatingText(x, y, '-' + lavaDmg, '#ff4400');
+                State.addLog('Lava burns you for ' + lavaDmg + ' damage!', 'enemy');
             }
             if (o.id === 'chill_water') {
                 State.player.chilled = Math.max(State.player.chilled, 2);
                 State.addFloatingText(x, y, 'CHILLED!', '#88ddff');
+                State.addLog('Chill water freezes you!', 'enemy');
             }
             if (o.id === 'swamp_pool') {
-                var swampDmg = Combat.hazardDamage(16);
-                State.player.hp -= swampDmg;
-                State.addFloatingText(x, y, '-' + swampDmg, '#44cc44');
+                State.player.poison = { damage: 20, turns: 3 };
+                State.addFloatingText(x, y, 'POISONED!', '#44cc44');
+                State.addLog('Toxic pool poisons you for 3 turns!', 'enemy');
             }
             if (o.id === 'portal') {
                 for (var j = 0; j < State.obstacles.length; j++) {
                     if (j !== i && State.obstacles[j].id === 'portal') {
+                        var oldPX = State.player.x;
+                        var oldPY = State.player.y;
                         State.player.x = State.obstacles[j].x;
                         State.player.y = State.obstacles[j].y;
+                        State.animProjectile(oldPX, oldPY, State.player.x, State.player.y, '#cc44ff');
+                        State.addLog('You are teleported!', 'info');
                         break;
                     }
                 }
+            }
+            if (o.id === 'judgement_sigil') {
+                State.player.judgment = 2;
+                State.addFloatingText(x, y, 'JUDGEMENT!', '#ffdd88');
+                State.addLog('Judgement Sigil marks you! Next hit deals double damage.', 'info');
             }
         }
         if (State.player.hp <= 0) {
@@ -381,7 +404,7 @@ var Input = {
 
     handleKey: function(e) {
         var key = e.key;
-        if (key === '`') {
+        if (key === '0') {
             State.debugMode = !State.debugMode;
             State.addLog('[DEBUG] Debug mode ' + (State.debugMode ? 'ON' : 'OFF'), 'info');
             State.addFloatingText(State.player.x, State.player.y, State.debugMode ? 'DEBUG ON' : 'DEBUG OFF', '#ff00ff');
@@ -396,6 +419,12 @@ var Input = {
         if (State.phase !== 'player') return;
         if (key >= '1' && key <= '6') {
             var slot = parseInt(key) - 1;
+            if (slot === 0 && State.player.selectedSlot === 0 && State.turnStartState) {
+                if (State.undoMove()) {
+                    UI.updateAll();
+                }
+                return;
+            }
             State.player.selectedSlot = slot;
             UI.updateSkillBar();
             this.updatePreview(State.hoveredTile);

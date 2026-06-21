@@ -144,9 +144,15 @@ var UI = {
             if (i >= 2 && i <= 4 && !skill) $slot.addClass('empty');
 
             if (i === 0) {
-                $slot.find('.skill-name').text('Move');
-                $slot.find('.skill-cost').text('1⚡');
-                $slot.attr('data-tooltip', 'Move to an adjacent tile\nCost: 1 energy');
+                if (i === p.selectedSlot && State.turnStartState) {
+                    $slot.find('.skill-name').text('Undo');
+                    $slot.find('.skill-cost').text('Free');
+                    $slot.attr('data-tooltip', 'Undo all moves this turn\nReturn to turn start');
+                } else {
+                    $slot.find('.skill-name').text('Move');
+                    $slot.find('.skill-cost').text('1⚡');
+                    $slot.attr('data-tooltip', 'Move to an adjacent tile\nCost: 1 energy');
+                }
             } else if (i === 1) {
                 var basicSkill = p.skills[1];
                 if (basicSkill) {
@@ -549,6 +555,12 @@ var UI = {
         $('#death-stage-num').text(State.stage);
         $('#death-turns').text(State.turn);
         $('#stat-stages').text(State.stage - 1);
+
+        var elapsed = Math.floor((Date.now() - State.startTime) / 1000);
+        var minutes = Math.floor(elapsed / 60);
+        var seconds = elapsed % 60;
+        $('#stat-time').text(minutes + ':' + (seconds < 10 ? '0' : '') + seconds);
+
         $('#stat-damage').text(State.runStats.totalDamage);
         $('#stat-kills').text(State.runStats.enemyKills);
         $('#stat-bosses').text(State.runStats.bossesKilled);

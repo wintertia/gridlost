@@ -32,6 +32,8 @@ var Main = {
         setTimeout(function() {
             Grid.resize();
             UI.updateAll();
+            State.saveTurnStartState();
+            UI.updateAll();
             if (State.isBossStage && State.currentBossDef) {
                 UI.showBossWarning(State.currentBossDef.name, function() {
                     UI.updateAll();
@@ -229,6 +231,8 @@ var Main = {
         var self = this;
         setTimeout(function() {
             Grid.resize();
+            UI.updateAll();
+            State.saveTurnStartState();
             UI.updateAll();
             if (State.isBossStage && State.currentBossDef) {
                 UI.showBossWarning(State.currentBossDef.name, function() {

@@ -31,7 +31,8 @@ var State = {
         skillStacks: {},
         chilled: 0,
         diseased: false,
-        cursed: false
+        cursed: false,
+        poison: null
     },
 
     enemies: [],
@@ -64,6 +65,7 @@ var State = {
         enemyKills: 0,
         bossesKilled: 0
     },
+    turnStartState: null,
 
     reset: function() {
         this.stage = 1;
@@ -85,6 +87,8 @@ var State = {
         this.bossTurnCount = 0;
         this.combatLog = [];
         this.runStats = { totalDamage: 0, enemyKills: 0, bossesKilled: 0 };
+        this.startTime = Date.now();
+        this.turnStartState = null;
         Stages.extraObstacles = 0;
 
         this.player.x = 0;
@@ -200,11 +204,47 @@ var State = {
         this.animations = [];
     },
 
+    saveTurnStartState: function() {
+        this.turnStartState = {
+            x: this.player.x,
+            y: this.player.y,
+            energy: this.player.energy,
+            hp: this.player.hp,
+            shield: this.player.shield,
+            chilled: this.player.chilled,
+            diseased: this.player.diseased,
+            cursed: this.player.cursed,
+            bleed: this.player.bleed ? { damage: this.player.bleed.damage, turns: this.player.bleed.turns } : null,
+            poison: this.player.poison ? { damage: this.player.poison.damage, turns: this.player.poison.turns } : null,
+            judgment: this.player.judgment
+        };
+    },
+
+    undoMove: function() {
+        if (!this.turnStartState) return false;
+        if (this.phase !== 'player') return false;
+        var s = this.turnStartState;
+        this.player.x = s.x;
+        this.player.y = s.y;
+        this.player.energy = s.energy;
+        this.player.hp = s.hp;
+        this.player.shield = s.shield;
+        this.player.chilled = s.chilled;
+        this.player.diseased = s.diseased;
+        this.player.cursed = s.cursed;
+        this.player.bleed = s.bleed;
+        this.player.poison = s.poison;
+        this.player.judgment = s.judgment;
+        this.addLog('Turn undone!', 'info');
+        this.addFloatingText(this.player.x, this.player.y, 'UNDO', '#88aaff');
+        return true;
+    },
+
     animFlash: function(tiles, color, duration) {
         this.addAnimation('flash', {
             tiles: tiles,
-            color: color || '#ffffff',
-            duration: duration || 16
+            color: color || '#ff4444',
+            duration: duration || 20
         });
     },
 
@@ -213,7 +253,7 @@ var State = {
             fromX: fromX, fromY: fromY,
             toX: toX, toY: toY,
             color: color || '#ffffff',
-            duration: 14
+            duration: 17
         });
     },
 
@@ -222,7 +262,7 @@ var State = {
             fromX: fromX, fromY: fromY,
             toX: toX, toY: toY,
             color: color || '#ffffff',
-            duration: 12
+            duration: 16
         });
     },
 
@@ -231,7 +271,54 @@ var State = {
             fromX: fromX, fromY: fromY,
             toX: toX, toY: toY,
             color: color || '#ffffff',
+            duration: 13
+        });
+    },
+
+    animMove: function(fromX, fromY, toX, toY, color, eyeColor) {
+        this.addAnimation('move', {
+            fromX: fromX, fromY: fromY,
+            toX: toX, toY: toY,
+            color: color || '#ffffff',
+            eyeColor: eyeColor || '#ffffff',
             duration: 10
+        });
+    },
+
+    animSlash: function(fromX, fromY, toX, toY, color) {
+        this.addAnimation('slash', {
+            fromX: fromX, fromY: fromY,
+            toX: toX, toY: toY,
+            color: color || '#ffffff',
+            duration: 26
+        });
+    },
+
+    animProjectile: function(fromX, fromY, toX, toY, color) {
+        this.addAnimation('projectile', {
+            fromX: fromX, fromY: fromY,
+            toX: toX, toY: toY,
+            color: color || '#ffffff',
+            duration: 24
+        });
+    },
+
+    animBeam: function(fromX, fromY, toX, toY, color) {
+        this.addAnimation('beam', {
+            fromX: fromX, fromY: fromY,
+            toX: toX, toY: toY,
+            color: color || '#ffffff',
+            duration: 20
+        });
+    },
+
+    animMove: function(fromX, fromY, toX, toY, color, eyeColor) {
+        this.addAnimation('move', {
+            fromX: fromX, fromY: fromY,
+            toX: toX, toY: toY,
+            color: color || '#ffffff',
+            eyeColor: eyeColor || '#ffffff',
+            duration: 16
         });
     },
 
@@ -243,11 +330,11 @@ var State = {
                 tiles.push({ x: cx + dx, y: cy + dy });
             }
         }
-        this.animFlash(tiles, color, 14);
+        this.animFlash(tiles, color, 17);
     },
 
     animAoE: function(tiles, color) {
-        this.animFlash(tiles, color || '#ff4444', 18);
+        this.animFlash(tiles, color || '#ff4444', 22);
     },
 
     animCross: function(cx, cy, color) {
@@ -255,7 +342,7 @@ var State = {
             { x: cx, y: cy },
             { x: cx + 1, y: cy }, { x: cx - 1, y: cy },
             { x: cx, y: cy + 1 }, { x: cx, y: cy - 1 }
-        ], color || '#ffff44', 16);
+        ], color || '#ffff44', 20);
     },
 
     clearFloatingTexts: function() {

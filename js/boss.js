@@ -252,6 +252,7 @@ var Boss = {
             var newX = boss.x + moveX;
             var newY = boss.y + moveY;
             if (newX >= 0 && newX < Data.GRID_SIZE && newY >= 0 && newY < Data.GRID_SIZE && !State.isBlocked(newX, newY)) {
+                State.animMove(boss.x, boss.y, newX, newY, boss.color, '#ff0000');
                 boss.x = newX;
                 boss.y = newY;
             }
@@ -627,6 +628,8 @@ var Boss = {
                 callback();
                 return;
             }
+            var oldCenterX = boss.x + Math.floor(size / 2);
+            var oldCenterY = boss.y + Math.floor(size / 2);
             var attempts = 0;
             do {
                 boss.x = Math.floor(Math.random() * (Data.GRID_SIZE - size + 1));
@@ -637,6 +640,7 @@ var Boss = {
 
             var newCenterX = boss.x + Math.floor(size / 2);
             var newCenterY = boss.y + Math.floor(size / 2);
+            State.animMove(oldCenterX, oldCenterY, newCenterX, newCenterY, boss.color, '#ff0000');
             var dist = Math.abs(State.player.x - newCenterX) + Math.abs(State.player.y - newCenterY);
             if (dist <= 2) {
                 Combat.dealDamageToPlayer(100);

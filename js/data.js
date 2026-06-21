@@ -43,7 +43,7 @@ var Data = {
             passiveName: 'Deadly Precision',
             passive: '10% base crit chance. Gains crit chance and crit damage with more items.',
             passiveId: 'crit_master',
-            hp: 700, energy: 6,
+            hp: 700, energy: 8,
             basicAttack: 'stab',
             color: '#cc44ff',
             icon: '&#128481;',
@@ -109,8 +109,8 @@ var Data = {
             icon: '\u25CF', iconBg: '#aa44dd'
         },
         guardian_angel: {
-            id: 'guardian_angel', name: 'Guardian Angel', desc: '+75 shield, regen 5%/turn',
-            rarity: 'uncommon', effect: { type: 'passive', stat: 'shield', value: 75, shieldRegenPercent: 5 },
+            id: 'guardian_angel', name: 'Guardian Angel', desc: '+75 shield, regen 10%/turn',
+            rarity: 'uncommon', effect: { type: 'passive', stat: 'shield', value: 75, shieldRegenPercent: 10 },
             icon: '\u25C8', iconBg: '#ffdd44'
         },
         explosive_rounds: {
@@ -156,8 +156,8 @@ var Data = {
             icon: '\u2665', iconBg: '#aa0022'
         },
         vampiric_edge: {
-            id: 'vampiric_edge', name: 'Vampiric Edge', desc: 'On crit: heal 1% max HP',
-            rarity: 'rare', effect: { type: 'on_crit', healPercent: 1 },
+            id: 'vampiric_edge', name: 'Vampiric Edge', desc: 'On crit: heal 2% max HP',
+            rarity: 'rare', effect: { type: 'on_crit', healPercent: 2 },
             icon: '\u2620', iconBg: '#cc2244'
         },
         blight_amulet: {
@@ -166,7 +166,7 @@ var Data = {
             icon: '\u2601', iconBg: '#66aa44'
         },
         lone_wolf: {
-            id: 'lone_wolf', name: 'Lone Wolf', desc: '+25% crit chance & +50% crit dmg vs isolated',
+        id: 'lone_wolf', name: 'Lone Wolf', desc: '+15% crit chance & +50% crit dmg vs isolated (no effect on bosses)',
             rarity: 'rare', effect: { type: 'passive', stat: 'critIsolated', value: 25 },
             icon: '\u263A', iconBg: '#8888aa'
         },
@@ -174,7 +174,7 @@ var Data = {
         // === BOSS (Gold) ===
         boss_tome: {
             id: 'boss_tome', name: 'Boss Tome', desc: '+50% basic attack potency (stacks)',
-            rarity: 'boss', effect: { type: 'passive', stat: 'basicPotency', value: 30 },
+            rarity: 'boss', effect: { type: 'passive', stat: 'basicPotency', value: 50 },
             icon: '\u2666', iconBg: '#ffaa00'
         },
         boss_weapon: {
@@ -580,14 +580,14 @@ var Data = {
             bg: '#0a0a15', tileBase: '#1a1a25', tileBorder: '#2a2a35', accent: '#8844aa',
             enemies: ['wraith_enemy', 'void_walker', 'shade'], bossId: 'shadow_lord',
             hazards: ['wall', 'portal', 'spike_trap'], wallColor: '#332244',
-            hazardCount: 8, wallCount: 3
+            hazardCount: 13, wallCount: 5
         },
         celestial: {
             id: 'celestial', name: 'CELESTIAL',
             bg: '#1a1a0a', tileBase: '#2a2a1a', tileBorder: '#3a3a2a', accent: '#ffdd88',
             enemies: ['angel', 'chariot', 'seraph'], bossId: 'archangel',
-            hazards: ['wall'], wallColor: '#aa9966',
-            wallCount: 16
+            hazards: ['wall', 'judgement_sigil'], wallColor: '#aa9966',
+            wallCount: 8, hazardCount: 10
         }
     },
 
@@ -599,9 +599,10 @@ var Data = {
         lava: { id: 'lava', name: 'Lava', desc: 'Deals damage when stepped on.', hp: -1, destructible: false, color: '#ff4400', blocksMove: false, baseDamage: 30 },
         water: { id: 'water', name: 'Water', desc: 'Costs 2 energy to move through.', hp: -1, destructible: false, color: '#2266cc', blocksMove: false, energyCost: 2 },
         portal: { id: 'portal', name: 'Portal', desc: 'Teleports you to a random location.', hp: -1, destructible: false, color: '#cc44ff', blocksMove: false, teleport: true },
-        spike_trap: { id: 'spike_trap', name: 'Spike Trap', desc: 'Costs 2 energy and deals heavy damage if you stand on it for 2 consecutive turns.', hp: -1, destructible: false, color: '#888899', blocksMove: false, energyCost: 2, baseDamage: 100 },
+        spike_trap: { id: 'spike_trap', name: 'Spike Trap', desc: 'Deals heavy damage if you stand on it for 2 consecutive turns.', hp: -1, destructible: false, color: '#888899', blocksMove: false, baseDamage: 100 },
         chill_water: { id: 'chill_water', name: 'Frigid Water', desc: 'Costs 2 energy and applies Chilled.', hp: -1, destructible: false, color: '#4488cc', blocksMove: false, energyCost: 2, applyChilled: true },
-        swamp_pool: { id: 'swamp_pool', name: 'Toxic Pool', desc: 'Costs 3 energy to move through and deals damage.', hp: -1, destructible: false, color: '#335522', blocksMove: false, energyCost: 3, baseDamage: 16 }
+        swamp_pool: { id: 'swamp_pool', name: 'Toxic Pool', desc: 'Costs 3 energy to move through and deals damage.', hp: -1, destructible: false, color: '#335522', blocksMove: false, energyCost: 3, baseDamage: 16 },
+        judgement_sigil: { id: 'judgement_sigil', name: 'Judgement Sigil', desc: 'Applies Judgement status. Next hit deals double damage.', hp: -1, destructible: false, color: '#ffdd88', blocksMove: false }
     },
 
     ENEMIES_PER_STAGE_BASE: 3,
@@ -735,7 +736,7 @@ var Data = {
     },
 
     ELITE_HP_MULT: 2,
-    ELITE_DMG_MULT: 1.2,
-    ELITE_TELEGRAPH_MULT: 1.5,
+    ELITE_DMG_MULT: 1.3,
+    ELITE_TELEGRAPH_MULT: 1.6,
     ELITE_SPECIAL_INTERVAL: 3
 };

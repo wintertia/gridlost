@@ -120,7 +120,7 @@ var Combat = {
         if (cls && cls.passiveId === 'crit_master') {
             critChance += 10 + (p._rogueCritChanceBonus || 0);
         }
-        if (target && p.items['lone_wolf'] > 0) {
+        if (target && p.items['lone_wolf'] > 0 && !target.isBoss) {
             var alive = State.getAliveEnemies();
             var adjacentAllies = 0;
             for (var lw = 0; lw < alive.length; lw++) {
@@ -130,7 +130,7 @@ var Combat = {
                 }
             }
             if (adjacentAllies === 0) {
-                critChance += 25 * p.items['lone_wolf'];
+                critChance += 15 * p.items['lone_wolf'];
             }
         }
         var excessCrit = 0;
@@ -145,7 +145,7 @@ var Combat = {
             if (cls && cls.passiveId === 'crit_master') {
                 critDamageBonus += (p._rogueCritDmgBonus || 0);
             }
-            if (target && p.items['lone_wolf'] > 0) {
+            if (target && p.items['lone_wolf'] > 0 && !target.isBoss) {
                 var alive2 = State.getAliveEnemies();
                 var adj2 = 0;
                 for (var lw2 = 0; lw2 < alive2.length; lw2++) {
@@ -682,6 +682,7 @@ var Combat = {
             blinkY = oldY;
         }
 
+        State.animMove(oldX, oldY, blinkX, blinkY, '#cc44ff', '#ffffff');
         State.player.x = blinkX;
         State.player.y = blinkY;
 
@@ -771,7 +772,7 @@ var Combat = {
             State.animBeam(State.player.x, State.player.y, lastTile.x, lastTile.y, skill.color);
         } else if (skill.shape === 'cone') {
             State.animSlash(State.player.x, State.player.y, tx, ty, skill.color);
-            State.animFlash(tiles, skill.color, 14);
+            State.animFlash(tiles, skill.color, 17);
         }
         var hitSomething = false;
         var lastHitEnemy = null;
@@ -980,6 +981,7 @@ var Combat = {
 
         if (dashTiles.length > 0) {
             State.animBeam(State.player.x, State.player.y, finalX, finalY, '#88ff88');
+            State.animMove(State.player.x, State.player.y, finalX, finalY, '#88ff88', '#ffffff');
         }
 
         State.player.energy -= 1;
@@ -1025,7 +1027,7 @@ var Combat = {
         var pct = energy * 5;
         State.addLog('Player guards! Mitigating ' + pct + '% damage (' + energy + ' energy)', 'action');
         State.addFloatingText(State.player.x, State.player.y, 'GUARD ' + pct + '%', '#6688aa');
-        State.animFlash([{x: State.player.x, y: State.player.y}], '#6688aa', 12);
+        State.animFlash([{x: State.player.x, y: State.player.y}], '#6688aa', 13);
 
         this.endPlayerTurn();
     },
@@ -1034,6 +1036,7 @@ var Combat = {
         State.phase = 'enemy';
         State.hoveredTile = null;
         State.attackPreview = [];
+        State.turnStartState = null;
         UI.updateAll();
 
         setTimeout(function() {
@@ -1064,6 +1067,7 @@ var Combat = {
         this.processPoisonTiles();
         this.processItemEffects();
         this.processPlayerStatusEffects();
+        this.processHazardTiles();
 
         if (State.player.hp <= 0) {
             Main.gameOver();
@@ -1077,6 +1081,8 @@ var Combat = {
         }
 
         UI.updateAll();
+
+        State.saveTurnStartState();
     },
 
     processStatusEffects: function() {
@@ -1317,8 +1323,23 @@ var Combat = {
             var pbDmg = State.player.bleed.damage;
             State.player.hp -= pbDmg;
             State.addFloatingText(State.player.x, State.player.y, '-' + pbDmg + ' BLEED', '#ff4444');
+            State.addLog('You take ' + pbDmg + ' bleed damage!', 'enemy');
             State.player.bleed.turns--;
             if (State.player.bleed.turns <= 0) State.player.bleed = null;
+            if (State.player.hp <= 0) {
+                State.player.hp = 0;
+                UI.showDeathScreen();
+                return;
+            }
+        }
+
+        if (State.player.poison && State.player.poison.turns > 0) {
+            var poDmg = State.player.poison.damage;
+            State.player.hp -= poDmg;
+            State.addFloatingText(State.player.x, State.player.y, '-' + poDmg + ' POISON', '#44cc44');
+            State.addLog('You take ' + poDmg + ' poison damage!', 'enemy');
+            State.player.poison.turns--;
+            if (State.player.poison.turns <= 0) State.player.poison = null;
             if (State.player.hp <= 0) {
                 State.player.hp = 0;
                 UI.showDeathScreen();
@@ -1342,30 +1363,71 @@ var Combat = {
         State.player.diseased = nearPlague;
         State.player.cursed = nearMummy;
 
-        var onSpike = false;
-        for (var i = 0; i < State.obstacles.length; i++) {
-            var o = State.obstacles[i];
-            if (o.x === State.player.x && o.y === State.player.y && o.id === 'spike_trap') {
-                onSpike = true;
-                break;
-            }
-        }
-        if (onSpike) {
-            State.spikeTurns++;
-            if (State.spikeTurns >= 2) {
-                var spikeDmg = this.hazardDamage(100);
-                State.player.hp -= spikeDmg;
-                State.addFloatingText(State.player.x, State.player.y, '-' + spikeDmg + ' SPIKES!', '#ff4444');
-                State.addLog('Spike trap impales you for ' + spikeDmg + ' damage!', 'enemy');
-                State.spikeTurns = 0;
-            }
-        } else {
-            State.spikeTurns = 0;
-        }
         if (State.player.hp <= 0) {
             State.player.hp = 0;
             UI.showDeathScreen();
             return;
+        }
+    },
+
+    processHazardTiles: function() {
+        var px = State.player.x;
+        var py = State.player.y;
+        for (var i = 0; i < State.obstacles.length; i++) {
+            var o = State.obstacles[i];
+            if (o.x !== px || o.y !== py) continue;
+
+            if (o.id === 'lava') {
+                var lavaDmg = this.hazardDamage(30);
+                State.player.hp -= lavaDmg;
+                State.addFloatingText(px, py, '-' + lavaDmg + ' BURN', '#ff4400');
+                State.addLog('Lava burns you for ' + lavaDmg + ' damage!', 'enemy');
+            }
+            if (o.id === 'swamp_pool') {
+                if (!State.player.poison) {
+                    State.player.poison = { damage: 20, turns: 3 };
+                } else {
+                    State.player.poison.turns += 3;
+                }
+                State.addFloatingText(px, py, 'POISONED!', '#44cc44');
+                State.addLog('Toxic pool refreshes poison!', 'enemy');
+            }
+            if (o.id === 'chill_water') {
+                State.player.chilled = Math.max(State.player.chilled, 2);
+                State.addFloatingText(px, py, 'CHILLED!', '#88ddff');
+                State.addLog('Chill water refreshes frozen!', 'enemy');
+            }
+            if (o.id === 'spike_trap') {
+                State.spikeTurns++;
+                if (State.spikeTurns >= 2) {
+                    var spikeDmg = this.hazardDamage(100);
+                    State.player.hp -= spikeDmg;
+                    State.addFloatingText(px, py, '-' + spikeDmg + ' SPIKES!', '#ff4444');
+                    State.addLog('Spike trap impales you for ' + spikeDmg + ' damage!', 'enemy');
+                    State.spikeTurns = 0;
+                }
+            }
+            if (o.id === 'judgement_sigil') {
+                State.player.judgment = 2;
+                State.addFloatingText(px, py, 'JUDGEMENT!', '#ffdd88');
+                State.addLog('Judgement Sigil refreshes your mark!', 'info');
+            }
+        }
+
+        var onSpike = false;
+        for (var j = 0; j < State.obstacles.length; j++) {
+            if (State.obstacles[j].x === px && State.obstacles[j].y === py && State.obstacles[j].id === 'spike_trap') {
+                onSpike = true;
+                break;
+            }
+        }
+        if (!onSpike) {
+            State.spikeTurns = 0;
+        }
+
+        if (State.player.hp <= 0) {
+            State.player.hp = 0;
+            UI.showDeathScreen();
         }
     }
 };

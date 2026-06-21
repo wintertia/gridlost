@@ -144,9 +144,23 @@ var AI = {
                 enemy.eliteTelegraphing = false;
                 enemy.eliteTelegraphName = null;
                 enemy.eliteTelegraphTiles = null;
+                var self = this;
                 this.executeEliteSpecial(enemy, function() {
+                    var dist2 = self.distance(enemy.x, enemy.y, State.player.x, State.player.y);
                     if (def.type === 'melee') {
-                        AI.moveToward(enemy, State.player.x, State.player.y, callback);
+                        if (dist2 === 1) {
+                            self.meleeAttack(enemy, callback);
+                        } else {
+                            self.moveToward(enemy, State.player.x, State.player.y, callback);
+                        }
+                    } else if (def.type === 'ranged') {
+                        if (dist2 <= 3 && dist2 >= 2) {
+                            self.rangedAttack(enemy, callback);
+                        } else if (dist2 < 2) {
+                            self.rangedRetreat(enemy, State.player.x, State.player.y, callback);
+                        } else {
+                            self.moveToward(enemy, State.player.x, State.player.y, callback);
+                        }
                     } else {
                         callback();
                     }
@@ -238,6 +252,7 @@ var AI = {
                 var tx = State.player.x + bestDir.x;
                 var ty = State.player.y + bestDir.y;
                 if (tx >= 0 && tx < Data.GRID_SIZE && ty >= 0 && ty < Data.GRID_SIZE && !State.isBlocked(tx, ty)) {
+                    State.animMove(enemy.x, enemy.y, tx, ty, '#ff4444', '#ff0000');
                     enemy.x = tx; enemy.y = ty;
                 }
                 Combat.dealDamageToPlayer(scaledDamage);
@@ -494,17 +509,21 @@ var AI = {
                         Combat.dealDamageToPlayer(scaledDamage);
                     }
                 }
+                State.animMove(enemy.x, enemy.y, State.player.x, State.player.y, '#ffaa00', '#ff0000');
                 enemy.x = State.player.x; enemy.y = State.player.y;
                 State.addFloatingText(enemy.x, enemy.y, 'DIVE!', '#ffaa00');
                 Grid.render(); UI.updateAll(); callback();
                 break;
             }
             case 'phase_strike': {
+                var oldPhX = enemy.x;
+                var oldPhY = enemy.y;
                 State.animProjectile(enemy.x, enemy.y, State.player.x, State.player.y, '#664488');
                 var phaseDir = Grid.getDirection(enemy.x, enemy.y, State.player.x, State.player.y);
                 var phX = State.player.x + (phaseDir === 'right' ? -1 : phaseDir === 'left' ? 1 : 0);
                 var phY = State.player.y + (phaseDir === 'down' ? -1 : phaseDir === 'up' ? 1 : 0);
                 if (phX >= 0 && phX < Data.GRID_SIZE && phY >= 0 && phY < Data.GRID_SIZE && !State.isBlocked(phX, phY)) {
+                    State.animMove(oldPhX, oldPhY, phX, phY, '#664488', '#ff0000');
                     enemy.x = phX; enemy.y = phY;
                 }
                 Combat.dealDamageToPlayer(scaledDamage);
@@ -654,10 +673,14 @@ var AI = {
             { x: -1, y: 0 }, { x: 1, y: 0 }
         ];
 
+        var prevX = enemy._prevX;
+        var prevY = enemy._prevY;
+
         for (var i = 0; i < dirs.length; i++) {
             var nx = enemy.x + dirs[i].x;
             var ny = enemy.y + dirs[i].y;
             if (State.isBlockedForEnemy(nx, ny)) continue;
+            if (nx === prevX && ny === prevY) continue;
             var d = this.distance(nx, ny, targetX, targetY);
             if (d < bestDist) {
                 bestDist = d;
@@ -673,29 +696,33 @@ var AI = {
                 var nx = enemy.x + dirs[i].x;
                 var ny = enemy.y + dirs[i].y;
                 if (State.isBlockedForEnemy(nx, ny)) continue;
-                var canImproveNextTurn = false;
+                var bestReachable = this.distance(nx, ny, targetX, targetY);
                 for (var j = 0; j < dirs.length; j++) {
                     var nx2 = nx + dirs[j].x;
                     var ny2 = ny + dirs[j].y;
                     if (State.isBlockedForEnemy(nx2, ny2)) continue;
-                    if (this.distance(nx2, ny2, targetX, targetY) < bestDist) {
-                        canImproveNextTurn = true;
-                        break;
-                    }
+                    var d2 = this.distance(nx2, ny2, targetX, targetY);
+                    if (d2 < bestReachable) bestReachable = d2;
                 }
-                candidates.push({ x: nx, y: ny, good: canImproveNextTurn });
+                var penalty = (nx === prevX && ny === prevY) ? 1 : 0;
+                candidates.push({ x: nx, y: ny, best2: bestReachable + penalty });
             }
-            var goodOnes = candidates.filter(function(c) { return c.good; });
-            var pick;
-            if (goodOnes.length > 0) {
-                pick = goodOnes[Math.floor(Math.random() * goodOnes.length)];
-            } else if (candidates.length > 0) {
-                pick = candidates[Math.floor(Math.random() * candidates.length)];
+            candidates.sort(function(a, b) {
+                if (a.best2 !== b.best2) return a.best2 - b.best2;
+                return this.distance(a.x, a.y, targetX, targetY) - this.distance(b.x, b.y, targetX, targetY);
+            }.bind(this));
+            if (candidates.length > 0) {
+                bestX = candidates[0].x;
+                bestY = candidates[0].y;
             }
-            if (pick) { bestX = pick.x; bestY = pick.y; }
         }
 
+        enemy._prevX = enemy.x;
+        enemy._prevY = enemy.y;
         enemy.facing = Grid.getDirection(enemy.x, enemy.y, bestX, bestY);
+        var def = Data.ENEMIES[enemy.defId];
+        var moveColor = def ? def.color : '#ff4444';
+        State.animMove(enemy.x, enemy.y, bestX, bestY, moveColor, '#ff0000');
         enemy.x = bestX;
         enemy.y = bestY;
         this.checkEnemyPortal(enemy);
@@ -709,8 +736,11 @@ var AI = {
             if (o.x === enemy.x && o.y === enemy.y && o.id === 'portal') {
                 for (var j = 0; j < State.obstacles.length; j++) {
                     if (j !== i && State.obstacles[j].id === 'portal') {
+                        var oldX = enemy.x;
+                        var oldY = enemy.y;
                         enemy.x = State.obstacles[j].x;
                         enemy.y = State.obstacles[j].y;
+                        State.animProjectile(oldX, oldY, enemy.x, enemy.y, '#cc44ff');
                         State.addFloatingText(enemy.x, enemy.y, 'TELEPORT!', '#cc44ff');
                         return;
                     }
@@ -764,6 +794,9 @@ var AI = {
             if (pick) { bestX = pick.x; bestY = pick.y; }
         }
 
+        var def = Data.ENEMIES[enemy.defId];
+        var moveColor = def ? def.color : '#ff4444';
+        State.animMove(enemy.x, enemy.y, bestX, bestY, moveColor, '#ff0000');
         enemy.x = bestX;
         enemy.y = bestY;
         this.checkEnemyPortal(enemy);
@@ -817,6 +850,9 @@ var AI = {
             }
         }
 
+        var def = Data.ENEMIES[enemy.defId];
+        var moveColor = def ? def.color : '#ff4444';
+        State.animMove(enemy.x, enemy.y, bestX, bestY, moveColor, '#ff0000');
         enemy.x = bestX;
         enemy.y = bestY;
         Grid.render();

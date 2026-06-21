@@ -13,8 +13,8 @@ var Stages = {
             this.generateBossStage();
             this.placePlayer();
         } else {
-            this.placePlayer();
             this.generateRegularStage(stage);
+            this.placePlayer();
         }
     },
 
@@ -61,8 +61,8 @@ var Stages = {
             Data.ENEMIES_PER_STAGE_MAX
         );
 
-        this.placeEnemies(numEnemies);
         this.placeBiomeHazards(stage);
+        this.placeEnemies(numEnemies);
     },
 
     generateBossStage: function() {
@@ -133,6 +133,9 @@ var Stages = {
                 this.spawnSpikeTraps(2 + Math.floor(Math.random() * 3));
             } else if (hazardType === 'portal') {
                 this.spawnPortalPairs(1 + Math.floor(Math.random() * 2));
+            } else if (hazardType === 'judgement_sigil') {
+                var count = biome.hazardCount || 10;
+                this.spawnScatter(hazardType, count);
             } else if (spawnMode === 'line') {
                 this.spawnWaterLine();
             } else if (spawnMode === 'oasis') {

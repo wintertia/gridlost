@@ -219,6 +219,18 @@ var Grid = {
                 ctx.beginPath();
                 ctx.arc(bubX, bubY, ts * 0.06, 0, Math.PI * 2);
                 ctx.fill();
+            } else if (o.id === 'judgement_sigil') {
+                ctx.fillStyle = '#1a1a0a';
+                ctx.fillRect(px + 1, py + 1, ts - 2, ts - 2);
+                var sigilGlow = 0.4 + Math.sin(this.animFrame * 0.06) * 0.2;
+                ctx.strokeStyle = 'rgba(255, 221, 136, ' + sigilGlow + ')';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(px + ts/2, py + ts/2, ts * 0.35, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.fillStyle = '#ffdd88';
+                ctx.fillRect(px + ts * 0.4, py + ts * 0.25, ts * 0.2, ts * 0.5);
+                ctx.fillRect(px + ts * 0.25, py + ts * 0.4, ts * 0.5, ts * 0.2);
             }
         }
     },
@@ -317,6 +329,23 @@ var Grid = {
                 ctx.lineTo(ex, ey);
                 ctx.stroke();
                 ctx.globalAlpha = 1;
+            }
+
+            if (a.type === 'move') {
+                var sx = a.fromX * ts;
+                var sy = a.fromY * ts;
+                var ex = a.toX * ts;
+                var ey = a.toY * ts;
+                var px = sx + (ex - sx) * progress;
+                var py = sy + (ey - sy) * progress;
+
+                ctx.fillStyle = a.color;
+                ctx.fillRect(px + ts * 0.2, py + ts * 0.3, ts * 0.6, ts * 0.6);
+                ctx.fillStyle = Grid.lightenColor(a.color, 30);
+                ctx.fillRect(px + ts * 0.25, py + ts * 0.1, ts * 0.5, ts * 0.3);
+                ctx.fillStyle = a.eyeColor || '#ffffff';
+                ctx.fillRect(px + ts * 0.32, py + ts * 0.18, ts * 0.08, ts * 0.08);
+                ctx.fillRect(px + ts * 0.55, py + ts * 0.18, ts * 0.08, ts * 0.08);
             }
         }
     },
@@ -420,6 +449,16 @@ var Grid = {
     },
 
     drawPlayer: function(ctx, ts) {
+        var hasMoveAnim = false;
+        for (var i = 0; i < State.animations.length; i++) {
+            var a = State.animations[i];
+            if (a.type === 'move' && a.toX === State.player.x && a.toY === State.player.y) {
+                hasMoveAnim = true;
+                break;
+            }
+        }
+        if (hasMoveAnim) return;
+
         var px = State.player.x * ts;
         var py = State.player.y * ts;
         var bounce = Math.sin(this.animFrame * 0.06) * 2;
@@ -452,6 +491,17 @@ var Grid = {
         for (var i = 0; i < State.enemies.length; i++) {
             var e = State.enemies[i];
             if (e.hp <= 0) continue;
+
+            var hasMoveAnim = false;
+            for (var j = 0; j < State.animations.length; j++) {
+                var a = State.animations[j];
+                if (a.type === 'move' && a.toX === e.x && a.toY === e.y) {
+                    hasMoveAnim = true;
+                    break;
+                }
+            }
+            if (hasMoveAnim) continue;
+
             var px = e.x * ts;
             var py = e.y * ts;
             var bounce = Math.sin(this.animFrame * 0.05 + i * 2) * 1.5;
