@@ -180,6 +180,84 @@ var State = {
         }
     },
 
+    addAnimation: function(type, config) {
+        config.type = type;
+        config.life = config.duration || 20;
+        config.maxLife = config.life;
+        this.animations.push(config);
+    },
+
+    updateAnimations: function() {
+        for (var i = this.animations.length - 1; i >= 0; i--) {
+            this.animations[i].life--;
+            if (this.animations[i].life <= 0) {
+                this.animations.splice(i, 1);
+            }
+        }
+    },
+
+    clearAnimations: function() {
+        this.animations = [];
+    },
+
+    animFlash: function(tiles, color, duration) {
+        this.addAnimation('flash', {
+            tiles: tiles,
+            color: color || '#ffffff',
+            duration: duration || 16
+        });
+    },
+
+    animSlash: function(fromX, fromY, toX, toY, color) {
+        this.addAnimation('slash', {
+            fromX: fromX, fromY: fromY,
+            toX: toX, toY: toY,
+            color: color || '#ffffff',
+            duration: 14
+        });
+    },
+
+    animProjectile: function(fromX, fromY, toX, toY, color) {
+        this.addAnimation('projectile', {
+            fromX: fromX, fromY: fromY,
+            toX: toX, toY: toY,
+            color: color || '#ffffff',
+            duration: 12
+        });
+    },
+
+    animBeam: function(fromX, fromY, toX, toY, color) {
+        this.addAnimation('beam', {
+            fromX: fromX, fromY: fromY,
+            toX: toX, toY: toY,
+            color: color || '#ffffff',
+            duration: 10
+        });
+    },
+
+    animRing: function(cx, cy, color) {
+        var tiles = [];
+        for (var dy = -1; dy <= 1; dy++) {
+            for (var dx = -1; dx <= 1; dx++) {
+                if (dx === 0 && dy === 0) continue;
+                tiles.push({ x: cx + dx, y: cy + dy });
+            }
+        }
+        this.animFlash(tiles, color, 14);
+    },
+
+    animAoE: function(tiles, color) {
+        this.animFlash(tiles, color || '#ff4444', 18);
+    },
+
+    animCross: function(cx, cy, color) {
+        this.animFlash([
+            { x: cx, y: cy },
+            { x: cx + 1, y: cy }, { x: cx - 1, y: cy },
+            { x: cx, y: cy + 1 }, { x: cx, y: cy - 1 }
+        ], color || '#ffff44', 16);
+    },
+
     clearFloatingTexts: function() {
         this.floatingTexts = [];
     },

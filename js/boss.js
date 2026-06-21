@@ -221,6 +221,7 @@ var Boss = {
         var dist = AI.distance(centerX, centerY, State.player.x, State.player.y);
         if (dist <= size) {
             State.addLog(boss.name + ' uses Basic Attack', 'boss');
+            State.animSlash(centerX, centerY, State.player.x, State.player.y, boss.color);
             Combat.dealDamageToPlayer(Math.floor(boss.damage * 0.5));
         }
         var dir = Grid.getDirection(centerX, centerY, State.player.x, State.player.y);
@@ -238,6 +239,7 @@ var Boss = {
 
         if (dist <= size) {
             State.addLog(boss.name + ' uses Basic Attack', 'boss');
+            State.animSlash(centerX, centerY, State.player.x, State.player.y, boss.color);
             Combat.dealDamageToPlayer(Math.floor(boss.damage * 0.5));
             var dir = Grid.getDirection(centerX, centerY, State.player.x, State.player.y);
             boss.facing = dir;
@@ -274,6 +276,8 @@ var Boss = {
             { x: centerX, y: centerY - 1 }
         ];
 
+        State.animCross(centerX, centerY, boss.color);
+
         for (var i = 0; i < tiles.length; i++) {
             var t = tiles[i];
             if (t.x === State.player.x && t.y === State.player.y) {
@@ -294,6 +298,12 @@ var Boss = {
         var dy = State.player.y - centerY;
         var stepX = dx === 0 ? 0 : (dx > 0 ? 1 : -1);
         var stepY = dy === 0 ? 0 : (dy > 0 ? 1 : -1);
+
+        var lastX = centerX + stepX * attack.range;
+        var lastY = centerY + stepY * attack.range;
+        lastX = Math.max(0, Math.min(Data.GRID_SIZE - 1, lastX));
+        lastY = Math.max(0, Math.min(Data.GRID_SIZE - 1, lastY));
+        State.animProjectile(centerX, centerY, lastX, lastY, boss.color);
 
         for (var i = 1; i <= attack.range; i++) {
             var tx = centerX + stepX * i;
@@ -428,7 +438,7 @@ var Boss = {
             { x: -1, y: 0 }, { x: 1, y: 0 },
             { x: 0, y: -1 }, { x: 0, y: 1 }
         ];
-
+        State.animRing(centerX, centerY, boss.color);
         for (var i = 0; i < dirs.length; i++) {
             var tx = centerX + dirs[i].x;
             var ty = centerY + dirs[i].y;
@@ -506,11 +516,20 @@ var Boss = {
         var centerX = boss.x + Math.floor(size / 2);
         var centerY = boss.y + Math.floor(size / 2);
         var range = attack.range || 2;
+        var aoeTiles = [];
         for (var dy = -range; dy <= range; dy++) {
             for (var dx = -range; dx <= range; dx++) {
                 if (Math.abs(dx) + Math.abs(dy) <= range) {
-                    var tx = centerX + dx;
-                    var ty = centerY + dy;
+                    aoeTiles.push({ x: centerX + dx, y: centerY + dy });
+                }
+            }
+        }
+        State.animAoE(aoeTiles, boss.color);
+        for (var dy2 = -range; dy2 <= range; dy2++) {
+            for (var dx2 = -range; dx2 <= range; dx2++) {
+                if (Math.abs(dx2) + Math.abs(dy2) <= range) {
+                    var tx = centerX + dx2;
+                    var ty = centerY + dy2;
                     if (tx === State.player.x && ty === State.player.y) {
                         Combat.dealDamageToPlayer(attack.damage);
                     }
@@ -530,13 +549,16 @@ var Boss = {
             { x: 2, y: 0 }, { x: -2, y: 0 },
             { x: 0, y: 2 }, { x: 0, y: -2 }
         ];
+        var multiTiles = [];
         for (var i = 0; i < offsets.length; i++) {
+            multiTiles.push({ x: centerX + offsets[i].x, y: centerY + offsets[i].y });
             var tx = centerX + offsets[i].x;
             var ty = centerY + offsets[i].y;
             if (tx === State.player.x && ty === State.player.y) {
                 Combat.dealDamageToPlayer(attack.damage);
             }
         }
+        State.animAoE(multiTiles, boss.color);
         Grid.render();
         UI.updateAll();
         callback();
@@ -563,6 +585,13 @@ var Boss = {
         var dy = State.player.y - centerY;
         var dirX = dx === 0 ? 0 : (dx > 0 ? 1 : -1);
         var dirY = dy === 0 ? 0 : (dy > 0 ? 1 : -1);
+
+        var lastX = centerX + dirX * attack.range;
+        var lastY = centerY + dirY * attack.range;
+        lastX = Math.max(0, Math.min(Data.GRID_SIZE - 1, lastX));
+        lastY = Math.max(0, Math.min(Data.GRID_SIZE - 1, lastY));
+        State.animSlash(centerX, centerY, lastX, lastY, boss.color);
+
         for (var i = 1; i <= attack.range; i++) {
             for (var spread = -1; spread <= 1; spread++) {
                 var tx, ty;
@@ -627,6 +656,7 @@ var Boss = {
         var dy = State.player.y - centerY;
         var stepX = dx === 0 ? 0 : (dx > 0 ? 1 : -1);
         var stepY = dy === 0 ? 0 : (dy > 0 ? 1 : -1);
+        State.animBeam(centerX, centerY, centerX + stepX * 6, centerY + stepY * 6, boss.color);
         for (var i = 1; i <= 6; i++) {
             var tx = centerX + stepX * i;
             var ty = centerY + stepY * i;
@@ -661,6 +691,13 @@ var Boss = {
         var dy = State.player.y - centerY;
         var stepX = dx === 0 ? 0 : (dx > 0 ? 1 : -1);
         var stepY = dy === 0 ? 0 : (dy > 0 ? 1 : -1);
+
+        var lastX = centerX + stepX * attack.range;
+        var lastY = centerY + stepY * attack.range;
+        lastX = Math.max(0, Math.min(Data.GRID_SIZE - 1, lastX));
+        lastY = Math.max(0, Math.min(Data.GRID_SIZE - 1, lastY));
+        State.animProjectile(centerX, centerY, lastX, lastY, boss.color);
+
         for (var i = 1; i <= attack.range; i++) {
             var tx = centerX + stepX * i;
             var ty = centerY + stepY * i;

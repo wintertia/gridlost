@@ -31,6 +31,7 @@ var Grid = {
             while (self.animAccumulator >= self.TICK_MS) {
                 self.animFrame++;
                 State.updateFloatingTexts();
+                State.updateAnimations();
                 self.animAccumulator -= self.TICK_MS;
             }
             self.render();
@@ -87,6 +88,7 @@ var Grid = {
 
         this.drawTiles(ctx, ts);
         this.drawObstacles(ctx, ts);
+        this.drawAnimations(ctx, ts);
         this.drawBurnTiles(ctx, ts);
         this.drawPoisonTiles(ctx, ts);
         this.drawRangeIndicator(ctx, ts);
@@ -217,6 +219,104 @@ var Grid = {
                 ctx.beginPath();
                 ctx.arc(bubX, bubY, ts * 0.06, 0, Math.PI * 2);
                 ctx.fill();
+            }
+        }
+    },
+
+    drawAnimations: function(ctx, ts) {
+        for (var i = 0; i < State.animations.length; i++) {
+            var a = State.animations[i];
+            var progress = 1 - (a.life / a.maxLife);
+
+            if (a.type === 'flash') {
+                var alpha = 0.7 * (1 - progress);
+                ctx.globalAlpha = alpha;
+                ctx.fillStyle = a.color;
+                for (var j = 0; j < a.tiles.length; j++) {
+                    var t = a.tiles[j];
+                    ctx.fillRect(t.x * ts + 2, t.y * ts + 2, ts - 4, ts - 4);
+                }
+                ctx.globalAlpha = 1;
+            }
+
+            if (a.type === 'slash') {
+                var sx = a.fromX * ts + ts / 2;
+                var sy = a.fromY * ts + ts / 2;
+                var ex = a.toX * ts + ts / 2;
+                var ey = a.toY * ts + ts / 2;
+                var midX = (sx + ex) / 2 + (ey - sy) * 0.3;
+                var midY = (sy + ey) / 2 - (ex - sx) * 0.3;
+                var alpha = 0.9 * (1 - progress);
+                var spread = progress * ts * 0.4;
+
+                ctx.globalAlpha = alpha;
+                ctx.strokeStyle = a.color;
+                ctx.lineWidth = Math.max(2, ts * 0.08);
+                ctx.beginPath();
+                ctx.moveTo(sx, sy);
+                ctx.quadraticCurveTo(midX, midY, ex, ey);
+                ctx.stroke();
+
+                var headX = sx + (ex - sx) * Math.min(1, progress * 1.5);
+                var headY = sy + (ey - sy) * Math.min(1, progress * 1.5);
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(headX, headY, ts * 0.12, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            }
+
+            if (a.type === 'projectile') {
+                var sx = a.fromX * ts + ts / 2;
+                var sy = a.fromY * ts + ts / 2;
+                var ex = a.toX * ts + ts / 2;
+                var ey = a.toY * ts + ts / 2;
+                var px = sx + (ex - sx) * progress;
+                var py = sy + (ey - sy) * progress;
+
+                ctx.globalAlpha = 0.4;
+                ctx.strokeStyle = a.color;
+                ctx.lineWidth = 2;
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath();
+                ctx.moveTo(sx, sy);
+                ctx.lineTo(ex, ey);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                ctx.globalAlpha = 1;
+                ctx.fillStyle = a.color;
+                ctx.beginPath();
+                ctx.arc(px, py, ts * 0.18, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(px, py, ts * 0.08, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            if (a.type === 'beam') {
+                var sx = a.fromX * ts + ts / 2;
+                var sy = a.fromY * ts + ts / 2;
+                var ex = a.toX * ts + ts / 2;
+                var ey = a.toY * ts + ts / 2;
+                var alpha = 0.8 * (1 - progress);
+
+                ctx.globalAlpha = alpha * 0.3;
+                ctx.strokeStyle = a.color;
+                ctx.lineWidth = ts * 0.4;
+                ctx.beginPath();
+                ctx.moveTo(sx, sy);
+                ctx.lineTo(ex, ey);
+                ctx.stroke();
+
+                ctx.globalAlpha = alpha;
+                ctx.lineWidth = Math.max(2, ts * 0.06);
+                ctx.beginPath();
+                ctx.moveTo(sx, sy);
+                ctx.lineTo(ex, ey);
+                ctx.stroke();
+                ctx.globalAlpha = 1;
             }
         }
     },

@@ -514,6 +514,13 @@ var Combat = {
         State.player.energy -= skill.energyCost;
         State.addLog('Player uses ' + skill.name, 'action');
 
+        var isRanged = skill.range > 1;
+        if (isRanged) {
+            State.animProjectile(State.player.x, State.player.y, tx, ty, skill.color);
+        } else {
+            State.animSlash(State.player.x, State.player.y, tx, ty, skill.color);
+        }
+
         var cls = Data.CLASSES[State.player.classId];
 
         var enemy = State.getEnemyAt(tx, ty);
@@ -657,6 +664,8 @@ var Combat = {
         State.player.energy -= skill.energyCost;
         State.addLog('Player uses Blink Strike', 'action');
 
+        State.animProjectile(State.player.x, State.player.y, tx, ty, skill.color);
+
         var oldX = State.player.x;
         var oldY = State.player.y;
 
@@ -675,6 +684,12 @@ var Combat = {
 
         State.player.x = blinkX;
         State.player.y = blinkY;
+
+        State.animFlash([
+            {x: blinkX-1, y: blinkY-1}, {x: blinkX, y: blinkY-1}, {x: blinkX+1, y: blinkY-1},
+            {x: blinkX-1, y: blinkY}, {x: blinkX, y: blinkY}, {x: blinkX+1, y: blinkY},
+            {x: blinkX-1, y: blinkY+1}, {x: blinkX, y: blinkY+1}, {x: blinkX+1, y: blinkY+1}
+        ], '#cc44ff', 16);
 
         // 3x3 AoE centered on landing position
         var hitEnemies = [];
@@ -717,6 +732,8 @@ var Combat = {
         State.player.energy -= skill.energyCost;
         State.addLog('Player uses ' + skill.name, 'action');
 
+        State.animRing(State.player.x, State.player.y, skill.color);
+
         if (skill.effects.indexOf('heal') !== -1) {
             var healStacks = State.player.skillStacks['heal'] || 0;
             var healPercent = 0.2 + (healStacks * 0.025);
@@ -748,6 +765,14 @@ var Combat = {
         if (State.player.energy < skill.energyCost) return;
 
         var tiles = this.getAffectedTiles(State.player.x, State.player.y, tx, ty, skill);
+
+        if (skill.shape === 'line') {
+            var lastTile = tiles[tiles.length - 1] || {x: tx, y: ty};
+            State.animBeam(State.player.x, State.player.y, lastTile.x, lastTile.y, skill.color);
+        } else if (skill.shape === 'cone') {
+            State.animSlash(State.player.x, State.player.y, tx, ty, skill.color);
+            State.animFlash(tiles, skill.color, 14);
+        }
         var hitSomething = false;
         var lastHitEnemy = null;
         var hitEnemies = [];
@@ -813,6 +838,8 @@ var Combat = {
         State.player.energy -= skill.energyCost;
         State.addLog('Player uses ' + skill.name, 'action');
 
+        State.animRing(State.player.x, State.player.y, skill.color);
+
         if (skill.effects.indexOf('empower') !== -1) {
             var empowerValue = 100;
             var warCryStacks = State.player.skillStacks['war_cry'] || 0;
@@ -873,6 +900,8 @@ var Combat = {
         State.addLog('Player uses ' + skill.name, 'action');
 
         var tiles = this.getAffectedTiles(State.player.x, State.player.y, tx, ty, skill);
+        State.animProjectile(State.player.x, State.player.y, tx, ty, skill.color);
+        State.animAoE(tiles, skill.color);
         var hitCount = 0;
         var hitEnemies = [];
 
@@ -931,6 +960,7 @@ var Combat = {
 
         var finalX = State.player.x;
         var finalY = State.player.y;
+        var dashTiles = [];
         var enemiesHit = [];
 
         for (var i = 0; i < 3; i++) {
@@ -943,9 +973,13 @@ var Combat = {
             if (enemy && enemiesHit.indexOf(enemy) === -1) {
                 enemiesHit.push(enemy);
             }
-            
+            dashTiles.push({x: nx, y: ny});
             finalX = nx;
             finalY = ny;
+        }
+
+        if (dashTiles.length > 0) {
+            State.animBeam(State.player.x, State.player.y, finalX, finalY, '#88ff88');
         }
 
         State.player.energy -= 1;
@@ -991,6 +1025,7 @@ var Combat = {
         var pct = energy * 5;
         State.addLog('Player guards! Mitigating ' + pct + '% damage (' + energy + ' energy)', 'action');
         State.addFloatingText(State.player.x, State.player.y, 'GUARD ' + pct + '%', '#6688aa');
+        State.animFlash([{x: State.player.x, y: State.player.y}], '#6688aa', 12);
 
         this.endPlayerTurn();
     },

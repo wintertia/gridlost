@@ -241,6 +241,7 @@ var AI = {
                     enemy.x = tx; enemy.y = ty;
                 }
                 Combat.dealDamageToPlayer(scaledDamage);
+                State.animSlash(enemy.x, enemy.y, State.player.x, State.player.y, '#ff4444');
                 State.addFloatingText(enemy.x, enemy.y, 'STRIKE!', '#ff4444');
                 Grid.render(); UI.updateAll(); callback();
                 break;
@@ -250,6 +251,7 @@ var AI = {
                 var dy = State.player.y - enemy.y;
                 var stepX = dx === 0 ? 0 : (dx > 0 ? 1 : -1);
                 var stepY = dy === 0 ? 0 : (dy > 0 ? 1 : -1);
+                State.animBeam(enemy.x, enemy.y, enemy.x + stepX * 8, enemy.y + stepY * 8, '#ee8833');
                 for (var i = 1; i <= 8; i++) {
                     var lx = enemy.x + stepX * i;
                     var ly = enemy.y + stepY * i;
@@ -282,6 +284,11 @@ var AI = {
                 break;
             }
             case 'aoe_3x3': {
+                State.animFlash([
+                    {x: State.player.x-1, y: State.player.y-1}, {x: State.player.x, y: State.player.y-1}, {x: State.player.x+1, y: State.player.y-1},
+                    {x: State.player.x-1, y: State.player.y}, {x: State.player.x, y: State.player.y}, {x: State.player.x+1, y: State.player.y},
+                    {x: State.player.x-1, y: State.player.y+1}, {x: State.player.x, y: State.player.y+1}, {x: State.player.x+1, y: State.player.y+1}
+                ], '#ff4444', 16);
                 for (var dy2 = -1; dy2 <= 1; dy2++) {
                     for (var dx2 = -1; dx2 <= 1; dx2++) {
                         if (State.player.x + dx2 === State.player.x && State.player.y + dy2 === State.player.y) {
@@ -298,6 +305,11 @@ var AI = {
             }
             case 'aoe_3x3_target':
             case 'aoe_3x3_burn': {
+                State.animFlash([
+                    {x: State.player.x-1, y: State.player.y-1}, {x: State.player.x, y: State.player.y-1}, {x: State.player.x+1, y: State.player.y-1},
+                    {x: State.player.x-1, y: State.player.y}, {x: State.player.x, y: State.player.y}, {x: State.player.x+1, y: State.player.y},
+                    {x: State.player.x-1, y: State.player.y+1}, {x: State.player.x, y: State.player.y+1}, {x: State.player.x+1, y: State.player.y+1}
+                ], special.shape === 'aoe_3x3_burn' ? '#ff6600' : '#ff4444', 16);
                 for (var dy3 = -1; dy3 <= 1; dy3++) {
                     for (var dx3 = -1; dx3 <= 1; dx3++) {
                         var bx = State.player.x + dx3;
@@ -316,6 +328,7 @@ var AI = {
                 break;
             }
             case 'cross_2': {
+                State.animCross(enemy.x, enemy.y, '#ffff44');
                 var crossTiles = [
                     { x: enemy.x, y: enemy.y },
                     { x: enemy.x + 1, y: enemy.y }, { x: enemy.x - 1, y: enemy.y },
@@ -349,6 +362,7 @@ var AI = {
                 break;
             }
             case 'pull_2': {
+                State.animBeam(enemy.x, enemy.y, State.player.x, State.player.y, '#558844');
                 var pullDir = Grid.getDirection(enemy.x, enemy.y, State.player.x, State.player.y);
                 for (var pi = 0; pi < 2; pi++) {
                     var pnx = State.player.x + (pullDir === 'right' ? -1 : pullDir === 'left' ? 1 : 0);
@@ -377,6 +391,7 @@ var AI = {
                 break;
             }
             case 'aoe_5x5_self': {
+                State.animRing(enemy.x + 1, enemy.y + 1, '#ff4444');
                 for (var dy5 = -2; dy5 <= 2; dy5++) {
                     for (var dx5 = -2; dx5 <= 2; dx5++) {
                         var qx = enemy.x + dx5;
@@ -396,6 +411,7 @@ var AI = {
             }
             case 'single':
             case 'single_3': {
+                State.animProjectile(enemy.x, enemy.y, State.player.x, State.player.y, '#ff4444');
                 var singleRange = special.shape === 'single_3' ? 3 : 2;
                 var sd = this.distance(enemy.x, enemy.y, State.player.x, State.player.y);
                 if (sd <= singleRange) {
@@ -435,6 +451,7 @@ var AI = {
                 var cdy = State.player.y - enemy.y;
                 var cdirX = cdx === 0 ? 0 : (cdx > 0 ? 1 : -1);
                 var cdirY = cdy === 0 ? 0 : (cdy > 0 ? 1 : -1);
+                State.animSlash(enemy.x, enemy.y, enemy.x + cdirX * 3, enemy.y + cdirY * 3, '#ff8844');
                 for (var ci2 = 1; ci2 <= 3; ci2++) {
                     for (var spread = -1; spread <= 1; spread++) {
                         var ctx2, cty2;
@@ -452,6 +469,7 @@ var AI = {
                 break;
             }
             case 'eruption': {
+                State.animRing(State.player.x, State.player.y, '#ff4400');
                 var edirs = [{ x: -1, y: 0 }, { x: 1, y: 0 }, { x: 0, y: -1 }, { x: 0, y: 1 }, { x: 0, y: 0 }];
                 for (var ei = 0; ei < edirs.length; ei++) {
                     var elx = State.player.x + edirs[ei].x;
@@ -465,6 +483,7 @@ var AI = {
                 break;
             }
             case 'cross_teleport': {
+                State.animCross(enemy.x, enemy.y, '#ffaa00');
                 var crossTiles2 = [
                     { x: enemy.x, y: enemy.y },
                     { x: enemy.x + 1, y: enemy.y }, { x: enemy.x - 1, y: enemy.y },
@@ -481,6 +500,7 @@ var AI = {
                 break;
             }
             case 'phase_strike': {
+                State.animProjectile(enemy.x, enemy.y, State.player.x, State.player.y, '#664488');
                 var phaseDir = Grid.getDirection(enemy.x, enemy.y, State.player.x, State.player.y);
                 var phX = State.player.x + (phaseDir === 'right' ? -1 : phaseDir === 'left' ? 1 : 0);
                 var phY = State.player.y + (phaseDir === 'down' ? -1 : phaseDir === 'up' ? 1 : 0);
@@ -543,6 +563,7 @@ var AI = {
         var def = Data.ENEMIES[enemy.defId];
         var name = def ? def.name : 'Enemy';
         State.addLog(name + ' attacks player for ' + dmg + ' dmg', 'enemy');
+        State.animSlash(enemy.x, enemy.y, State.player.x, State.player.y, '#ff4444');
         Combat.dealDamageToPlayer(dmg);
 
         if (enemy.defId === 'plaguebearer') {
@@ -604,6 +625,7 @@ var AI = {
             if (State.isBlocked(tx, ty)) break;
             if (tx === State.player.x && ty === State.player.y) {
                 State.addLog(name + ' shoots player for ' + dmg + ' dmg', 'enemy');
+                State.animProjectile(enemy.x, enemy.y, State.player.x, State.player.y, def.color);
                 Combat.dealDamageToPlayer(dmg);
                 State.addFloatingText(tx, ty, 'ARROW!', '#ee8833');
                 if (enemy.defId === 'frost_elemental') {
