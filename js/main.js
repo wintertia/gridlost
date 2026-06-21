@@ -196,6 +196,7 @@ var Main = {
 
         if (emptySlot !== -1) {
             State.player.skills[emptySlot] = newSkill;
+            State.player.skillStacks[skillId] = 0;
             this.proceedToNextStage();
         } else {
             UI.showReplaceChoices(skillId, function(slot) {

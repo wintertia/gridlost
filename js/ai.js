@@ -180,7 +180,7 @@ var AI = {
             if (dist <= 3 && dist >= 2) {
                 this.rangedAttack(enemy, callback);
             } else if (dist < 2) {
-                this.moveAway(enemy, State.player.x, State.player.y, callback);
+                this.rangedRetreat(enemy, State.player.x, State.player.y, callback);
             } else {
                 this.moveToward(enemy, State.player.x, State.player.y, callback);
             }
@@ -272,7 +272,7 @@ var AI = {
                             x: sx, y: sy, hp: 60, maxHp: 60, damage: 10,
                             defId: 'skeleton', facing: 'down', frozen: 0, freezeImmune: false,
                             freezeImmuneTurns: 0, poison: null, isBoss: false, isElite: false,
-                            color: '#ccccaa', isSummon: true, summonTimer: 0, teleportTimer: 0
+                            color: '#ccccaa', isSummon: true, moveSpeed: 1, summonTimer: 0, teleportTimer: 0
                         });
                         State.addFloatingText(sx, sy, 'RAISE!', '#7722aa');
                         scount++;
@@ -421,7 +421,7 @@ var AI = {
                             x: swx, y: swy, hp: 150, maxHp: 150, damage: 35,
                             defId: 'sand_wraith', facing: 'down', frozen: 0, freezeImmune: false,
                             freezeImmuneTurns: 0, poison: null, isBoss: false, isElite: false,
-                            color: '#ddcc88', isSummon: true, summonTimer: 0, teleportTimer: 0
+                            color: '#ddcc88', isSummon: true, moveSpeed: 1, summonTimer: 0, teleportTimer: 0
                         });
                         State.addFloatingText(swx, swy, 'SUMMONED!', '#ddcc88');
                         break;
@@ -545,6 +545,25 @@ var AI = {
         State.addLog(name + ' attacks player for ' + dmg + ' dmg', 'enemy');
         Combat.dealDamageToPlayer(dmg);
 
+        if (enemy.defId === 'plaguebearer') {
+            State.player.diseased = true;
+            State.addFloatingText(State.player.x, State.player.y, 'DISEASED!', '#44cc44');
+        }
+        if (enemy.defId === 'scorpion') {
+            var bleedDmg = Math.floor(dmg * 0.3);
+            if (!State.player.bleed) {
+                State.player.bleed = { damage: bleedDmg, turns: 3 };
+            } else {
+                State.player.bleed.damage += bleedDmg;
+                State.player.bleed.turns = 3;
+            }
+            State.addFloatingText(State.player.x, State.player.y, 'BLEED!', '#ff4444');
+        }
+        if (enemy.defId === 'void_walker') {
+            State.player.cursed = true;
+            State.addFloatingText(State.player.x, State.player.y, 'CURSED!', '#8844aa');
+        }
+
         var thorns = Combat.calculateItemStatBonus('thorns');
         if (thorns > 0) {
             var thornsDmg = Math.floor(dmg * thorns / 100);
@@ -606,6 +625,7 @@ var AI = {
         var bestX = enemy.x;
         var bestY = enemy.y;
         var bestDist = this.distance(enemy.x, enemy.y, targetX, targetY);
+        var moved = false;
 
         var dirs = [
             { x: 0, y: -1 }, { x: 0, y: 1 },
@@ -621,7 +641,29 @@ var AI = {
                 bestDist = d;
                 bestX = nx;
                 bestY = ny;
+                moved = true;
             }
+        }
+
+        if (!moved) {
+            var sideDirs = [];
+            var awayDirs = [];
+            for (var i = 0; i < dirs.length; i++) {
+                var nx = enemy.x + dirs[i].x;
+                var ny = enemy.y + dirs[i].y;
+                if (!State.isBlockedForEnemy(nx, ny)) {
+                    var d = this.distance(nx, ny, targetX, targetY);
+                    if (d <= bestDist) {
+                        sideDirs.push({ x: nx, y: ny });
+                    } else {
+                        awayDirs.push({ x: nx, y: ny });
+                    }
+                }
+            }
+            var pick = sideDirs.length > 0
+                ? sideDirs[Math.floor(Math.random() * sideDirs.length)]
+                : awayDirs.length > 0 ? awayDirs[Math.floor(Math.random() * awayDirs.length)] : null;
+            if (pick) { bestX = pick.x; bestY = pick.y; }
         }
 
         enemy.facing = Grid.getDirection(enemy.x, enemy.y, bestX, bestY);
@@ -635,6 +677,7 @@ var AI = {
         var bestX = enemy.x;
         var bestY = enemy.y;
         var bestDist = this.distance(enemy.x, enemy.y, targetX, targetY);
+        var moved = false;
 
         var dirs = [
             { x: 0, y: -1 }, { x: 0, y: 1 },
@@ -648,6 +691,80 @@ var AI = {
             var d = this.distance(nx, ny, targetX, targetY);
             if (d > bestDist) {
                 bestDist = d;
+                bestX = nx;
+                bestY = ny;
+                moved = true;
+            }
+        }
+
+        if (!moved) {
+            var sideDirs = [];
+            var towardDirs = [];
+            for (var i = 0; i < dirs.length; i++) {
+                var nx = enemy.x + dirs[i].x;
+                var ny = enemy.y + dirs[i].y;
+                if (!State.isBlockedForEnemy(nx, ny)) {
+                    var d = this.distance(nx, ny, targetX, targetY);
+                    if (d >= bestDist) {
+                        sideDirs.push({ x: nx, y: ny });
+                    } else {
+                        towardDirs.push({ x: nx, y: ny });
+                    }
+                }
+            }
+            var pick = sideDirs.length > 0
+                ? sideDirs[Math.floor(Math.random() * sideDirs.length)]
+                : towardDirs.length > 0 ? towardDirs[Math.floor(Math.random() * towardDirs.length)] : null;
+            if (pick) { bestX = pick.x; bestY = pick.y; }
+        }
+
+        enemy.x = bestX;
+        enemy.y = bestY;
+        Grid.render();
+        callback();
+    },
+
+    countOpenNeighbors: function(x, y) {
+        var dirs = [{x:0,y:-1},{x:0,y:1},{x:-1,y:0},{x:1,y:0}];
+        var count = 0;
+        for (var i = 0; i < dirs.length; i++) {
+            var nx = x + dirs[i].x;
+            var ny = y + dirs[i].y;
+            if (nx >= 0 && nx < Data.GRID_SIZE && ny >= 0 && ny < Data.GRID_SIZE && !State.isBlockedForEnemy(nx, ny)) {
+                count++;
+            }
+        }
+        return count;
+    },
+
+    rangedRetreat: function(enemy, targetX, targetY, callback) {
+        var bestX = enemy.x;
+        var bestY = enemy.y;
+        var bestScore = -999;
+        var dx = enemy.x - targetX;
+        var dy = enemy.y - targetY;
+        var absDx = Math.abs(dx);
+        var absDy = Math.abs(dy);
+
+        var dirs = [
+            { x: 0, y: -1 }, { x: 0, y: 1 },
+            { x: -1, y: 0 }, { x: 1, y: 0 }
+        ];
+
+        for (var i = 0; i < dirs.length; i++) {
+            var nx = enemy.x + dirs[i].x;
+            var ny = enemy.y + dirs[i].y;
+            if (State.isBlockedForEnemy(nx, ny)) continue;
+            var d = this.distance(nx, ny, targetX, targetY);
+            var openNeighbors = this.countOpenNeighbors(nx, ny);
+            var distGain = d - this.distance(enemy.x, enemy.y, targetX, targetY);
+            var score = distGain * 10 + openNeighbors * 3;
+            // Strong bonus for moving directly away along the dominant axis
+            if (absDx >= absDy && dirs[i].x === (dx > 0 ? 1 : -1)) score += 15;
+            if (absDy >= absDx && dirs[i].y === (dy > 0 ? 1 : -1)) score += 15;
+            if (openNeighbors <= 2) score -= 5;
+            if (score > bestScore) {
+                bestScore = score;
                 bestX = nx;
                 bestY = ny;
             }
@@ -664,13 +781,16 @@ var AI = {
             { x: -1, y: 0 }, { x: 1, y: 0 },
             { x: 0, y: -1 }, { x: 0, y: 1 }
         ];
-        var shuffled = dirs.sort(function() { return Math.random() - 0.5; });
+        for (var pi = dirs.length - 1; pi > 0; pi--) {
+            var pj = Math.floor(Math.random() * (pi + 1));
+            var tmp = dirs[pi]; dirs[pi] = dirs[pj]; dirs[pj] = tmp;
+        }
         var def = Data.ENEMIES[enemy.defId];
         var name = def ? def.name : 'Enemy';
 
-        for (var i = 0; i < shuffled.length; i++) {
-            var nx = enemy.x + shuffled[i].x;
-            var ny = enemy.y + shuffled[i].y;
+        for (var i = 0; i < dirs.length; i++) {
+            var nx = enemy.x + dirs[i].x;
+            var ny = enemy.y + dirs[i].y;
             if (!State.isBlockedForEnemy(nx, ny)) {
                 var skelDef = Data.ENEMIES.skeleton;
                 var scaling = 1 + (State.stage - 1) * Data.SCALING_HP_MULT;
@@ -687,7 +807,8 @@ var AI = {
                     poison: null,
                     isBoss: false,
                     isSummon: true,
-                    color: skelDef.color
+                    color: skelDef.color,
+                    moveSpeed: skelDef.moveSpeed
                 });
                 State.addFloatingText(nx, ny, 'SUMMONED!', '#7722aa');
                 State.addLog(name + ' summons Skeleton', 'enemy');

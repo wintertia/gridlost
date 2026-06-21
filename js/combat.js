@@ -248,7 +248,7 @@ var Combat = {
                                     defId: 'magma_slime', facing: 'down',
                                     frozen: 0, freezeImmune: false, freezeImmuneTurns: 0,
                                     poison: null, isBoss: false, color: '#ff4400',
-                                    hasSplit: true
+                                    moveSpeed: 1, hasSplit: true
                                 });
                                 State.addFloatingText(sx, sy, 'SPLIT!', '#ff4400');
                                 splitCount++;
@@ -1271,6 +1271,19 @@ var Combat = {
             State.player.chilled--;
             if (State.player.chilled === 0) {
                 State.addFloatingText(State.player.x, State.player.y, 'CHILLED ENDED', '#88ddff');
+            }
+        }
+
+        if (State.player.bleed && State.player.bleed.turns > 0) {
+            var pbDmg = State.player.bleed.damage;
+            State.player.hp -= pbDmg;
+            State.addFloatingText(State.player.x, State.player.y, '-' + pbDmg + ' BLEED', '#ff4444');
+            State.player.bleed.turns--;
+            if (State.player.bleed.turns <= 0) State.player.bleed = null;
+            if (State.player.hp <= 0) {
+                State.player.hp = 0;
+                UI.showDeathScreen();
+                return;
             }
         }
 

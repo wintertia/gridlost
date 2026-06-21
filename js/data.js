@@ -3,8 +3,6 @@ var Data = {
     PLAYER_BASE_HP: 1000,
     PLAYER_BASE_ENERGY: 6,
     PLAYER_BASE_POWER: 0,
-    PLAYER_BASE_VITALITY: 0,
-    PLAYER_BASE_AGILITY: 0,
 
     CLASSES: {
         knight: {
@@ -362,75 +360,67 @@ var Data = {
             type: 'melee', color: '#44cc44', behavior: 'charge'
         },
         archer: {
-            id: 'archer', name: 'Archer', hp: 130, damage: 40, moveSpeed: 1,
+            id: 'archer', name: 'Archer', hp: 130, damage: 30, moveSpeed: 1,
             type: 'ranged', color: '#ee8833', behavior: 'keep_distance'
-        },
-        slime: {
-            id: 'slime', name: 'Slime', hp: 315, damage: 20, moveSpeed: 0.5,
-            type: 'melee', color: '#aa44dd', behavior: 'charge'
         },
         necromancer: {
             id: 'necromancer', name: 'Necromancer', hp: 210, damage: 20, moveSpeed: 0,
             type: 'summoner', color: '#7722aa', behavior: 'stay_far'
-        },
-        shadow: {
-            id: 'shadow', name: 'Shadow', hp: 140, damage: 50, moveSpeed: 1,
-            type: 'phaser', color: '#555566', behavior: 'teleport'
         },
         skeleton: {
             id: 'skeleton', name: 'Skeleton', hp: 70, damage: 15, moveSpeed: 1,
             type: 'melee', color: '#ccccaa', behavior: 'charge', isSummon: true
         },
         wolf: {
-            id: 'wolf', name: 'Wolf', hp: 140, damage: 25, moveSpeed: 2,
+            id: 'wolf', name: 'Wolf', hp: 140, damage: 15, moveSpeed: 2,
             type: 'melee', color: '#886644', behavior: 'charge'
         },
         druid: {
-            id: 'druid', name: 'Druid', hp: 130, damage: 30, moveSpeed: 1,
+            id: 'druid', name: 'Druid', hp: 130, damage: 20, moveSpeed: 1,
             type: 'ranged', color: '#448844', behavior: 'keep_distance'
         },
         treant: {
-            id: 'treant', name: 'Treant', hp: 420, damage: 25, moveSpeed: 0.5,
+            id: 'treant', name: 'Treant', hp: 300, damage: 40, moveSpeed: 0.5,
             type: 'melee', color: '#664422', behavior: 'charge'
         },
         toad: {
-            id: 'toad', name: 'Toad', hp: 210, damage: 35, moveSpeed: 1,
+            id: 'toad', name: 'Toad', hp: 170, damage: 35, moveSpeed: 1,
             type: 'melee', color: '#558844', behavior: 'charge'
         },
         plaguebearer: {
-            id: 'plaguebearer', name: 'Plague Bearer', hp: 175, damage: 25, moveSpeed: 1,
+            id: 'plaguebearer', name: 'Plague Bearer', hp: 175, damage: 15, moveSpeed: 1,
             type: 'ranged', color: '#88aa44', behavior: 'keep_distance'
         },
         mud_golem: {
-            id: 'mud_golem', name: 'Mud Golem', hp: 490, damage: 20, moveSpeed: 0.5,
+            id: 'mud_golem', name: 'Mud Golem', hp: 350, damage: 40, moveSpeed: 0.5,
             type: 'melee', color: '#886644', behavior: 'charge'
         },
         scorpion: {
-            id: 'scorpion', name: 'Scorpion', hp: 155, damage: 40, moveSpeed: 1,
+            id: 'scorpion', name: 'Scorpion', hp: 135, damage: 20, moveSpeed: 1,
             type: 'melee', color: '#cc8844', behavior: 'charge'
         },
         mummy: {
-            id: 'mummy', name: 'Mummy', hp: 245, damage: 30, moveSpeed: 1,
+            id: 'mummy', name: 'Mummy', hp: 245, damage: 20, moveSpeed: 1,
             type: 'ranged', color: '#ccaa88', behavior: 'keep_distance'
         },
         sand_wraith: {
-            id: 'sand_wraith', name: 'Sand Wraith', hp: 140, damage: 45, moveSpeed: 1,
+            id: 'sand_wraith', name: 'Sand Wraith', hp: 140, damage: 35, moveSpeed: 1,
             type: 'phaser', color: '#ddcc88', behavior: 'teleport'
         },
         frost_elemental: {
-            id: 'frost_elemental', name: 'Frost Elemental', hp: 195, damage: 30, moveSpeed: 1,
+            id: 'frost_elemental', name: 'Frost Elemental', hp: 195, damage: 15, moveSpeed: 1,
             type: 'ranged', color: '#88bbee', behavior: 'keep_distance'
         },
         ice_wyrm: {
-            id: 'ice_wyrm', name: 'Ice Wyrm', hp: 280, damage: 35, moveSpeed: 1,
+            id: 'ice_wyrm', name: 'Ice Wyrm', hp: 210, damage: 35, moveSpeed: 1,
             type: 'melee', color: '#aaddff', behavior: 'charge'
         },
         yeti: {
-            id: 'yeti', name: 'Yeti', hp: 350, damage: 40, moveSpeed: 1,
+            id: 'yeti', name: 'Yeti', hp: 350, damage: 40, moveSpeed: 0.5,
             type: 'melee', color: '#ccddee', behavior: 'charge'
         },
         fire_elemental: {
-            id: 'fire_elemental', name: 'Fire Elemental', hp: 175, damage: 35, moveSpeed: 1,
+            id: 'fire_elemental', name: 'Fire Elemental', hp: 175, damage: 25, moveSpeed: 1,
             type: 'ranged', color: '#ff6622', behavior: 'keep_distance'
         },
         magma_slime: {
@@ -446,19 +436,19 @@ var Data = {
             type: 'phaser', color: '#664488', behavior: 'teleport'
         },
         void_walker: {
-            id: 'void_walker', name: 'Void Walker', hp: 210, damage: 35, moveSpeed: 1,
+            id: 'void_walker', name: 'Void Walker', hp: 210, damage: 20, moveSpeed: 1,
             type: 'melee', color: '#443366', behavior: 'charge'
         },
         shade: {
-            id: 'shade', name: 'Shade', hp: 130, damage: 30, moveSpeed: 1,
+            id: 'shade', name: 'Shade', hp: 130, damage: 20, moveSpeed: 1,
             type: 'ranged', color: '#555577', behavior: 'keep_distance'
         },
         angel: {
-            id: 'angel', name: 'Angel', hp: 175, damage: 35, moveSpeed: 1,
+            id: 'angel', name: 'Angel', hp: 175, damage: 25, moveSpeed: 1,
             type: 'ranged', color: '#ffdd88', behavior: 'keep_distance'
         },
-        cherub: {
-            id: 'cherub', name: 'Cherub', hp: 140, damage: 30, moveSpeed: 2,
+        chariot: {
+            id: 'chariot', name: 'Chariot', hp: 90, damage: 25, moveSpeed: 2,
             type: 'melee', color: '#ffeeaa', behavior: 'charge'
         },
         seraph: {
@@ -542,8 +532,6 @@ var Data = {
         }
     },
 
-    BOSS_ORDER: ['colossus'],
-
     BIOMES: {
         dungeon: {
             id: 'dungeon', name: 'DUNGEON',
@@ -583,7 +571,7 @@ var Data = {
         celestial: {
             id: 'celestial', name: 'CELESTIAL',
             bg: '#1a1a0a', tileBase: '#2a2a1a', tileBorder: '#3a3a2a', accent: '#ffdd88',
-            enemies: ['angel', 'cherub', 'seraph'], bossId: 'archangel'
+            enemies: ['angel', 'chariot', 'seraph'], bossId: 'archangel'
         }
     },
 
@@ -606,7 +594,7 @@ var Data = {
     SCALING_DMG_MULT: 0.25,
 
     BOSS_EVERY: 5,
-        BOSS_STAT_SCALE: 0.50,
+        BOSS_STAT_SCALE: 0.40,
 
     COLORS: {
         bg: '#0f0a1a',
@@ -717,7 +705,7 @@ var Data = {
             name: 'Holy Beam', desc: 'Single target 3-range 80 dmg',
             shape: 'single_3', damage: 80
         },
-        cherub: {
+        chariot: {
             name: 'Smite', desc: 'Cross AoE range 2 + knockback',
             shape: 'cross_2', damage: 50, effects: ['knockback1']
         },
@@ -728,7 +716,7 @@ var Data = {
     },
 
     ELITE_HP_MULT: 2,
-    ELITE_DMG_MULT: 1.25,
-    ELITE_TELEGRAPH_MULT: 1.7,
-    ELITE_SPECIAL_INTERVAL: 2
+    ELITE_DMG_MULT: 1.2,
+    ELITE_TELEGRAPH_MULT: 1.5,
+    ELITE_SPECIAL_INTERVAL: 3
 };

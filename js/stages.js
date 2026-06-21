@@ -197,9 +197,7 @@ var Stages = {
         } else {
             availableTypes = ['goblin'];
             if (stage >= 2) availableTypes.push('archer');
-            if (stage >= 3) availableTypes.push('slime');
-            if (stage >= 4) availableTypes.push('necromancer');
-            if (stage >= 5) availableTypes.push('shadow');
+            if (stage >= 3) availableTypes.push('necromancer');
         }
 
         var placed = 0;
@@ -255,6 +253,7 @@ var Stages = {
                 eliteTurnCount: 0,
                 eliteTelegraphing: false,
                 color: def.color,
+                moveSpeed: def.moveSpeed,
                 summonTimer: 0,
                 teleportTimer: 0
             });

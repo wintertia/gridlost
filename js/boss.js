@@ -221,7 +221,7 @@ var Boss = {
         var dist = AI.distance(centerX, centerY, State.player.x, State.player.y);
         if (dist <= size) {
             State.addLog(boss.name + ' uses Basic Attack', 'boss');
-            Combat.dealDamageToPlayer(boss.damage);
+            Combat.dealDamageToPlayer(Math.floor(boss.damage * 0.5));
         }
         var dir = Grid.getDirection(centerX, centerY, State.player.x, State.player.y);
         boss.facing = dir;
@@ -238,7 +238,7 @@ var Boss = {
 
         if (dist <= size) {
             State.addLog(boss.name + ' uses Basic Attack', 'boss');
-            Combat.dealDamageToPlayer(boss.damage);
+            Combat.dealDamageToPlayer(Math.floor(boss.damage * 0.5));
             var dir = Grid.getDirection(centerX, centerY, State.player.x, State.player.y);
             boss.facing = dir;
         } else {
@@ -377,7 +377,8 @@ var Boss = {
                     poison: null,
                     isBoss: false,
                     color: '#332244',
-                    isSummon: true
+                    isSummon: true,
+                    moveSpeed: 1
                 });
                 State.addFloatingText(nx, ny, 'CLONE!', '#443366');
                 break;
@@ -487,7 +488,8 @@ var Boss = {
                         poison: null,
                         isBoss: false,
                         color: '#446622',
-                        isSummon: true
+                        isSummon: true,
+                        moveSpeed: Data.ENEMIES.treant.moveSpeed
                     });
                     State.addFloatingText(nx, ny, 'SAPLING!', '#446622');
                     count++;

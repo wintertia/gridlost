@@ -15,7 +15,7 @@ var UI = {
     updateBuffBar: function() {
         var p = State.player;
         var sig = [
-            p.chilled, p.diseased ? 1 : 0, p.cursed ? 1 : 0, p.judgment,
+            p.chilled, p.diseased ? 1 : 0, p.cursed ? 1 : 0, p.bleed ? p.bleed.turns : 0, p.judgment,
             p.berserk, p.lifestealAura, p.rejuvenation, p.tempPower, p.shield, p.damageReduction, p.tempPowerTurns, p.damageReductionTurns
         ].join(',');
         if (sig === this._lastBuffSig) return;
@@ -25,6 +25,7 @@ var UI = {
         if (p.chilled > 0) buffs.push({ icon: '~', color: '#88ddff', bg: '#1a3a5a', turns: p.chilled, name: 'Chilled', desc: 'Movement costs 2x energy' });
         if (p.diseased) buffs.push({ icon: '%', color: '#44cc44', bg: '#1a3a1a', turns: -1, name: 'Diseased', desc: 'Damage reduced by 30%' });
         if (p.cursed) buffs.push({ icon: '#', color: '#8844aa', bg: '#2a1a3a', turns: -1, name: 'Cursed', desc: 'Take 30% more damage' });
+        if (p.bleed && p.bleed.turns > 0) buffs.push({ icon: 'B', color: '#ff4444', bg: '#3a1a1a', turns: p.bleed.turns, name: 'Bleed', desc: 'Take ' + p.bleed.damage + ' damage per turn' });
         if (p.judgment > 0) buffs.push({ icon: '!', color: '#ffdd88', bg: '#3a3a1a', turns: p.judgment, name: 'Judgment', desc: 'Next hit deals double damage' });
         if (p.berserk > 0) buffs.push({ icon: 'X', color: '#ff4444', bg: '#3a1a1a', turns: p.berserk, name: 'Berserk', desc: '+50% damage dealt and taken' });
         if (p.lifestealAura > 0) buffs.push({ icon: 'L', color: '#cc4444', bg: '#3a1a1a', turns: p.lifestealAura, name: 'Lifesteal Aura', desc: 'Heal 20% of damage dealt' });
@@ -345,8 +346,11 @@ var UI = {
 
     showStatChoices: function(callback) {
         var keys = ['vitality', 'power', 'crit'];
-        var shuffled = keys.sort(function() { return Math.random() - 0.5; });
-        var choices = shuffled.slice(0, 3);
+        for (var pi = keys.length - 1; pi > 0; pi--) {
+            var pj = Math.floor(Math.random() * (pi + 1));
+            var tmp = keys[pi]; keys[pi] = keys[pj]; keys[pj] = tmp;
+        }
+        var choices = keys.slice(0, 3);
 
         var $grid = $('#stat-choices');
         $grid.empty();
@@ -433,13 +437,16 @@ var UI = {
 
         function generateChoices() {
             var pool = Data.SKILL_POOL.slice();
-            var shuffled = pool.sort(function() { return Math.random() - 0.5; });
+            for (var pi = pool.length - 1; pi > 0; pi--) {
+                var pj = Math.floor(Math.random() * (pi + 1));
+                var tmp = pool[pi]; pool[pi] = pool[pj]; pool[pj] = tmp;
+            }
             var choices = [];
             var seen = {};
-            for (var si = 0; si < shuffled.length && choices.length < 3; si++) {
-                if (!seen[shuffled[si]]) {
-                    seen[shuffled[si]] = true;
-                    choices.push(shuffled[si]);
+            for (var si = 0; si < pool.length && choices.length < 3; si++) {
+                if (!seen[pool[si]]) {
+                    seen[pool[si]] = true;
+                    choices.push(pool[si]);
                 }
             }
 

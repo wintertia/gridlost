@@ -106,6 +106,7 @@ var State = {
         this.player.chilled = 0;
         this.player.diseased = false;
         this.player.cursed = false;
+        this.player.bleed = null;
         this.player.judgment = 0;
         this.extraItemDrops = 0;
         this.player.classId = this.selectedClass || 'knight';

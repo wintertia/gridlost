@@ -33,6 +33,13 @@ var Input = {
 
         this.setupTooltips();
 
+        $(document).on('click', '.panel-toggle', function() {
+            var $title = $(this);
+            var $content = $title.siblings('.panel-content');
+            $title.toggleClass('collapsed');
+            $content.toggleClass('collapsed');
+        });
+
         $(document).on('mouseenter', '.buff-icon', function() {
             var name = $(this).attr('data-buff-name');
             var desc = $(this).attr('data-buff-desc');
