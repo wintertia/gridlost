@@ -197,6 +197,18 @@ var Grid = {
                         ctx.fill();
                     }
                 }
+            } else if (o.id === 'void') {
+                ctx.fillStyle = '#0a0014';
+                ctx.fillRect(px + 1, py + 1, ts - 2, ts - 2);
+                var vPulse = Math.sin(this.animFrame * 0.05 + o.x * 3 + o.y * 7) * 0.3 + 0.5;
+                ctx.fillStyle = 'rgba(102, 51, 170, ' + vPulse + ')';
+                ctx.beginPath();
+                ctx.arc(px + ts/2, py + ts/2, ts * 0.3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = 'rgba(102, 51, 170, ' + (vPulse * 0.5) + ')';
+                ctx.beginPath();
+                ctx.arc(px + ts/2, py + ts/2, ts * 0.45, 0, Math.PI * 2);
+                ctx.fill();
             } else if (o.id === 'chill_water') {
                 var chillC = (Math.floor(this.animFrame / 35) % 2 === 0) ? '#4488cc' : '#66aaee';
                 ctx.fillStyle = chillC;

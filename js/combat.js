@@ -1458,6 +1458,15 @@ var Combat = {
                     AudioMgr.sfx('spike');
                 }
             }
+            if (o.id === 'void') {
+                var voidDmg = this.hazardDamage(20);
+                State.player.hp -= voidDmg;
+                State.player.cursed = Math.max(State.player.cursed || 0, 2);
+                State.player.diseased = Math.max(State.player.diseased || 0, 2);
+                State.addFloatingText(px, py, '-' + voidDmg + ' VOID!', '#6633aa');
+                State.addLog('Void drains you for ' + voidDmg + ' damage and inflicts cursed + diseased!', 'enemy');
+                AudioMgr.sfx('debuff');
+            }
             if (o.id === 'judgement_sigil') {
                 State.player.judgment = (State.player.judgment || 0) + 2;
                 State.addFloatingText(px, py, 'JUDGEMENT +' + State.player.judgment, '#ffdd88');

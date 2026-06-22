@@ -287,7 +287,7 @@ var Data = {
         },
         cleave: {
             id: 'cleave', name: 'Cleave', desc: 'Wide front arc attack',
-            energyCost: 2, damage: 60, shape: 'cone', range: 1,
+            energyCost: 2, damage: 60, shape: 'cone', range: 2,
             color: '#ff8844', isBasic: false, effects: []
         },
         heal: {
@@ -846,9 +846,11 @@ var Data = {
             id: 'first_clone', name: 'The First Clone', hp: 3600, damage: 45,
             color: '#6633aa', behavior: 'boss', size: 2, mobile: true,
             attacks: [
-                { name: 'Summon Shade', shape: 'summon_shade', damage: 0, cooldown: 3, current: 0 },
-                { name: 'Summon Portal', shape: 'summon_portal', damage: 0, cooldown: 4, current: 0 },
-                { name: 'Summon Void', shape: 'summon_void', damage: 100, cooldown: 2, current: 0 }
+                { name: 'Summon Void', shape: 'summon_void', damage: 100, cooldown: 2, current: 0 },
+                { name: 'North Pull', shape: 'north_pull', damage: 0, cooldown: 2, current: 0 },
+                { name: 'South Pull', shape: 'south_pull', damage: 0, cooldown: 2, current: 0 },
+                { name: 'West Pull', shape: 'west_pull', damage: 0, cooldown: 2, current: 0 },
+                { name: 'East Pull', shape: 'east_pull', damage: 0, cooldown: 2, current: 0 }
             ],
             phases: [
                 {
@@ -872,11 +874,60 @@ var Data = {
                                 isSummon: true, moveSpeed: 1
                             });
                         }
-                        State.addFloatingText(4, 4, 'WRAITHS SUMMONED!', '#6633aa');
+                        for (var x = 0; x < Data.GRID_SIZE; x++) {
+                            for (var y = 0; y < Data.GRID_SIZE; y++) {
+                                if (x === 0 || x === 7 || y === 0 || y === 7) {
+                                    var reserved = false;
+                                    for (var r = 0; r < State.obstacles.length; r++) {
+                                        if (State.obstacles[r].x === x && State.obstacles[r].y === y) {
+                                            reserved = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!reserved) {
+                                        State.obstacles.push({
+                                            x: x, y: y, id: 'void', hp: -1,
+                                            destructible: false, blocksMove: false, color: '#6633aa'
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                        State.addFloatingText(4, 4, 'WRAITHS SUMMONED! VOID SPREADS!', '#6633aa');
                     }
                 },
                 {
                     threshold: 50,
+                    dialogue: 'I am legion. We are many.',
+                    handler: function(boss) {
+                        var cloneHp = Math.floor(boss.hp / 2);
+                        boss.hp = cloneHp;
+                        boss.size = 1;
+                        var attempts = 0;
+                        var cx, cy;
+                        do {
+                            cx = Math.floor(Math.random() * Data.GRID_SIZE);
+                            cy = Math.floor(Math.random() * Data.GRID_SIZE);
+                            attempts++;
+                        } while (attempts < 100 && Stages.isReserved(cx, cy));
+                        var clone = {
+                            x: cx, y: cy, size: 1,
+                            hp: cloneHp, maxHp: cloneHp,
+                            damage: boss.damage,
+                            defId: boss.defId, facing: 'down',
+                            frozen: 0, freezeImmune: false,
+                            freezeImmuneTurns: 0, poison: null,
+                            isBoss: true, color: boss.color,
+                            name: boss.name + ' Clone',
+                            attacks: JSON.parse(JSON.stringify(boss.attacks)),
+                            telegraph: null, isClone: true
+                        };
+                        State.enemies.push(clone);
+                        State.addFloatingText(cx, cy, 'CLONE CREATED!', '#6633aa');
+                    }
+                },
+                {
+                    threshold: 25,
                     dialogue: 'I call upon the void once more!',
                     handler: function(boss) {
                         var attempts = 0;
@@ -897,35 +948,6 @@ var Data = {
                         });
                         State.addFloatingText(cx, cy, 'ELITE WRAITH!', '#ff4444');
                     }
-                },
-                {
-                    threshold: 25,
-                    dialogue: 'I am legion. We are many.',
-                    handler: function(boss) {
-                        var cloneHp = Math.floor(boss.hp / 2);
-                        boss.hp = cloneHp;
-                        var attempts = 0;
-                        var cx, cy;
-                        do {
-                            cx = Math.floor(Math.random() * Data.GRID_SIZE);
-                            cy = Math.floor(Math.random() * Data.GRID_SIZE);
-                            attempts++;
-                        } while (attempts < 100 && Stages.isReserved(cx, cy));
-                        var clone = {
-                            x: cx, y: cy, size: 2,
-                            hp: cloneHp, maxHp: cloneHp,
-                            damage: boss.damage,
-                            defId: boss.defId, facing: 'down',
-                            frozen: 0, freezeImmune: false,
-                            freezeImmuneTurns: 0, poison: null,
-                            isBoss: true, color: boss.color,
-                            name: boss.name + ' Clone',
-                            attacks: JSON.parse(JSON.stringify(boss.attacks)),
-                            telegraph: null, isClone: true
-                        };
-                        State.enemies.push(clone);
-                        State.addFloatingText(cx, cy, 'CLONE CREATED!', '#6633aa');
-                    }
                 }
             ],
             deathDialogue: 'We... are... one...',
@@ -936,7 +958,8 @@ var Data = {
             color: '#ffddaa', behavior: 'boss', size: 2, mobile: true,
             attacks: [
                 { name: 'Holy Smite', shape: 'holy_smite', damage: 130, cooldown: 2, current: 0 },
-                { name: 'Holy Beam', shape: 'holy_beam', damage: 110, cooldown: 2, current: 0 }
+                { name: 'Holy Beam', shape: 'holy_beam', damage: 110, cooldown: 2, current: 0 },
+                { name: 'Holy Thrust', shape: 'holy_thrust', damage: 120, cooldown: 2, current: 0 }
             ],
             phases: [
                 {
@@ -1075,7 +1098,7 @@ var Data = {
             id: 'shadow_realm', name: 'SHADOW',
             bg: '#0a0a15', tileBase: '#1a1a25', tileBorder: '#2a2a35', accent: '#8844aa',
             enemies: ['wraith_enemy', 'void_walker', 'shade'], bossId: 'first_clone',
-            hazards: ['wall', 'portal', 'spike_trap'], wallColor: '#332244',
+            hazards: ['wall', 'portal', 'void'], wallColor: '#332244',
             hazardCount: 13, wallCount: 5
         },
         celestial: {
@@ -1096,6 +1119,7 @@ var Data = {
         water: { id: 'water', name: 'Water', desc: 'Costs 2 energy to move through.', hp: -1, destructible: false, color: '#2266cc', blocksMove: false, energyCost: 2 },
         portal: { id: 'portal', name: 'Portal', desc: 'Teleports you to a random location.', hp: -1, destructible: false, color: '#cc44ff', blocksMove: false, teleport: true },
         spike_trap: { id: 'spike_trap', name: 'Spike Trap', desc: 'Deals heavy damage if you stand on it for 2 consecutive turns.', hp: -1, destructible: false, color: '#888899', blocksMove: false, baseDamage: 100 },
+        void: { id: 'void', name: 'Void', desc: 'Inflicts Cursed and Diseased for 2 turns when stepped on.', hp: -1, destructible: false, color: '#6633aa', blocksMove: false },
         chill_water: { id: 'chill_water', name: 'Frigid Water', desc: 'Costs 2 energy and applies Chilled.', hp: -1, destructible: false, color: '#4488cc', blocksMove: false, energyCost: 2, applyChilled: true },
         swamp_pool: { id: 'swamp_pool', name: 'Toxic Pool', desc: 'Costs 2 energy to move through and applies poison.', hp: -1, destructible: false, color: '#335522', blocksMove: false, energyCost: 2 },
         judgement_sigil: { id: 'judgement_sigil', name: 'Judgement Sigil', desc: 'Applies Judgement status. Next hit deals double damage.', hp: -1, destructible: false, color: '#ffdd88', blocksMove: false }

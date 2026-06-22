@@ -407,6 +407,38 @@ var Boss = {
                     tiles.push({x: tx, y: ty});
                 }
                 break;
+            case 'Holy Thrust':
+                var hdx = px - centerX;
+                var hdy = py - centerY;
+                var hStepX = hdx === 0 ? 0 : (hdx > 0 ? 1 : -1);
+                var hStepY = hdy === 0 ? 0 : (hdy > 0 ? 1 : -1);
+                for (var i = 1; i <= 8; i++) {
+                    var htx = centerX + hStepX * i;
+                    var hty = centerY + hStepY * i;
+                    if (htx < 0 || htx >= Data.GRID_SIZE || hty < 0 || hty >= Data.GRID_SIZE) break;
+                    tiles.push({x: htx, y: hty});
+                }
+                break;
+            case 'North Pull':
+                for (var i = -3; i <= 3; i++) {
+                    tiles.push({x: px, y: py + i});
+                }
+                break;
+            case 'South Pull':
+                for (var i = -3; i <= 3; i++) {
+                    tiles.push({x: px, y: py + i});
+                }
+                break;
+            case 'West Pull':
+                for (var i = -3; i <= 3; i++) {
+                    tiles.push({x: px + i, y: py});
+                }
+                break;
+            case 'East Pull':
+                for (var i = -3; i <= 3; i++) {
+                    tiles.push({x: px + i, y: py});
+                }
+                break;
             case 'Summon Shade':
             case 'Summon Portal':
             case 'Lesser Quagmire':
@@ -454,7 +486,12 @@ var Boss = {
             'Summon Portal': 'Portals are opening!',
             'Summon Void': 'Void bolt incoming! Move away!',
             'Holy Smite': 'Holy smite in a plus shape! Dodge!',
-            'Holy Beam': 'Holy beam incoming! Move away!'
+            'Holy Beam': 'Holy beam incoming! Move away!',
+            'North Pull': 'Void pull from the north! Resist!',
+            'South Pull': 'Void pull from the south! Resist!',
+            'West Pull': 'Void pull from the west! Resist!',
+            'East Pull': 'Void pull from the east! Resist!',
+            'Holy Thrust': 'Holy thrust incoming! Dodge the line!'
         };
 
         if (alertMessages[attack.name]) {
@@ -480,6 +517,11 @@ var Boss = {
             case 'Summon Void': this.summonVoid(boss, attack, callback); break;
             case 'Holy Smite': this.holySmite(boss, attack, callback); break;
             case 'Holy Beam': this.holyBeam(boss, attack, callback); break;
+            case 'Holy Thrust': this.holyThrust(boss, attack, callback); break;
+            case 'North Pull': this.pullAttack(boss, attack, 0, -1, callback); break;
+            case 'South Pull': this.pullAttack(boss, attack, 0, 1, callback); break;
+            case 'West Pull': this.pullAttack(boss, attack, -1, 0, callback); break;
+            case 'East Pull': this.pullAttack(boss, attack, 1, 0, callback); break;
             default: this.basicAttack(boss, callback);
         }
     },
@@ -694,7 +736,7 @@ var Boss = {
                 State.animAoE(tiles, '#ffaa00');
                 for (var j = 0; j < tiles.length; j++) {
                     if (tiles[j].x === State.player.x && tiles[j].y === State.player.y) {
-                        Combat.dealDamageToPlayer(80);
+                        Combat.dealDamageToPlayer(120);
                     }
                 }
                 State.addFloatingText(State.player.x, State.player.y, 'BOMB!', '#ffaa00');
@@ -716,7 +758,7 @@ var Boss = {
                 State.animBeam(bandit.x, bandit.y, snipeTiles[snipeTiles.length - 1].x, snipeTiles[snipeTiles.length - 1].y, '#ff4444');
                 for (var j = 0; j < snipeTiles.length; j++) {
                     if (snipeTiles[j].x === px && snipeTiles[j].y === py) {
-                        Combat.dealDamageToPlayer(90);
+                        Combat.dealDamageToPlayer(130);
                     }
                 }
                 State.addFloatingText(px, py, 'SNIPE!', '#ff4444');
@@ -730,7 +772,7 @@ var Boss = {
                 State.player.x = pullTarget.x;
                 State.player.y = pullTarget.y;
                 State.addFloatingText(pullTarget.x, pullTarget.y, 'PULLED!', '#ff4444');
-                Combat.dealDamageToPlayer(Math.floor(bandit.damage * 0.6));
+                Combat.dealDamageToPlayer(40);
                 var bDist = AI.distance(State.player.x, State.player.y, bandit.x, bandit.y);
                 if (bDist <= 1.5) {
                     State.player.bleed = {damage: 15, turns: 3};
@@ -742,15 +784,26 @@ var Boss = {
                 State.addLog(name + ' uses Desert Flames!', 'boss');
                 var target = bandit._molotovTarget || {x: px, y: py};
                 State.animProjectile(bandit.x, bandit.y, target.x, target.y, '#ff4400');
-                for (var i = State.obstacles.length - 1; i >= 0; i--) {
-                    if (State.obstacles[i].x === target.x && State.obstacles[i].y === target.y) {
-                        State.obstacles.splice(i, 1);
+                for (var j = -1; j <= 1; j++) {
+                    for (var k = -1; k <= 1; k++) {
+                        var fx = target.x + j;
+                        var fy = target.y + k;
+                        if (fx >= 0 && fx < Data.GRID_SIZE && fy >= 0 && fy < Data.GRID_SIZE) {
+                            for (var i = State.obstacles.length - 1; i >= 0; i--) {
+                                if (State.obstacles[i].x === fx && State.obstacles[i].y === fy) {
+                                    State.obstacles.splice(i, 1);
+                                }
+                            }
+                            State.obstacles.push({
+                                x: fx, y: fy, id: 'lava', hp: -1,
+                                destructible: false, blocksMove: false, color: '#ff4400'
+                            });
+                        }
                     }
                 }
-                State.obstacles.push({
-                    x: target.x, y: target.y, id: 'lava', hp: -1,
-                    destructible: false, blocksMove: false, color: '#ff4400'
-                });
+                if (px >= target.x - 1 && px <= target.x + 1 && py >= target.y - 1 && py <= target.y + 1) {
+                    Combat.dealDamageToPlayer(120);
+                }
                 State.addFloatingText(target.x, target.y, 'FIRE!', '#ff4400');
                 bandit._molotovTarget = null;
                 break;
@@ -1487,14 +1540,7 @@ var Boss = {
     },
 
     summonVoid: function(boss, attack, callback) {
-        var px = State.player.x;
-        var py = State.player.y;
-        var tiles = [];
-        for (var dx = -1; dx <= 1; dx++) {
-            for (var dy = -1; dy <= 1; dy++) {
-                tiles.push({x: px + dx, y: py + dy});
-            }
-        }
+        var tiles = boss.telegraphTiles || [];
         State.animAoE(tiles, '#6633aa');
         for (var j = 0; j < tiles.length; j++) {
             if (tiles[j].x === State.player.x && tiles[j].y === State.player.y) {
@@ -1506,13 +1552,7 @@ var Boss = {
 
     // === LIGHT GUARDIAN ATTACKS ===
     holySmite: function(boss, attack, callback) {
-        var px = State.player.x;
-        var py = State.player.y;
-        var tiles = [];
-        for (var i = -3; i <= 3; i++) {
-            tiles.push({x: px, y: py + i});
-            tiles.push({x: px + i, y: py});
-        }
+        var tiles = boss.telegraphTiles || [];
         State.animAoE(tiles, '#ffddaa');
         for (var j = 0; j < tiles.length; j++) {
             if (tiles[j].x === State.player.x && tiles[j].y === State.player.y) {
@@ -1543,6 +1583,77 @@ var Boss = {
                 Combat.dealDamageToPlayer(attack.damage);
             }
         }
+        Grid.render(); UI.updateAll(); callback();
+    },
+
+    pullAttack: function(boss, attack, dx, dy, callback) {
+        var size = boss.size || 2;
+        var centerX = boss.x + Math.floor(size / 2);
+        var centerY = boss.y + Math.floor(size / 2);
+        var px = State.player.x;
+        var py = State.player.y;
+        var tiles = [];
+        for (var i = -3; i <= 3; i++) {
+            if (dx !== 0) tiles.push({x: px + i, y: py});
+            if (dy !== 0) tiles.push({x: px, y: py + i});
+        }
+        State.animAoE(tiles, '#6633aa');
+        var inLine = false;
+        for (var j = 0; j < tiles.length; j++) {
+            if (tiles[j].x === px && tiles[j].y === py) {
+                inLine = true;
+                break;
+            }
+        }
+        if (inLine) {
+            Combat.dealDamageToPlayer(attack.damage);
+            var pullX = px + dx * 2;
+            var pullY = py + dy * 2;
+            pullX = Math.max(0, Math.min(Data.GRID_SIZE - 1, pullX));
+            pullY = Math.max(0, Math.min(Data.GRID_SIZE - 1, pullY));
+            if (!State.isBlocked(pullX, pullY)) {
+                State.player.x = pullX;
+                State.player.y = pullY;
+                State.addFloatingText(pullX, pullY, 'PULLED!', '#6633aa');
+            }
+        }
+        Grid.render(); UI.updateAll(); callback();
+    },
+
+    holyThrust: function(boss, attack, callback) {
+        var size = boss.size || 2;
+        var centerX = boss.x + Math.floor(size / 2);
+        var centerY = boss.y + Math.floor(size / 2);
+        var dx = State.player.x - centerX;
+        var dy = State.player.y - centerY;
+        var stepX = dx === 0 ? 0 : (dx > 0 ? 1 : -1);
+        var stepY = dy === 0 ? 0 : (dy > 0 ? 1 : -1);
+        var tiles = [];
+        for (var i = 1; i <= 8; i++) {
+            var tx = centerX + stepX * i;
+            var ty = centerY + stepY * i;
+            if (tx < 0 || tx >= Data.GRID_SIZE || ty < 0 || ty >= Data.GRID_SIZE) break;
+            tiles.push({x: tx, y: ty});
+        }
+        State.animBeam(centerX, centerY, tiles[tiles.length - 1].x, tiles[tiles.length - 1].y, '#ffddaa');
+        for (var j = 0; j < tiles.length; j++) {
+            if (tiles[j].x === State.player.x && tiles[j].y === State.player.y) {
+                Combat.dealDamageToPlayer(attack.damage);
+            }
+        }
+        var teleportAttempts = 0;
+        var tx, ty;
+        do {
+            tx = Math.floor(Math.random() * Data.GRID_SIZE);
+            ty = Math.floor(Math.random() * Data.GRID_SIZE);
+            teleportAttempts++;
+        } while (teleportAttempts < 100 && (Stages.isReserved(tx, ty) || AI.distance(tx, ty, State.player.x, State.player.y) < 2));
+        var oldX = centerX;
+        var oldY = centerY;
+        boss.x = tx;
+        boss.y = ty;
+        State.animMove(oldX, oldY, tx, ty, boss.color, '#ffddaa');
+        State.addFloatingText(tx, ty, 'THRUST!', '#ffddaa');
         Grid.render(); UI.updateAll(); callback();
     }
 };

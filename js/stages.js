@@ -131,7 +131,7 @@ var Stages = {
         for (var i = 0; i < banditDefs.length; i++) {
             var bd = banditDefs[i];
             var def = Data.ENEMIES[bd.defId];
-            var hp = Math.floor(def.hp * loopScaling * 0.4);
+            var hp = Math.floor(def.hp * loopScaling * 0.8);
             State.enemies.push({
                 x: bd.x, y: bd.y,
                 hp: hp, maxHp: hp,
@@ -169,6 +169,11 @@ var Stages = {
                 this.spawnSpikeTraps(2 + Math.floor(Math.random() * 3));
             } else if (hazardType === 'spike_trap') {
                 this.spawnSpikeTraps(2 + Math.floor(Math.random() * 3));
+            } else if (hazardType === 'void' && spawnMode === 'line') {
+                this.spawnVoidLine();
+                this.spawnVoidHazards(2 + Math.floor(Math.random() * 3));
+            } else if (hazardType === 'void') {
+                this.spawnVoidHazards(2 + Math.floor(Math.random() * 3));
             } else if (hazardType === 'portal') {
                 this.spawnPortalPairs(1 + Math.floor(Math.random() * 2));
             } else if (hazardType === 'judgement_sigil') {
@@ -227,6 +232,36 @@ var Stages = {
             State.obstacles.push({
                 x: x, y: y, id: 'spike_trap', hp: -1, destructible: false,
                 blocksMove: false, color: '#888899'
+            });
+        }
+    },
+
+    spawnVoidHazards: function(count) {
+        var placed = 0;
+        var attempts = 0;
+        while (placed < count && attempts < 100) {
+            var x = Math.floor(Math.random() * Data.GRID_SIZE);
+            var y = Math.floor(Math.random() * Data.GRID_SIZE);
+            if (this.isReserved(x, y)) { attempts++; continue; }
+            State.obstacles.push({
+                x: x, y: y, id: 'void', hp: -1, destructible: false,
+                blocksMove: false, color: '#6633aa'
+            });
+            placed++;
+            attempts++;
+        }
+    },
+
+    spawnVoidLine: function() {
+        var horizontal = Math.random() < 0.5;
+        var pos = 1 + Math.floor(Math.random() * (Data.GRID_SIZE - 2));
+        for (var i = 0; i < Data.GRID_SIZE; i++) {
+            var x = horizontal ? i : pos;
+            var y = horizontal ? pos : i;
+            if (this.isReserved(x, y)) continue;
+            State.obstacles.push({
+                x: x, y: y, id: 'void', hp: -1, destructible: false,
+                blocksMove: false, color: '#6633aa'
             });
         }
     },
