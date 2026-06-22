@@ -60,6 +60,7 @@ var State = {
     selectedClass: 'knight',
     biomeOrder: [],
     currentBiome: null,
+    previousBiome: null,
 
     combatLog: [],
     maxLogEntries: 50,
@@ -162,16 +163,30 @@ var State = {
             }
         }
         this.currentBiome = this.biomeOrder[0];
+        this.previousBiome = null;
     },
 
     updateBiome: function() {
         if (this.debugBiomeOverride) {
+            this.previousBiome = this.currentBiome;
             this.currentBiome = this.debugBiomeOverride;
             this.addLog('[DEBUG] Biome forced to: ' + Data.BIOMES[this.debugBiomeOverride].name, 'info');
             return;
         }
+        this.previousBiome = this.currentBiome;
         var biomeIndex = Math.floor((this.stage - 1) / Data.BOSS_EVERY) % this.biomeOrder.length;
         this.currentBiome = this.biomeOrder[biomeIndex];
+    },
+
+    showBiomeFlavor: function() {
+        var biome = this.currentBiome;
+        var cls = this.selectedClass;
+        var variants = Data.BIOME_FLAVOR[biome];
+        if (!variants || variants.length === 0) return;
+        var pick = variants[Math.floor(Math.random() * variants.length)];
+        var text = pick[cls] || pick.knight;
+        var biomeName = Data.BIOMES[biome] ? Data.BIOMES[biome].name : biome;
+        this.addDialogue(biomeName, text, Data.BIOMES[biome] ? Data.BIOMES[biome].accent : '#ffffff');
     },
 
     getPlayerDamage: function() {

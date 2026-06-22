@@ -518,6 +518,10 @@ html, body {
     content: none;
 }
 
+#game-tooltip {
+    display: none;
+}
+
 .js-tooltip {
     position: fixed;
     background: var(--bg-dark);
@@ -552,6 +556,10 @@ html, body {
         text-align: center;
         pointer-events: auto;
         box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.6);
+    }
+
+    #controls-hint {
+        display: none;
     }
 }
 
@@ -1196,10 +1204,7 @@ html, body {
     flex-shrink: 0;
     width: 100%;
     box-sizing: border-box;
-}
-
-#buff-bar:empty {
-    display: none;
+    min-height: 36px;
 }
 
 .buff-icon {
@@ -1235,8 +1240,7 @@ html, body {
 
 @media (max-width: 600px) {
     #controls-hint {
-        gap: 0.8rem;
-        font-size: 0.4rem;
+        display: none;
     }
     
     .game-title {

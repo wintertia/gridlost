@@ -92,24 +92,27 @@ var Main = {
             UI.updateAll();
             State.saveTurnStartState();
             UI.updateAll();
-            if (State.isBossStage && State.currentBossDef) {
-                UI.showBossWarning(State.currentBossDef.name, function() {
-                    if (State.currentBossDef.startDialogue) {
-                        State.addDialogue(State.currentBossDef.name, State.currentBossDef.startDialogue, State.currentBossDef.color);
-                        State.processDialogueQueue(function() {
+            State.showBiomeFlavor();
+            State.processDialogueQueue(function() {
+                if (State.isBossStage && State.currentBossDef) {
+                    UI.showBossWarning(State.currentBossDef.name, function() {
+                        if (State.currentBossDef.startDialogue) {
+                            State.addDialogue(State.currentBossDef.name, State.currentBossDef.startDialogue, State.currentBossDef.color);
+                            State.processDialogueQueue(function() {
+                                if (State.currentBossDef.startEffect) {
+                                    State.currentBossDef.startEffect();
+                                }
+                                UI.updateAll();
+                            });
+                        } else {
                             if (State.currentBossDef.startEffect) {
                                 State.currentBossDef.startEffect();
                             }
                             UI.updateAll();
-                        });
-                    } else {
-                        if (State.currentBossDef.startEffect) {
-                            State.currentBossDef.startEffect();
                         }
-                        UI.updateAll();
-                    }
-                });
-            }
+                    });
+                }
+            });
         }, 50);
     },
 
@@ -312,36 +315,62 @@ var Main = {
         UI.hideScreen('skill-screen');
         UI.hideScreen('replace-screen');
         UI.showScreen('game-screen');
+        var biomeChanged = State.previousBiome !== null && State.previousBiome !== State.currentBiome;
         if (State.isBossStage && State.currentBossDef) {
             AudioMgr.playBgmForBoss(State.currentBossDef.id);
         } else {
             AudioMgr.playBgmForBiome(State.currentBiome);
         }
         var self = this;
-        setTimeout(function() {
-            Grid.resize();
-            UI.updateAll();
-            State.saveTurnStartState();
-            UI.updateAll();
-            if (State.isBossStage && State.currentBossDef) {
-                UI.showBossWarning(State.currentBossDef.name, function() {
-                    if (State.currentBossDef.startDialogue) {
-                        State.addDialogue(State.currentBossDef.name, State.currentBossDef.startDialogue, State.currentBossDef.color);
-                        State.processDialogueQueue(function() {
+        function afterFlavor() {
+            setTimeout(function() {
+                Grid.resize();
+                UI.updateAll();
+                State.saveTurnStartState();
+                UI.updateAll();
+                if (biomeChanged && !State.isBossStage) {
+                    State.showBiomeFlavor();
+                    State.processDialogueQueue(function() {
+                        if (State.isBossStage && State.currentBossDef) {
+                            UI.showBossWarning(State.currentBossDef.name, function() {
+                                if (State.currentBossDef.startDialogue) {
+                                    State.addDialogue(State.currentBossDef.name, State.currentBossDef.startDialogue, State.currentBossDef.color);
+                                    State.processDialogueQueue(function() {
+                                        if (State.currentBossDef.startEffect) {
+                                            State.currentBossDef.startEffect();
+                                        }
+                                        UI.updateAll();
+                                    });
+                                } else {
+                                    if (State.currentBossDef.startEffect) {
+                                        State.currentBossDef.startEffect();
+                                    }
+                                    UI.updateAll();
+                                }
+                            });
+                        }
+                    });
+                } else if (State.isBossStage && State.currentBossDef) {
+                    UI.showBossWarning(State.currentBossDef.name, function() {
+                        if (State.currentBossDef.startDialogue) {
+                            State.addDialogue(State.currentBossDef.name, State.currentBossDef.startDialogue, State.currentBossDef.color);
+                            State.processDialogueQueue(function() {
+                                if (State.currentBossDef.startEffect) {
+                                    State.currentBossDef.startEffect();
+                                }
+                                UI.updateAll();
+                            });
+                        } else {
                             if (State.currentBossDef.startEffect) {
                                 State.currentBossDef.startEffect();
                             }
                             UI.updateAll();
-                        });
-                    } else {
-                        if (State.currentBossDef.startEffect) {
-                            State.currentBossDef.startEffect();
                         }
-                        UI.updateAll();
-                    }
-                });
-            }
-        }, 50);
+                    });
+                }
+            }, 50);
+        }
+        afterFlavor();
     },
 
     gameOver: function() {

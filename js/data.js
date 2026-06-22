@@ -1229,5 +1229,48 @@ var Data = {
     ELITE_HP_MULT: 2,
     ELITE_DMG_MULT: 1.3,
     ELITE_TELEGRAPH_MULT: 1.6,
-    ELITE_SPECIAL_INTERVAL: 3
+    ELITE_SPECIAL_INTERVAL: 3,
+
+    BIOME_FLAVOR: {
+        dungeon: [
+            { knight: 'Stone walls. Traps everywhere. Good — I was born in places like this.', ranger: 'Dark. Tight corridors. I hate close quarters.', paladin: 'The dark gnaws at the light. Stay close, stay faithful.', rogue: 'Smells like coin and ambush. My kind of place.' },
+            { knight: 'Another dungeon. The walls remember every fool who walked in.', ranger: 'Every shadow could hide an arrow. Keep moving.', paladin: 'Even here, the light finds a way. So shall I.', rogue: 'Dungeons always have something worth stealing.' },
+            { knight: 'I can feel the traps in the floor. My armor knows the sound.', ranger: 'No sky above. No wind. Just stone and waiting death.', paladin: 'This place reeks of forgotten prayers. I will remind them.', rogue: 'Goblins, traps, treasure. The usual equation.' }
+        ],
+        forest: [
+            { knight: 'Trees. At least I can see what wants to kill me here.', ranger: 'Finally, somewhere I can breathe. The canopy knows my name.', paladin: 'The old forest watches. The old forest judges.', rogue: 'Wood and leaves. Someone left a fortune in lumber out here.' },
+            { knight: 'Green everywhere. Hard to spot enemies in all this.', ranger: 'Every branch is a perch. Every root is a snare. I know them all.', paladin: "Nature's cathedral. Even the beasts pray here.", rogue: 'Forests are simple. Things hide, things die. I do both.' },
+            { knight: 'The trees are old. Older than any fortress I have seen.', ranger: 'Wind through leaves. The forest is talking. I am listening.', paladin: 'Life thrives here. I will not let it wither.', rogue: 'Druids and treants. Nature\'s bodyguards. Annoying.' }
+        ],
+        swamp: [
+            { knight: 'Mud and rot. My boots will never recover.', ranger: 'Everything here is poisonous. Stay sharp, stay dry.', paladin: 'The swamp tests the faithful. I will not sink.', rogue: 'Stinking muck. There\'s treasure under the water. There always is.' },
+            { knight: 'The ground gives way. Fight standing or die sinking.', ranger: 'Poison in the water, poison in the air. Poison in the mud.', paladin: 'Even in filth, the light endures. I am the light.', rogue: 'Swamps hide the worst kind of people. And the best kind of loot.' },
+            { knight: 'I have marched through worse than mud.', ranger: 'Watch your step. Every puddle is a grave.', paladin: 'The plaguebearer\'s stench. I will cleanse this rot.', rogue: 'Toads, plague, muck. At least the pay is good.' }
+        ],
+        desert: [
+            { knight: 'Sand and sun. At least the enemies are visible.', ranger: 'Open ground. No cover. This is going to hurt.', paladin: 'The desert sun burns, but my faith burns hotter.', rogue: 'Heat, sand, bandits. The perfect crime scene.' },
+            { knight: 'Heat haze. Hard to tell mirages from mummies.', ranger: 'No shade. No water. No mercy. Classic desert.', paladin: 'The sun is relentless. So am I.', rogue: 'Deserts are where fortunes are made. And lost. Mostly made.' },
+            { knight: 'Bandits in the sand. I have broken harder men than them.', ranger: 'Scorpions, mummies, wraiths. The desert kills creative.', paladin: 'The light of the sun is nothing compared to the light within.', rogue: 'Sand in my boots. Gold in my pockets. Worth it.' }
+        ],
+        frozen: [
+            { knight: 'Cold. My armor freezes. The enemy will too.', ranger: 'Ice and wind. Every step is a gamble.', paladin: 'The cold tries to extinguish me. It will fail.', rogue: 'Frozen solid. Perfect for hiding bodies.' },
+            { knight: 'The ice is beautiful. I will not die admiring it.', ranger: 'Frost elementals. Ice wyrms. Everything here bites.', paladin: 'In the cold, the fire of the soul burns brightest.', rogue: 'Cold means slow. Slow means I win.' },
+            { knight: 'I have faced worse cold. The battlefield is always colder.', ranger: 'Snow hides everything. Tracks, traps, teeth.', paladin: 'Even in winter, the divine light warms.', rogue: 'Frozen enemies are easier to rob. Just saying.' }
+        ],
+        volcanic: [
+            { knight: 'Fire and stone. The earth itself fights here.', ranger: 'Lava, magma, fire. I am not built for this.', paladin: 'The flames of judgment. I carry my own.', rogue: 'Hot. Very hot. The kind of heat that melts gold.' },
+            { knight: 'The ground burns. Keep moving or burn.', ranger: 'Magma slimes, phoenixes, fire elementals. Everything burns.', paladin: 'The forge of the divine. I am tempered here.', rogue: 'Fire elementals are worth a fortune in the right market.' },
+            { knight: 'Volcanic rock. Harder than any wall I have broken.', ranger: 'Heat distortion. Everything looks like a target.', paladin: 'The volcano rages. My faith is the mountain.', rogue: 'Where there is fire, there is treasure. Where there is treasure, there is me.' }
+        ],
+        shadow_realm: [
+            { knight: 'Darkness. I have fought in worse. The light is mine to carry.', ranger: 'Shadows. Portals. Nothing here is what it seems.', paladin: 'The void stares back. I stare harder.', rogue: 'Shadow realm. The name says it all. Spooky.' },
+            { knight: 'Wraiths and void. My sword does not care about dimensions.', ranger: 'Portals everywhere. One step wrong and you are dead.', paladin: 'The shadow fears the light. I am the light.', rogue: 'Shadow creatures. Easier to rob when they are intangible.' },
+            { knight: 'The shadows whisper. I do not listen.', ranger: 'Void walkers. Shades. Everything here wants your soul.', paladin: 'Even in the darkest realm, hope persists. I am hope.', rogue: 'Shadows are just places where the light has not been stolen yet.' }
+        ],
+        celestial: [
+            { knight: 'Angels and chariots. At least the ceiling is nice.', ranger: 'Celestial beings. They hit hard and they hit holy.', paladin: 'The divine host. I walk among them now.', rogue: 'Angels. They guard the biggest treasure of all.' },
+            { knight: 'Holy ground. My blade has never been sharper.', ranger: 'Judgement sigils. Seraphs. This is above my pay grade.', paladin: 'The celestial realm. My pilgrimage ends here.', rogue: 'Angels drop the best loot. Just do not tell them I said that.' },
+            { knight: 'I stand before the divine. I do not kneel.', ranger: 'Chariots. Seraphs. The sky itself fights.', paladin: 'I have walked the path of faith. This is its end.', rogue: 'Holy treasures. Unholy intentions. Perfect.' }
+        ]
+    }
 };
