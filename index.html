@@ -14,7 +14,9 @@
     <div id="title-screen" class="screen active">
         <div class="title-content">
             <h1 class="game-title">GRIDLOST</h1>
+            <p class="game-subtitle">A Turn-Based Roguelike</p>
             <button id="btn-start" class="pixel-btn">NEW ADVENTURE</button>
+            <button id="btn-settings-menu" class="pixel-btn small">SETTINGS</button>
         </div>
     </div>
 
@@ -256,12 +258,32 @@
         </div>
     </div>
 
+    <!-- SETTINGS MODAL -->
+    <div id="settings-screen" class="screen overlay">
+        <div class="modal settings-modal">
+            <h2 class="modal-title">SETTINGS</h2>
+            <div class="settings-row">
+                <label class="settings-label">BGM Volume</label>
+<input type="range" id="settings-bgm" min="0" max="60" value="30" class="settings-slider">
+            </div>
+            <div class="settings-row">
+                <label class="settings-label">SFX Volume</label>
+                <input type="range" id="settings-sfx" min="0" max="100" value="50" class="settings-slider">
+            </div>
+            <button id="btn-settings-close" class="pixel-btn">DONE</button>
+        </div>
+    </div>
+
+    <!-- In-game settings button -->
+    <button id="btn-settings-ingame" class="pixel-btn settings-ingame-btn" style="display:none">⚙</button>
+
     <!-- jQuery CDN -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     
     <!-- Game Scripts (order matters) -->
     <script src="js/data.js"></script>
     <script src="js/state.js"></script>
+    <script src="js/audio.js"></script>
     <script src="js/grid.js"></script>
     <script src="js/input.js"></script>
     <script src="js/combat.js"></script>

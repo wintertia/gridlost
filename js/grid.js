@@ -567,6 +567,33 @@ var Grid = {
             }
         }
 
+        if (e.telegraph) {
+            ctx.fillStyle = 'rgba(255, 255, 0, 0.3)';
+            ctx.fillRect(px + 2, py + 2, ts - 4, ts - 4);
+            ctx.strokeStyle = '#ffff00';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(px + 2, py + 2, ts - 4, ts - 4);
+
+            var teleText = e.telegraph ? ('NEXT: ' + e.telegraph.name) : 'NEXT: SPECIAL';
+            ctx.fillStyle = '#ffff00';
+            ctx.font = Math.max(6, Math.floor(ts * 0.18)) + 'px "Press Start 2P"';
+            ctx.textAlign = 'center';
+            ctx.fillText(teleText, px + ts / 2, py - 4);
+        }
+
+        if (e.telegraphTiles && e.telegraphTiles.length > 0) {
+            for (var t = 0; t < e.telegraphTiles.length; t++) {
+                var tile = e.telegraphTiles[t];
+                var tilePx = tile.x * ts;
+                var tilePy = tile.y * ts;
+                ctx.fillStyle = 'rgba(255, 68, 68, 0.2)';
+                ctx.fillRect(tilePx + 2, tilePy + 2, ts - 4, ts - 4);
+                ctx.strokeStyle = 'rgba(255, 68, 68, 0.6)';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(tilePx + 2, tilePy + 2, ts - 4, ts - 4);
+            }
+        }
+
         if (State.player.diseased && e.defId === 'plaguebearer') {
             ctx.strokeStyle = '#aacc22';
             ctx.lineWidth = 2;
@@ -638,6 +665,19 @@ var Grid = {
                 ctx.strokeStyle = 'rgba(255, 255, 0, 0.5)';
                 ctx.lineWidth = 1;
                 ctx.strokeRect(tilePx + 2, tilePy + 2, ts - 4, ts - 4);
+            }
+        }
+
+        if (e.spikeOverloadTiles && e.spikeOverloadTiles.length > 0) {
+            for (var si = 0; si < e.spikeOverloadTiles.length; si++) {
+                var st = e.spikeOverloadTiles[si];
+                var stPx = st.x * ts;
+                var stPy = st.y * ts;
+                ctx.fillStyle = 'rgba(255, 0, 0, 0.2)';
+                ctx.fillRect(stPx + 2, stPy + 2, ts - 4, ts - 4);
+                ctx.strokeStyle = 'rgba(255, 0, 0, 0.6)';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(stPx + 2, stPy + 2, ts - 4, ts - 4);
             }
         }
     },

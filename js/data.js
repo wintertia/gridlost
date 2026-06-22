@@ -454,81 +454,572 @@ var Data = {
         seraph: {
             id: 'seraph', name: 'Seraph', hp: 210, damage: 25, moveSpeed: 0,
             type: 'summoner', color: '#ffffcc', behavior: 'stay_far'
+        },
+        tech_terry: {
+            id: 'tech_terry', name: 'Tech Terry', hp: 960, damage: 25, moveSpeed: 1,
+            type: 'summoner', color: '#aaaaaa', behavior: 'stay_far'
+        },
+        shooter_sally: {
+            id: 'shooter_sally', name: 'Shooter Sally', hp: 960, damage: 35, moveSpeed: 1,
+            type: 'ranged', color: '#ff4444', behavior: 'keep_distance'
+        },
+        breaker_barry: {
+            id: 'breaker_barry', name: 'Breaker Barry', hp: 960, damage: 45, moveSpeed: 1,
+            type: 'melee', color: '#ff8844', behavior: 'charge'
+        },
+        molotov_mary: {
+            id: 'molotov_mary', name: 'Molotov Mary', hp: 960, damage: 30, moveSpeed: 1,
+            type: 'ranged', color: '#ff6622', behavior: 'keep_distance'
+        },
+        mini_robot: {
+            id: 'mini_robot', name: 'Mini Robot', hp: 50, damage: 15, moveSpeed: 1,
+            type: 'melee', color: '#aaaaaa', behavior: 'charge', isSummon: true
+        },
+        ice_crystal: {
+            id: 'ice_crystal', name: 'Ice Crystal', hp: 300, damage: 40, moveSpeed: 0,
+            type: 'ranged', color: '#aaeeff', behavior: 'stationary'
         }
     },
 
     BOSS_DEFS: {
-        colossus: {
-            id: 'colossus', name: 'Stone Colossus', hp: 1600, damage: 60,
-            color: '#778899', behavior: 'boss', size: 2,
+        overseer: {
+            id: 'overseer', name: 'The Overseer', hp: 3500, damage: 55,
+            color: '#ff8800', behavior: 'boss', size: 2, stationary: true,
             attacks: [
-                { name: 'Ground Slam', shape: 'cross', range: 1, damage: 160, cooldown: 3, current: 0 },
-                { name: 'Boulder Throw', shape: 'line', range: 4, damage: 110, cooldown: 2, current: 0 },
-                { name: 'Summon Rubble', shape: 'summon_rubble', damage: 0, cooldown: 4, current: 0 }
-            ]
+                { name: 'Spear Traps', shape: 'spear_traps', damage: 120, cooldown: 2, current: 0 },
+                { name: 'Spear Thrust', shape: 'spear_thrust', damage: 100, cooldown: 2, current: 0 },
+                { name: 'Spear Slam', shape: 'spear_slam', damage: 140, cooldown: 2, current: 0 }
+            ],
+            phases: [
+                {
+                    threshold: 66,
+                    dialogue: 'You think you can defy me? Witness my true power!',
+                    handler: function(boss) {
+                        var dirs = [{x:0,y:0},{x:7,y:0},{x:0,y:7},{x:7,y:7}];
+                        for (var i = 0; i < 2; i++) {
+                            var d = dirs[i];
+                            State.enemies.push({
+                                x: d.x, y: d.y, hp: 200, maxHp: 200,
+                                damage: 25, defId: 'necromancer',
+                                facing: 'down', frozen: 0, freezeImmune: false,
+                                freezeImmuneTurns: 0, poison: null,
+                                isBoss: false, color: '#7722aa',
+                                isSummon: true, moveSpeed: 1
+                            });
+                        }
+                        State.addFloatingText(4, 4, 'NECROMANCERS SUMMONED!', '#ff8800');
+                    }
+                },
+                {
+                    threshold: 33,
+                    dialogue: 'Spike Overload! You will be pierced!',
+                    handler: function(boss) {
+                        boss.spikeOverload = true;
+                        State.addFloatingText(4, 4, 'SPIKE OVERLOAD!', '#ff4444');
+                    }
+                }
+            ],
+            deathDialogue: 'Impossible... the traps... fail...',
+            startDialogue: 'Welcome to my domain. Every step will be your last.',
+            startEffect: function(boss) {
+                for (var x = 0; x < Data.GRID_SIZE; x++) {
+                    for (var y = 0; y < Data.GRID_SIZE; y++) {
+                        for (var i = State.obstacles.length - 1; i >= 0; i--) {
+                            if (State.obstacles[i].x === x && State.obstacles[i].y === y) {
+                                State.obstacles.splice(i, 1);
+                            }
+                        }
+                        State.obstacles.push({
+                            x: x, y: y, id: 'spike_trap', hp: -1,
+                            destructible: false, blocksMove: false, color: '#888899'
+                        });
+                    }
+                }
+                State.addFloatingText(4, 4, 'ACTIVATE TRAPS!', '#ff8800');
+            }
         },
-        ancient_tree: {
-            id: 'ancient_tree', name: 'Ancient Tree', hp: 1800, damage: 50,
-            color: '#446622', behavior: 'boss', size: 2,
+        mud_colossus: {
+            id: 'mud_colossus', name: 'Mud Colossus', hp: 3000, damage: 50,
+            color: '#664422', behavior: 'boss', size: 2, mobile: true,
             attacks: [
-                { name: 'Root Grasp', shape: 'root', damage: 0, cooldown: 3, current: 0 },
-                { name: 'Summon Saplings', shape: 'summon_sapling', damage: 0, cooldown: 4, current: 0 },
-                { name: 'Leaf Storm', shape: 'aoe', range: 2, damage: 100, cooldown: 2, current: 0 }
-            ]
+                { name: 'Swamp Spit', shape: 'swamp_spit', damage: 0, cooldown: 2, current: 0 },
+                { name: 'Lesser Quagmire', shape: 'lesser_quagmire', damage: 0, cooldown: 3, current: 0 }
+            ],
+            phases: [
+                {
+                    threshold: 75,
+                    dialogue: 'The swamp rises to answer my call!',
+                    handler: function(boss) {
+                        var dirs = [{x:0,y:0},{x:7,y:0},{x:0,y:7},{x:7,y:7}];
+                        for (var i = 0; i < 2; i++) {
+                            var d = dirs[i];
+                            State.enemies.push({
+                                x: d.x, y: d.y, hp: 350, maxHp: 350,
+                                damage: 30, defId: 'mud_golem',
+                                facing: 'down', frozen: 0, freezeImmune: false,
+                                freezeImmuneTurns: 0, poison: null,
+                                isBoss: false, color: '#553322',
+                                isSummon: true, moveSpeed: 1
+                            });
+                        }
+                        State.addFloatingText(4, 4, 'MUD GOLEMS SUMMONED!', '#664422');
+                    }
+                },
+                {
+                    threshold: 50,
+                    dialogue: 'The mud recedes... but something worse comes!',
+                    handler: function(boss) {
+                        for (var i = State.obstacles.length - 1; i >= 0; i--) {
+                            if (State.obstacles[i].id === 'swamp_pool') {
+                                State.obstacles.splice(i, 1);
+                            }
+                        }
+                        var attempts = 0;
+                        var ex, ey;
+                        do {
+                            ex = Math.floor(Math.random() * Data.GRID_SIZE);
+                            ey = Math.floor(Math.random() * Data.GRID_SIZE);
+                            attempts++;
+                        } while (attempts < 100 && (Stages.isReserved(ex, ey) || AI.distance(ex, ey, State.player.x, State.player.y) < 2));
+                        State.enemies.push({
+                            x: ex, y: ey, hp: 400, maxHp: 400,
+                            damage: 40, defId: 'mud_golem',
+                            facing: 'down', frozen: 0, freezeImmune: false,
+                            freezeImmuneTurns: 0, poison: null,
+                            isBoss: false, isElite: true,
+                            eliteTurnCount: 0, eliteTelegraphing: false,
+                            color: '#553322', isSummon: true, moveSpeed: 1
+                        });
+                        State.addFloatingText(ex, ey, 'ELITE MUD GOLEM!', '#ff4444');
+                    }
+                },
+                {
+                    threshold: 20,
+                    dialogue: 'The entire swamp converges on you!',
+                    handler: function(boss) {
+                        for (var i = State.obstacles.length - 1; i >= 0; i--) {
+                            if (State.obstacles[i].id === 'swamp_pool') {
+                                State.obstacles.splice(i, 1);
+                            }
+                        }
+                        boss.floodColumn = 0;
+                        boss.floodDirection = Math.random() < 0.5 ? 1 : -1;
+                        State.addFloatingText(4, 4, 'SWAMP FLOOD!', '#335522');
+                    }
+                }
+            ],
+            deathDialogue: 'The mud... settles...',
+            startDialogue: 'You dare enter my swamp? You will sink!'
         },
-        hydra: {
-            id: 'hydra', name: 'Hydra', hp: 2000, damage: 45,
-            color: '#446644', behavior: 'boss', size: 2,
+        greatwood_titan: {
+            id: 'greatwood_titan', name: 'Greatwood Titan', hp: 4000, damage: 45,
+            color: '#446622', behavior: 'boss', size: 2, stationary: true,
             attacks: [
-                { name: 'Multi-Head', shape: 'multi_direction', damage: 110, cooldown: 2, current: 0 },
-                { name: 'Regen', shape: 'self_heal', damage: 0, cooldown: 4, current: 0 },
-                { name: 'Poison Spit', shape: 'cone', range: 3, damage: 90, cooldown: 2, current: 0 }
-            ]
+                { name: 'Wooden Thorns', shape: 'wooden_thorns', damage: 110, cooldown: 2, current: 0 },
+                { name: 'Branch Slam', shape: 'branch_slam', damage: 130, cooldown: 2, current: 0 },
+                { name: 'Overgrow', shape: 'overgrow', damage: 90, cooldown: 3, current: 0 }
+            ],
+            phases: [
+                {
+                    threshold: 75,
+                    dialogue: 'The woods answer my call! Fight my children!',
+                    handler: function(boss) {
+                        var dirs = [{x:0,y:0},{x:7,y:0},{x:0,y:7},{x:7,y:7}];
+                        for (var i = 0; i < 2; i++) {
+                            var d = dirs[i];
+                            State.enemies.push({
+                                x: d.x, y: d.y, hp: 250, maxHp: 250,
+                                damage: 20, defId: 'treant',
+                                facing: 'down', frozen: 0, freezeImmune: false,
+                                freezeImmuneTurns: 0, poison: null,
+                                isBoss: false, color: '#446622',
+                                isSummon: true, moveSpeed: 0.5
+                            });
+                        }
+                        boss.invulnerable = true;
+                        State.addFloatingText(4, 4, 'TREANTS SUMMONED! KILL THEM!', '#446622');
+                    }
+                },
+                {
+                    threshold: 50,
+                    dialogue: 'Feel the rivers of the forest!',
+                    handler: function(boss) {
+                        for (var i = 0; i < Data.GRID_SIZE; i++) {
+                            var positions = [
+                                {x: i, y: 0}, {x: i, y: 7},
+                                {x: 0, y: i}, {x: 7, y: i}
+                            ];
+                            for (var j = 0; j < positions.length; j++) {
+                                var p = positions[j];
+                                var alreadyWater = false;
+                                for (var w = 0; w < State.obstacles.length; w++) {
+                                    if (State.obstacles[w].x === p.x && State.obstacles[w].y === p.y && State.obstacles[w].id === 'water') {
+                                        alreadyWater = true;
+                                        break;
+                                    }
+                                }
+                                if (!alreadyWater) {
+                                    State.obstacles.push({
+                                        x: p.x, y: p.y, id: 'water', hp: -1,
+                                        destructible: false, blocksMove: false,
+                                        color: '#2266cc'
+                                    });
+                                }
+                            }
+                        }
+                        State.addFloatingText(4, 4, 'WATERS RISE!', '#2266cc');
+                    }
+                },
+                {
+                    threshold: 25,
+                    dialogue: 'This ends here, mortal!',
+                    handler: function(boss) {
+                        var px = State.player.x;
+                        var py = State.player.y;
+                        for (var dx = -1; dx <= 1; dx++) {
+                            for (var dy = -1; dy <= 1; dy++) {
+                                var tx = px + dx;
+                                var ty = py + dy;
+                                if (tx >= 0 && tx < Data.GRID_SIZE && ty >= 0 && ty < Data.GRID_SIZE) {
+                                    for (var i = State.obstacles.length - 1; i >= 0; i--) {
+                                        if (State.obstacles[i].x === tx && State.obstacles[i].y === ty && State.obstacles[i].id === 'water') {
+                                            State.obstacles.splice(i, 1);
+                                        }
+                                    }
+                                    if (!Stages.isReserved(tx, ty)) {
+                                        State.obstacles.push({
+                                            x: tx, y: ty, id: 'wall', hp: 100,
+                                            destructible: true, blocksMove: true,
+                                            blocksLOS: true, color: '#446622'
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                        boss.trapTurns = 3;
+                        boss.trapCenterX = px;
+                        boss.trapCenterY = py;
+                        State.addFloatingText(px, py, 'TRAPPED! BREAK FREE!', '#ff4444');
+                    }
+                }
+            ],
+            deathDialogue: 'The forest... mourns...',
+            startDialogue: 'You stand before the Greatwood. The trees will consume you.'
         },
-        sandworm: {
-            id: 'sandworm', name: 'Sandworm', hp: 2200, damage: 55,
-            color: '#ccaa44', behavior: 'boss', size: 2,
-            attacks: [
-                { name: 'Burrow', shape: 'burrow', damage: 0, cooldown: 4, current: 0 },
-                { name: 'Tail Whip', shape: 'ring', range: 1, damage: 120, cooldown: 2, current: 0 },
-                { name: 'Swallow', shape: 'execute_line', damage: 160, cooldown: 5, current: 0 }
-            ]
+        bandit_gang: {
+            id: 'bandit_gang', name: 'Bandit Gang', hp: 2400, damage: 35,
+            color: '#ddaa44', behavior: 'boss', size: 1,
+            attacks: [],
+            phases: [],
+            deathDialogue: 'You beat us all... not bad...',
+            startDialogue: 'Four against one? Too easy for us!'
         },
-        frost_giant: {
-            id: 'frost_giant', name: 'Frost Giant', hp: 2400, damage: 50,
-            color: '#88bbdd', behavior: 'boss', size: 2,
+        molten_chaos: {
+            id: 'molten_chaos', name: 'Molten Chaos', hp: 3800, damage: 50,
+            color: '#ff4400', behavior: 'boss', size: 2, stationary: true,
             attacks: [
-                { name: 'Ice Boulder', shape: 'line', range: 4, damage: 110, cooldown: 2, current: 0 },
-                { name: 'Ground Pound', shape: 'cross', range: 1, damage: 140, cooldown: 3, current: 0 },
-                { name: 'Blizzard', shape: 'aoe', range: 3, damage: 90, cooldown: 3, current: 0 }
-            ]
+                { name: 'Magma Collapse', shape: 'magma_collapse', damage: 100, cooldown: 2, current: 0 },
+                { name: 'Magma Spit', shape: 'magma_spit', damage: 110, cooldown: 2, current: 0 },
+                { name: 'Overheat', shape: 'overheat', damage: 120, cooldown: 3, current: 0 }
+            ],
+            phases: [
+                {
+                    threshold: 66,
+                    dialogue: 'The magma calls for servants!',
+                    handler: function(boss) {
+                        var dirs = [{x:0,y:0},{x:7,y:0}];
+                        for (var i = 0; i < 2; i++) {
+                            var d = dirs[i];
+                            State.enemies.push({
+                                x: d.x, y: d.y, hp: 200, maxHp: 200,
+                                damage: 25, defId: 'magma_slime',
+                                facing: 'down', frozen: 0, freezeImmune: false,
+                                freezeImmuneTurns: 0, poison: null,
+                                isBoss: false, color: '#ff4400',
+                                isSummon: true, moveSpeed: 1
+                            });
+                        }
+                        State.addFloatingText(4, 4, 'MAGMA SLIMES SUMMONED!', '#ff4400');
+                    }
+                },
+                {
+                    threshold: 33,
+                    dialogue: 'The heat intensifies! Two tiles now!',
+                    handler: function(boss) {
+                        boss.lavaTilesPerTurn = 2;
+                        State.addFloatingText(4, 4, 'DOUBLE LAVA!', '#ff4400');
+                    }
+                }
+            ],
+            deathDialogue: 'The flames... cool...',
+            startDialogue: 'Feel the heat of a thousand suns!'
         },
-        fire_dragon: {
-            id: 'fire_dragon', name: 'Fire Dragon', hp: 2600, damage: 60,
-            color: '#ff4400', behavior: 'boss', size: 2,
+        frost_dwarf: {
+            id: 'frost_dwarf', name: 'Frost Dwarf', hp: 3200, damage: 45,
+            color: '#88bbdd', behavior: 'boss', size: 2, mobile: true,
             attacks: [
-                { name: 'Fire Breath', shape: 'cone', range: 3, damage: 140, cooldown: 2, current: 0 },
-                { name: 'Wing Buffet', shape: 'push_player', damage: 0, cooldown: 3, current: 0 },
-                { name: 'Eruption', shape: 'aoe', range: 2, damage: 120, cooldown: 3, current: 0 }
-            ]
+                { name: 'Frozen Axe', shape: 'frozen_axe', damage: 120, cooldown: 2, current: 0 },
+                { name: 'Frozen Stomp', shape: 'frozen_stomp', damage: 140, cooldown: 2, current: 0 }
+            ],
+            phases: [
+                {
+                    threshold: 75,
+                    dialogue: 'The ice obeys my command!',
+                    handler: function(boss) {
+                        for (var i = 0; i < 2; i++) {
+                            var attempts = 0;
+                            var cx, cy;
+                            do {
+                                cx = Math.floor(Math.random() * Data.GRID_SIZE);
+                                cy = Math.floor(Math.random() * Data.GRID_SIZE);
+                                attempts++;
+                            } while (attempts < 100 && Stages.isReserved(cx, cy));
+                            State.enemies.push({
+                                x: cx, y: cy, hp: 300, maxHp: 300,
+                                damage: 40, defId: 'ice_crystal',
+                                facing: 'down', frozen: 0, freezeImmune: false,
+                                freezeImmuneTurns: 0, poison: null,
+                                isBoss: false, color: '#aaeeff',
+                                isSummon: true, moveSpeed: 0,
+                                isStationary: true
+                            });
+                        }
+                        State.addFloatingText(4, 4, 'ICE CRYSTALS SUMMONED!', '#aaeeff');
+                    }
+                },
+                {
+                    threshold: 50,
+                    dialogue: 'More crystals! The cold deepens!',
+                    handler: function(boss) {
+                        for (var i = 0; i < 3; i++) {
+                            var attempts = 0;
+                            var cx, cy;
+                            do {
+                                cx = Math.floor(Math.random() * Data.GRID_SIZE);
+                                cy = Math.floor(Math.random() * Data.GRID_SIZE);
+                                attempts++;
+                            } while (attempts < 100 && Stages.isReserved(cx, cy));
+                            State.enemies.push({
+                                x: cx, y: cy, hp: 300, maxHp: 300,
+                                damage: 40, defId: 'ice_crystal',
+                                facing: 'down', frozen: 0, freezeImmune: false,
+                                freezeImmuneTurns: 0, poison: null,
+                                isBoss: false, color: '#aaeeff',
+                                isSummon: true, moveSpeed: 0,
+                                isStationary: true
+                            });
+                        }
+                        State.addFloatingText(4, 4, 'MORE CRYSTALS!', '#aaeeff');
+                    }
+                },
+                {
+                    threshold: 25,
+                    dialogue: 'The frozen depths consume all!',
+                    handler: function(boss) {
+                        for (var x = 0; x < Data.GRID_SIZE; x++) {
+                            for (var y = 0; y < Data.GRID_SIZE; y++) {
+                                for (var i = State.obstacles.length - 1; i >= 0; i--) {
+                                    if (State.obstacles[i].x === x && State.obstacles[i].y === y) {
+                                        State.obstacles.splice(i, 1);
+                                    }
+                                }
+                                State.obstacles.push({
+                                    x: x, y: y, id: 'chill_water', hp: -1,
+                                    destructible: false, blocksMove: false,
+                                    color: '#4488cc'
+                                });
+                            }
+                        }
+                        State.addFloatingText(4, 4, 'FROZEN TUNDRA!', '#88ddff');
+                    }
+                }
+            ],
+            deathDialogue: 'The cold... fades...',
+            startDialogue: 'You dare challenge the Frost Dwarf? Freeze!'
         },
-        shadow_lord: {
-            id: 'shadow_lord', name: 'Shadow Lord', hp: 2000, damage: 50,
-            color: '#6633aa', behavior: 'boss', size: 2,
+        first_clone: {
+            id: 'first_clone', name: 'The First Clone', hp: 3600, damage: 45,
+            color: '#6633aa', behavior: 'boss', size: 2, mobile: true,
             attacks: [
-                { name: 'Shadow Clone', shape: 'clone', damage: 0, cooldown: 5, current: 0 },
-                { name: 'Void Bolt', shape: 'line', range: 4, damage: 110, cooldown: 2, current: 0 },
-                { name: 'Darkness', shape: 'aoe', range: 3, damage: 80, cooldown: 3, current: 0 }
-            ]
+                { name: 'Summon Shade', shape: 'summon_shade', damage: 0, cooldown: 3, current: 0 },
+                { name: 'Summon Portal', shape: 'summon_portal', damage: 0, cooldown: 4, current: 0 },
+                { name: 'Summon Void', shape: 'summon_void', damage: 100, cooldown: 2, current: 0 }
+            ],
+            phases: [
+                {
+                    threshold: 75,
+                    dialogue: 'The darkness answers my call!',
+                    handler: function(boss) {
+                        for (var i = 0; i < 2; i++) {
+                            var attempts = 0;
+                            var cx, cy;
+                            do {
+                                cx = Math.floor(Math.random() * Data.GRID_SIZE);
+                                cy = Math.floor(Math.random() * Data.GRID_SIZE);
+                                attempts++;
+                            } while (attempts < 100 && Stages.isReserved(cx, cy));
+                            State.enemies.push({
+                                x: cx, y: cy, hp: 200, maxHp: 200,
+                                damage: 25, defId: 'wraith_enemy',
+                                facing: 'down', frozen: 0, freezeImmune: false,
+                                freezeImmuneTurns: 0, poison: null,
+                                isBoss: false, color: '#443366',
+                                isSummon: true, moveSpeed: 1
+                            });
+                        }
+                        State.addFloatingText(4, 4, 'WRAITHS SUMMONED!', '#6633aa');
+                    }
+                },
+                {
+                    threshold: 50,
+                    dialogue: 'I call upon the void once more!',
+                    handler: function(boss) {
+                        var attempts = 0;
+                        var cx, cy;
+                        do {
+                            cx = Math.floor(Math.random() * Data.GRID_SIZE);
+                            cy = Math.floor(Math.random() * Data.GRID_SIZE);
+                            attempts++;
+                        } while (attempts < 100 && Stages.isReserved(cx, cy));
+                        State.enemies.push({
+                            x: cx, y: cy, hp: 350, maxHp: 350,
+                            damage: 35, defId: 'wraith_enemy',
+                            facing: 'down', frozen: 0, freezeImmune: false,
+                            freezeImmuneTurns: 0, poison: null,
+                            isBoss: false, isElite: true,
+                            eliteTurnCount: 0, eliteTelegraphing: false,
+                            color: '#443366', isSummon: true, moveSpeed: 1
+                        });
+                        State.addFloatingText(cx, cy, 'ELITE WRAITH!', '#ff4444');
+                    }
+                },
+                {
+                    threshold: 25,
+                    dialogue: 'I am legion. We are many.',
+                    handler: function(boss) {
+                        var cloneHp = Math.floor(boss.hp / 2);
+                        boss.hp = cloneHp;
+                        var attempts = 0;
+                        var cx, cy;
+                        do {
+                            cx = Math.floor(Math.random() * Data.GRID_SIZE);
+                            cy = Math.floor(Math.random() * Data.GRID_SIZE);
+                            attempts++;
+                        } while (attempts < 100 && Stages.isReserved(cx, cy));
+                        var clone = {
+                            x: cx, y: cy, size: 2,
+                            hp: cloneHp, maxHp: cloneHp,
+                            damage: boss.damage,
+                            defId: boss.defId, facing: 'down',
+                            frozen: 0, freezeImmune: false,
+                            freezeImmuneTurns: 0, poison: null,
+                            isBoss: true, color: boss.color,
+                            name: boss.name + ' Clone',
+                            attacks: JSON.parse(JSON.stringify(boss.attacks)),
+                            telegraph: null, isClone: true
+                        };
+                        State.enemies.push(clone);
+                        State.addFloatingText(cx, cy, 'CLONE CREATED!', '#6633aa');
+                    }
+                }
+            ],
+            deathDialogue: 'We... are... one...',
+            startDialogue: 'You face the original. But which is real?'
         },
-        archangel: {
-            id: 'archangel', name: 'Archangel', hp: 2800, damage: 55,
-            color: '#ffddaa', behavior: 'boss', size: 2,
+        light_guardian: {
+            id: 'light_guardian', name: 'Light Guardian', hp: 4200, damage: 50,
+            color: '#ffddaa', behavior: 'boss', size: 2, mobile: true,
             attacks: [
-                { name: 'Holy Nova', shape: 'aoe', range: 2, damage: 120, cooldown: 2, current: 0 },
-                { name: 'Divine Shield', shape: 'shield_self', damage: 0, cooldown: 5, current: 0 },
-                { name: 'Smite', shape: 'single', range: 3, damage: 170, cooldown: 3, current: 0 }
-            ]
+                { name: 'Holy Smite', shape: 'holy_smite', damage: 130, cooldown: 2, current: 0 },
+                { name: 'Holy Beam', shape: 'holy_beam', damage: 110, cooldown: 2, current: 0 }
+            ],
+            phases: [
+                {
+                    threshold: 75,
+                    dialogue: 'Angels, descend!',
+                    handler: function(boss) {
+                        for (var i = 0; i < 2; i++) {
+                            var attempts = 0;
+                            var cx, cy;
+                            do {
+                                cx = Math.floor(Math.random() * Data.GRID_SIZE);
+                                cy = Math.floor(Math.random() * Data.GRID_SIZE);
+                                attempts++;
+                            } while (attempts < 100 && Stages.isReserved(cx, cy));
+                            State.enemies.push({
+                                x: cx, y: cy, hp: 250, maxHp: 250,
+                                damage: 30, defId: 'angel',
+                                facing: 'down', frozen: 0, freezeImmune: false,
+                                freezeImmuneTurns: 0, poison: null,
+                                isBoss: false, color: '#ffddaa',
+                                isSummon: true, moveSpeed: 1
+                            });
+                        }
+                        State.addFloatingText(4, 4, 'ANGELS SUMMONED!', '#ffddaa');
+                    }
+                },
+                {
+                    threshold: 50,
+                    dialogue: 'Chariot, charge!',
+                    handler: function(boss) {
+                        var attempts = 0;
+                        var cx, cy;
+                        do {
+                            cx = Math.floor(Math.random() * Data.GRID_SIZE);
+                            cy = Math.floor(Math.random() * Data.GRID_SIZE);
+                            attempts++;
+                        } while (attempts < 100 && Stages.isReserved(cx, cy));
+                        State.enemies.push({
+                            x: cx, y: cy, hp: 400, maxHp: 400,
+                            damage: 40, defId: 'chariot',
+                            facing: 'down', frozen: 0, freezeImmune: false,
+                            freezeImmuneTurns: 0, poison: null,
+                            isBoss: false, isElite: true,
+                            eliteTurnCount: 0, eliteTelegraphing: false,
+                            color: '#ffcc44', isSummon: true, moveSpeed: 1
+                        });
+                        State.addFloatingText(cx, cy, 'ELITE CHARIOT!', '#ff4444');
+                    }
+                },
+                {
+                    threshold: 25,
+                    dialogue: 'Atone for your sins!',
+                    handler: function(boss) {
+                        for (var x = 0; x < Data.GRID_SIZE; x++) {
+                            for (var y = 0; y < Data.GRID_SIZE; y++) {
+                                for (var i = State.obstacles.length - 1; i >= 0; i--) {
+                                    if (State.obstacles[i].x === x && State.obstacles[i].y === y) {
+                                        State.obstacles.splice(i, 1);
+                                    }
+                                }
+                                State.obstacles.push({
+                                    x: x, y: y, id: 'judgement_sigil', hp: -1,
+                                    destructible: false, blocksMove: false,
+                                    color: '#ffdd88'
+                                });
+                            }
+                        }
+                        var attempts = 0;
+                        var cx, cy;
+                        do {
+                            cx = Math.floor(Math.random() * Data.GRID_SIZE);
+                            cy = Math.floor(Math.random() * Data.GRID_SIZE);
+                            attempts++;
+                        } while (attempts < 100 && Stages.isReserved(cx, cy));
+                        State.enemies.push({
+                            x: cx, y: cy, hp: 350, maxHp: 350,
+                            damage: 35, defId: 'seraph',
+                            facing: 'down', frozen: 0, freezeImmune: false,
+                            freezeImmuneTurns: 0, poison: null,
+                            isBoss: false, color: '#ffffff',
+                            isSummon: true, moveSpeed: 1
+                        });
+                        State.addFloatingText(4, 4, 'JUDGEMENT! SERAPH SUMMONED!', '#ffdd88');
+                    }
+                }
+            ],
+            deathDialogue: 'The light... dims...',
+            startDialogue: 'I am the Guardian of Light. You shall not pass.'
         }
     },
 
@@ -536,56 +1027,56 @@ var Data = {
         dungeon: {
             id: 'dungeon', name: 'DUNGEON',
             bg: '#0f0a1a', tileBase: '#1a1525', tileBorder: '#2a2040', accent: '#ff8800',
-            enemies: ['goblin', 'archer', 'necromancer'], bossId: 'colossus',
+            enemies: ['goblin', 'archer', 'necromancer'], bossId: 'overseer',
             hazards: ['wall', 'spike_trap'], wallColor: '#555566',
             hazardSpawn: 'line'
         },
         forest: {
             id: 'forest', name: 'FOREST',
             bg: '#0a1a0a', tileBase: '#1a2a1a', tileBorder: '#2a3a2a', accent: '#44aa44',
-            enemies: ['wolf', 'druid', 'treant'], bossId: 'ancient_tree',
+            enemies: ['wolf', 'druid', 'treant'], bossId: 'greatwood_titan',
             hazards: ['wall', 'water'], wallColor: '#446622',
             hazardSpawn: 'line'
         },
         swamp: {
             id: 'swamp', name: 'SWAMP',
             bg: '#0a0a1a', tileBase: '#1a1a2a', tileBorder: '#2a2a3a', accent: '#44aa88',
-            enemies: ['toad', 'plaguebearer', 'mud_golem'], bossId: 'hydra',
+            enemies: ['toad', 'plaguebearer', 'mud_golem'], bossId: 'mud_colossus',
             hazards: ['wall', 'swamp_pool'], wallColor: '#334433',
             hazardCount: 12, wallCount: 4
         },
         desert: {
             id: 'desert', name: 'DESERT',
             bg: '#1a1500', tileBase: '#2a2510', tileBorder: '#3a3520', accent: '#ddaa44',
-            enemies: ['scorpion', 'mummy', 'sand_wraith'], bossId: 'sandworm',
+            enemies: ['scorpion', 'mummy', 'sand_wraith'], bossId: 'bandit_gang',
             hazards: ['wall', 'water'], wallColor: '#aa8844',
             hazardSpawn: 'oasis'
         },
         frozen: {
             id: 'frozen', name: 'FROZEN',
             bg: '#0a1a2a', tileBase: '#1a2a3a', tileBorder: '#2a3a4a', accent: '#88ddff',
-            enemies: ['frost_elemental', 'ice_wyrm', 'yeti'], bossId: 'frost_giant',
+            enemies: ['frost_elemental', 'ice_wyrm', 'yeti'], bossId: 'frost_dwarf',
             hazards: ['wall', 'chill_water'], wallColor: '#6688aa',
             hazardCount: 12, wallCount: 4
         },
         volcanic: {
             id: 'volcanic', name: 'VOLCANIC',
             bg: '#1a0a0a', tileBase: '#2a1a1a', tileBorder: '#3a2a2a', accent: '#ff4422',
-            enemies: ['fire_elemental', 'magma_slime', 'phoenix'], bossId: 'fire_dragon',
+            enemies: ['fire_elemental', 'magma_slime', 'phoenix'], bossId: 'molten_chaos',
             hazards: ['wall', 'lava'], wallColor: '#663322',
             hazardCount: 12, wallCount: 4
         },
         shadow_realm: {
             id: 'shadow_realm', name: 'SHADOW',
             bg: '#0a0a15', tileBase: '#1a1a25', tileBorder: '#2a2a35', accent: '#8844aa',
-            enemies: ['wraith_enemy', 'void_walker', 'shade'], bossId: 'shadow_lord',
+            enemies: ['wraith_enemy', 'void_walker', 'shade'], bossId: 'first_clone',
             hazards: ['wall', 'portal', 'spike_trap'], wallColor: '#332244',
             hazardCount: 13, wallCount: 5
         },
         celestial: {
             id: 'celestial', name: 'CELESTIAL',
             bg: '#1a1a0a', tileBase: '#2a2a1a', tileBorder: '#3a3a2a', accent: '#ffdd88',
-            enemies: ['angel', 'chariot', 'seraph'], bossId: 'archangel',
+            enemies: ['angel', 'chariot', 'seraph'], bossId: 'light_guardian',
             hazards: ['wall', 'judgement_sigil'], wallColor: '#aa9966',
             wallCount: 8, hazardCount: 10
         }

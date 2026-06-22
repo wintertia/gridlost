@@ -269,6 +269,7 @@ var Input = {
         if (!skill) return;
 
         if (skill.shape === 'guard') {
+            AudioMgr.sfx('guard');
             Combat.executeGuard();
             return;
         }
@@ -392,9 +393,8 @@ var Input = {
                 }
             }
             if (o.id === 'judgement_sigil') {
-                State.player.judgment = 2;
+                State.player.judgment = (State.player.judgment || 0) + 2;
                 State.addFloatingText(x, y, 'JUDGEMENT!', '#ffdd88');
-                State.addLog('Judgement Sigil marks you! Next hit deals double damage.', 'info');
             }
         }
         if (State.player.hp <= 0) {

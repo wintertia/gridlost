@@ -320,6 +320,10 @@ var UI = {
         $('#' + screenId).addClass('active');
     },
 
+    showOverlay: function(screenId) {
+        $('#' + screenId).addClass('active');
+    },
+
     hideScreen: function(screenId) {
         $('#' + screenId).removeClass('active');
     },
@@ -557,6 +561,29 @@ var UI = {
         }, 2000);
     },
 
+    showDialogue: function(bossName, text, color, callback) {
+        var $existing = $('#boss-dialogue');
+        if ($existing.length) $existing.remove();
+
+        var html = '<div id="boss-dialogue" style="' +
+            'position:fixed;bottom:130px;left:50%;transform:translateX(-50%);' +
+            'background:rgba(0,0,0,0.9);border:2px solid ' + (color || '#ffffff') + ';' +
+            'border-radius:8px;padding:16px 24px;max-width:500px;width:90%;' +
+            'z-index:9999;text-align:center;animation:dialogueFadeIn 0.3s ease">' +
+            '<div style="color:' + (color || '#ffffff') + ';font-family:\'Press Start 2P\';font-size:10px;margin-bottom:8px">' + bossName + '</div>' +
+            '<div style="color:#ffffff;font-family:\'Press Start 2P\';font-size:9px;line-height:1.6">' + text + '</div>' +
+            '</div>';
+
+        $('body').append(html);
+
+        setTimeout(function() {
+            $('#boss-dialogue').fadeOut(300, function() {
+                $(this).remove();
+                if (callback) callback();
+            });
+        }, 2500);
+    },
+
     showDeathScreen: function() {
         $('#death-stage-num').text(State.stage);
         $('#death-turns').text(State.turn);
@@ -654,6 +681,13 @@ var UI = {
         }
 
         html += '<button class="debug-biome-btn" data-biome="" style="background:#222;color:#888;border:2px solid #444;padding:10px 12px;border-radius:4px;font-family:\'Press Start 2P\';font-size:10px;cursor:pointer;text-align:left">CLEAR OVERRIDE (random)</button>';
+
+        var invColor = State.debugInvincibility ? '#00ff00' : '#444';
+        var invLabel = State.debugInvincibility ? 'INVINCIBILITY: ON ✓' : 'INVINCIBILITY: OFF';
+        html += '<button class="debug-biome-btn" data-debug="invincibility" style="background:#222;color:' + invColor + ';border:2px solid ' + invColor + ';padding:10px 12px;border-radius:4px;font-family:\'Press Start 2P\';font-size:10px;cursor:pointer;text-align:left">' + invLabel + '</button>';
+
+        html += '<button class="debug-biome-btn" data-debug="skip" style="background:#222;color:#ff4444;border:2px solid #ff4444;padding:10px 12px;border-radius:4px;font-family:\'Press Start 2P\';font-size:10px;cursor:pointer;text-align:left">SKIP STAGE</button>';
+
         html += '</div></div></div>';
 
         var $overlay = $(html);
@@ -661,6 +695,29 @@ var UI = {
 
         $overlay.find('.debug-biome-btn').on('click', function() {
             var biomeId = $(this).data('biome');
+            var debugAction = $(this).data('debug');
+            if (debugAction === 'invincibility') {
+                State.debugInvincibility = !State.debugInvincibility;
+                State.addLog('[DEBUG] Invincibility ' + (State.debugInvincibility ? 'ON' : 'OFF'), 'info');
+                State.addFloatingText(State.player.x, State.player.y, State.debugInvincibility ? 'INVINCIBLE' : 'MORTAL', '#ff00ff');
+                UI.updateStats();
+                $overlay.remove();
+                return;
+            }
+            if (debugAction === 'skip') {
+                State.addLog('[DEBUG] Stage skipped', 'info');
+                for (var ei = State.enemies.length - 1; ei >= 0; ei--) {
+                    if (State.enemies[ei].isElite && State.enemies[ei].hp > 0) {
+                        State.extraItemDrops++;
+                    }
+                    if (!State.enemies[ei].isBoss) {
+                        State.enemies.splice(ei, 1);
+                    }
+                }
+                $overlay.remove();
+                Main.stageClear();
+                return;
+            }
             State.debugBiomeOverride = biomeId || null;
             if (biomeId) {
                 State.addLog('[DEBUG] Next biome locked to: ' + Data.BIOMES[biomeId].name, 'info');

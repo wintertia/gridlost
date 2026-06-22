@@ -45,6 +45,7 @@ var State = {
 
     debugMode: false,
     debugBiomeOverride: null,
+    debugInvincibility: false,
 
     hoveredTile: null,
     attackPreview: [],
@@ -66,6 +67,9 @@ var State = {
         bossesKilled: 0
     },
     turnStartState: null,
+    dialogueQueue: [],
+    currentDialogue: null,
+    phaseChangeTriggered: {},
 
     reset: function() {
         this.stage = 1;
@@ -89,6 +93,9 @@ var State = {
         this.runStats = { totalDamage: 0, enemyKills: 0, bossesKilled: 0 };
         this.startTime = Date.now();
         this.turnStartState = null;
+        this.dialogueQueue = [];
+        this.currentDialogue = null;
+        this.phaseChangeTriggered = {};
         Stages.extraObstacles = 0;
 
         this.player.x = 0;
@@ -140,6 +147,14 @@ var State = {
                     this.biomeOrder[k] = swap;
                     break;
                 }
+            }
+        }
+        for (var c = 1; c < this.biomeOrder.length; c++) {
+            if (this.biomeOrder[c] === this.biomeOrder[c - 1]) {
+                var swapTarget = c + 1 < this.biomeOrder.length ? c + 1 : 0;
+                var tmpSwap = this.biomeOrder[c];
+                this.biomeOrder[c] = this.biomeOrder[swapTarget];
+                this.biomeOrder[swapTarget] = tmpSwap;
             }
         }
         this.currentBiome = this.biomeOrder[0];
@@ -501,5 +516,23 @@ var State = {
         if (this.combatLog.length > this.maxLogEntries) {
             this.combatLog.shift();
         }
+    },
+
+    addDialogue: function(bossName, text, color) {
+        this.dialogueQueue.push({ bossName: bossName, text: text, color: color || '#ffffff' });
+    },
+
+    processDialogueQueue: function(callback) {
+        if (this.dialogueQueue.length === 0) {
+            if (callback) callback();
+            return;
+        }
+        var dialogue = this.dialogueQueue.shift();
+        this.currentDialogue = dialogue;
+        var self = this;
+        UI.showDialogue(dialogue.bossName, dialogue.text, dialogue.color, function() {
+            self.currentDialogue = null;
+            self.processDialogueQueue(callback);
+        });
     }
 };

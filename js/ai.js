@@ -87,10 +87,19 @@ var AI = {
             }
 
             var enemy = alive[index];
-            var movesLeft = (enemy.moveSpeed || 1);
             index++;
 
             if (enemy.hp <= 0) {
+                processNext();
+                return;
+            }
+
+            var moveSpeed = enemy.moveSpeed || 1;
+            enemy._moveAccum = (enemy._moveAccum || 0) + moveSpeed;
+            var movesLeft = Math.floor(enemy._moveAccum);
+            enemy._moveAccum -= movesLeft;
+            if (movesLeft < 1) {
+                State.addFloatingText(enemy.x, enemy.y, 'WAIT', '#888888');
                 processNext();
                 return;
             }
@@ -184,6 +193,15 @@ var AI = {
 
         var dist = this.distance(enemy.x, enemy.y, State.player.x, State.player.y);
 
+        if (def.behavior === 'stationary' || enemy.isStationary) {
+            if (enemy.defId === 'ice_crystal') {
+                this.iceCrystalAttack(enemy, callback);
+            } else {
+                callback();
+            }
+            return;
+        }
+
         if (def.type === 'melee') {
             if (dist === 1) {
                 this.meleeAttack(enemy, callback);
@@ -202,7 +220,11 @@ var AI = {
             enemy.summonTimer = (enemy.summonTimer || 0) + 1;
             if (enemy.summonTimer >= 2) {
                 enemy.summonTimer = 0;
-                this.summonSkeleton(enemy);
+                if (enemy.defId === 'tech_terry') {
+                    this.summonMiniRobots(enemy);
+                } else {
+                    this.summonSkeleton(enemy);
+                }
                 callback();
             } else if (dist <= 1) {
                 this.meleeAttack(enemy, callback);
@@ -227,6 +249,24 @@ var AI = {
         } else {
             callback();
         }
+    },
+
+    iceCrystalAttack: function(enemy, callback) {
+        var tiles = [];
+        for (var i = -7; i <= 7; i++) {
+            tiles.push({x: enemy.x, y: enemy.y + i});
+            tiles.push({x: enemy.x + i, y: enemy.y});
+        }
+        State.animAoE(tiles, '#aaeeff');
+        for (var j = 0; j < tiles.length; j++) {
+            if (tiles[j].x === State.player.x && tiles[j].y === State.player.y) {
+                Combat.dealDamageToPlayer(enemy.damage);
+            }
+        }
+        State.addFloatingText(enemy.x, enemy.y, 'CRYSTAL PULSE!', '#aaeeff');
+        Grid.render();
+        UI.updateAll();
+        callback();
     },
 
     executeEliteSpecial: function(enemy, callback) {
@@ -923,6 +963,46 @@ var AI = {
         }
     },
 
+    summonMiniRobots: function(enemy) {
+        var dirs = [
+            { x: -1, y: 0 }, { x: 1, y: 0 },
+            { x: 0, y: -1 }, { x: 0, y: 1 },
+            { x: -1, y: -1 }, { x: 1, y: -1 },
+            { x: -1, y: 1 }, { x: 1, y: 1 }
+        ];
+        for (var pi = dirs.length - 1; pi > 0; pi--) {
+            var pj = Math.floor(Math.random() * (pi + 1));
+            var tmp = dirs[pi]; dirs[pi] = dirs[pj]; dirs[pj] = tmp;
+        }
+        var def = Data.ENEMIES[enemy.defId];
+        var name = def ? def.name : 'Enemy';
+        var robotDef = Data.ENEMIES.mini_robot;
+        var scaling = 1 + (State.stage - 1) * Data.SCALING_HP_MULT;
+        var count = 0;
+
+        for (var i = 0; i < dirs.length && count < 2; i++) {
+            var nx = enemy.x + dirs[i].x;
+            var ny = enemy.y + dirs[i].y;
+            if (nx >= 0 && nx < Data.GRID_SIZE && ny >= 0 && ny < Data.GRID_SIZE && !Stages.isReserved(nx, ny) && !State.isBlocked(nx, ny)) {
+                State.enemies.push({
+                    x: nx, y: ny,
+                    hp: Math.floor(robotDef.hp * scaling),
+                    maxHp: Math.floor(robotDef.hp * scaling),
+                    damage: Math.floor(robotDef.damage * (1 + (State.stage - 1) * Data.SCALING_DMG_MULT)),
+                    defId: 'mini_robot',
+                    facing: 'down', frozen: 0, freezeImmune: false,
+                    freezeImmuneTurns: 0, poison: null,
+                    isBoss: false, isElite: false,
+                    color: robotDef.color, isSummon: true,
+                    moveSpeed: robotDef.moveSpeed
+                });
+                State.addFloatingText(nx, ny, 'ROBOT!', '#aaaaaa');
+                count++;
+            }
+        }
+        State.addLog(name + ' deploys Mini Robots', 'enemy');
+    },
+
     teleportNear: function(enemy) {
         var attempts = 0;
         while (attempts < 20) {
@@ -950,11 +1030,16 @@ var AI = {
             case 'aoe_3x3_target':
             case 'aoe_3x3_burn':
             case 'aoe_3x3_lava':
-            case 'aoe_5x5_self':
-                var r = special.shape === 'aoe_5x5_self' ? 2 : 1;
-                for (var dy = -r; dy <= r; dy++) {
-                    for (var dx = -r; dx <= r; dx++) {
+                for (var dy = -1; dy <= 1; dy++) {
+                    for (var dx = -1; dx <= 1; dx++) {
                         tiles.push({ x: State.player.x + dx, y: State.player.y + dy });
+                    }
+                }
+                break;
+            case 'aoe_5x5_self':
+                for (var dy = -2; dy <= 2; dy++) {
+                    for (var dx = -2; dx <= 2; dx++) {
+                        tiles.push({ x: enemy.x + dx, y: enemy.y + dy });
                     }
                 }
                 break;
@@ -980,13 +1065,17 @@ var AI = {
             case 'single_3':
                 tiles.push({ x: State.player.x, y: State.player.y });
                 break;
-            case 'pull_2':
-            case 'apply_curse_summon':
-                for (var py2 = -1; py2 <= 1; py2++) {
-                    for (var px2 = -1; px2 <= 1; px2++) {
-                        tiles.push({ x: State.player.x + px2, y: State.player.y + py2 });
-                    }
+            case 'pull_2': {
+                var pullDir = Grid.getDirection(State.player.x, State.player.y, enemy.x, enemy.y);
+                for (var pi2 = 0; pi2 <= 2; pi2++) {
+                    var ptx = State.player.x + (pullDir === 'right' ? pi2 : pullDir === 'left' ? -pi2 : 0);
+                    var pty = State.player.y + (pullDir === 'down' ? pi2 : pullDir === 'up' ? -pi2 : 0);
+                    tiles.push({ x: ptx, y: pty });
                 }
+                break;
+            }
+            case 'apply_curse_summon':
+                tiles.push({ x: State.player.x, y: State.player.y });
                 break;
             case 'cone_3': {
                 var cdx = State.player.x - enemy.x;

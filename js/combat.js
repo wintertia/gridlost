@@ -193,6 +193,10 @@ var Combat = {
     },
 
     dealDamage: function(target, dmg, source, isCrit) {
+        if (target.isBoss && target.invulnerable) {
+            State.addFloatingText(target.x, target.y, 'INVULNERABLE!', '#446622');
+            return;
+        }
         var actualDmg = dmg;
 
         if (target.marked && target.marked > 0) {
@@ -211,6 +215,7 @@ var Combat = {
             }
         }
 
+        var prevHp = target.hp;
         target.hp -= actualDmg;
         State.runStats.totalDamage += actualDmg;
         var color = isCrit ? '#ffff00' : '#ff4444';
@@ -224,6 +229,16 @@ var Combat = {
         var critText = isCrit ? ' (CRIT)' : '';
         State.addLog('Player deals ' + actualDmg + ' dmg to ' + targetName + critText, 'player');
 
+        if (isCrit) {
+            AudioMgr.sfx('crit');
+        } else {
+            AudioMgr.sfx('hit');
+        }
+
+        if (target.isBoss && target.hp > 0) {
+            Boss.checkPhaseChanges(target, prevHp);
+        }
+
         if (source === 'player') {
             this.processOnHitEffects(target, centerX, centerY);
         }
@@ -233,9 +248,11 @@ var Combat = {
             if (target.isBoss) {
                 State.runStats.bossesKilled++;
                 State.addLog(targetName + ' defeated!', 'boss');
+                AudioMgr.sfx('death');
             } else {
                 State.runStats.enemyKills++;
                 State.addLog(targetName + ' killed!', 'kill');
+                AudioMgr.sfx('death');
                 this.processOnKillEffects(target);
 
                 if (target.defId === 'magma_slime' && !target.hasSplit) {
@@ -427,6 +444,7 @@ var Combat = {
             var healAmount = Math.floor(State.player.maxHp * healPercent / 100);
             State.player.hp = Math.min(State.player.hp + healAmount, State.player.maxHp);
             State.addFloatingText(State.player.x, State.player.y, '+' + healAmount + ' HP', '#44ff44');
+            AudioMgr.sfx('heal');
         }
 
         if (items['battle_momentum'] > 0) {
@@ -439,6 +457,7 @@ var Combat = {
             State.extraItemDrops++;
             State.addLog('Elite defeated! +1 item drop at stage end.', 'boss');
             State.addFloatingText(centerX, centerY, 'ELITE KILL!', '#ffaa00');
+            AudioMgr.sfx('levelup');
         }
     },
 
@@ -498,8 +517,17 @@ var Combat = {
         }
 
         State.player.hp -= reducedDmg;
+        if (State.debugInvincibility && State.player.hp <= 1) {
+            State.player.hp = 1;
+            State.addFloatingText(State.player.x, State.player.y, 'INVINCIBLE!', '#ff00ff');
+        }
         State.addFloatingText(State.player.x, State.player.y, '-' + reducedDmg, '#ff4444');
         State.addLog('Player takes ' + reducedDmg + ' damage', 'damage');
+        if (reducedDmg >= 50) {
+            AudioMgr.sfx('boss_special');
+        } else {
+            AudioMgr.sfx('hit');
+        }
         if (State.player.hp <= 0) {
             State.player.hp = 0;
         }
@@ -1382,6 +1410,7 @@ var Combat = {
                 State.player.hp -= lavaDmg;
                 State.addFloatingText(px, py, '-' + lavaDmg + ' BURN', '#ff4400');
                 State.addLog('Lava burns you for ' + lavaDmg + ' damage!', 'enemy');
+                AudioMgr.sfx('lava');
             }
             if (o.id === 'swamp_pool') {
                 var poolPoisonDmg = this.hazardDamage(20);
@@ -1392,11 +1421,13 @@ var Combat = {
                 }
                 State.addFloatingText(px, py, 'POISONED!', '#44cc44');
                 State.addLog('Toxic pool applies poison for 3 turns!', 'enemy');
+                AudioMgr.sfx('debuff');
             }
             if (o.id === 'chill_water') {
                 State.player.chilled = Math.max(State.player.chilled, 2);
                 State.addFloatingText(px, py, 'CHILLED!', '#88ddff');
                 State.addLog('Chill water refreshes frozen!', 'enemy');
+                AudioMgr.sfx('freeze');
             }
             if (o.id === 'spike_trap') {
                 State.spikeTurns++;
@@ -1406,12 +1437,12 @@ var Combat = {
                     State.addFloatingText(px, py, '-' + spikeDmg + ' SPIKES!', '#ff4444');
                     State.addLog('Spike trap impales you for ' + spikeDmg + ' damage!', 'enemy');
                     State.spikeTurns = 0;
+                    AudioMgr.sfx('spike');
                 }
             }
             if (o.id === 'judgement_sigil') {
-                State.player.judgment = 2;
-                State.addFloatingText(px, py, 'JUDGEMENT!', '#ffdd88');
-                State.addLog('Judgement Sigil refreshes your mark!', 'info');
+                State.player.judgment = (State.player.judgment || 0) + 2;
+                State.addFloatingText(px, py, 'JUDGEMENT +' + State.player.judgment, '#ffdd88');
             }
         }
 

@@ -2,12 +2,140 @@ var Boss = {
     processTurn: function(boss, callback) {
         State.bossTurnCount++;
 
+        if (boss.attacks) {
+            for (var i = 0; i < boss.attacks.length; i++) {
+                if (boss.attacks[i].current > 0) {
+                    boss.attacks[i].current--;
+                }
+            }
+        }
+
+        if (boss.isClone) {
+            var self = this;
+            if (boss.telegraph) {
+                this.executeTelegraphedAttack(boss, boss.telegraph, function() {
+                    boss.telegraph = null;
+                    boss.telegraphTiles = null;
+                    self.bossBasicMoveAndAttack(boss, callback);
+                });
+            } else {
+                this.bossBasicMoveAndAttack(boss, callback);
+            }
+            return;
+        }
+
+        if (boss.defId === 'bandit_gang') {
+            this.banditGangTurn(boss, callback);
+            return;
+        }
+
+        this.processBossPerTurnEffects(boss);
+
+        // Execute pending spike overload tiles (telegraphed last turn)
+        if (boss.defId === 'overseer' && boss.spikeOverloadTiles && boss.spikeOverloadTiles.length > 0) {
+            var self = this;
+            State.animAoE(boss.spikeOverloadTiles, '#ff0000');
+            for (var si = 0; si < boss.spikeOverloadTiles.length; si++) {
+                if (boss.spikeOverloadTiles[si].x === State.player.x && boss.spikeOverloadTiles[si].y === State.player.y) {
+                    Combat.dealDamageToPlayer(300);
+                }
+            }
+            boss.spikeOverloadTiles = null;
+            Grid.render(); UI.updateAll();
+            setTimeout(function() { self.processTurnAfterSpikeOverload(boss, callback); }, 300);
+            return;
+        }
+
+        // Telegraph new spike overload tiles (then proceed with normal attack cycle)
+        if (boss.defId === 'overseer' && boss.spikeOverload) {
+            var tiles = [];
+            var used = {};
+            for (var i = 0; i < 6; i++) {
+                var rx, ry, key;
+                do {
+                    rx = Math.floor(Math.random() * Data.GRID_SIZE);
+                    ry = Math.floor(Math.random() * Data.GRID_SIZE);
+                    key = rx + ',' + ry;
+                } while (used[key]);
+                used[key] = true;
+                tiles.push({x: rx, y: ry});
+            }
+            boss.spikeOverloadTiles = tiles;
+            State.addFloatingText(4, 4, 'SPIKE OVERLOAD!', '#ff0000');
+            Grid.render(); UI.updateAll();
+        }
+
+        if (boss.invulnerable) {
+            var aliveTreants = 0;
+            for (var t = 0; t < State.enemies.length; t++) {
+                if (State.enemies[t].defId === 'treant' && State.enemies[t].hp > 0 && State.enemies[t].isSummon) {
+                    aliveTreants++;
+                }
+            }
+            if (aliveTreants === 0) {
+                boss.invulnerable = false;
+                State.addFloatingText(boss.x, boss.y, 'VULNERABLE!', '#ff4444');
+            } else {
+                State.addFloatingText(boss.x, boss.y, 'INVULNERABLE!', '#446622');
+                Grid.render(); UI.updateAll();
+                callback();
+                return;
+            }
+        }
+
+        if (boss.trapTurns && boss.trapTurns > 0) {
+            if (boss.trapTurns === 1) {
+                var wallTiles = [];
+                for (var wi = State.obstacles.length - 1; wi >= 0; wi--) {
+                    if (State.obstacles[wi].id === 'wall' && State.obstacles[wi].color === '#446622') {
+                        wallTiles.push({x: State.obstacles[wi].x, y: State.obstacles[wi].y});
+                    }
+                }
+                if (wallTiles.length > 0) {
+                    State.animAoE(wallTiles, '#ff4444');
+                    State.addFloatingText(State.player.x, State.player.y, 'WALLS CRACKING!', '#ff4444');
+                    Grid.render(); UI.updateAll();
+                }
+            }
+            boss.trapTurns--;
+            if (boss.trapTurns === 0) {
+                var tcx = boss.trapCenterX !== undefined ? boss.trapCenterX : boss.x + 1;
+                var tcy = boss.trapCenterY !== undefined ? boss.trapCenterY : boss.y + 1;
+                var hit = Math.abs(State.player.x - tcx) <= 1 && Math.abs(State.player.y - tcy) <= 1;
+                for (var ox = State.obstacles.length - 1; ox >= 0; ox--) {
+                    var o = State.obstacles[ox];
+                    if (o.id === 'wall' && o.color === '#446622') {
+                        State.obstacles.splice(ox, 1);
+                    }
+                }
+                if (hit) {
+                    Combat.dealDamageToPlayer(300);
+                    State.addFloatingText(State.player.x, State.player.y, 'CRUSHED!', '#ff4444');
+                }
+                var self = this;
+                this.bossBasicMoveAndAttack(boss, function() {
+                    if (State.dialogueQueue.length > 0) {
+                        State.processDialogueQueue(callback);
+                    } else {
+                        callback();
+                    }
+                });
+                return;
+            }
+        }
+
         if (boss.telegraph) {
             var self = this;
             this.executeTelegraphedAttack(boss, boss.telegraph, function() {
                 boss.telegraph = null;
                 boss.telegraphTiles = null;
-                self.bossBasicMoveAndAttack(boss, callback);
+                self.bossBasicMoveAndAttack(boss, function() {
+                    if (State.dialogueQueue.length > 0) {
+                        State.processDialogueQueue(callback);
+                    } else {
+                        callback();
+                    }
+                });
             });
             return;
         }
@@ -17,11 +145,127 @@ var Boss = {
             boss.telegraph = nextAttack;
             boss.telegraphTiles = this.getTelegraphTiles(boss, nextAttack);
             State.addLog(boss.name + ' telegraphs: ' + nextAttack.name, 'telegraph');
+            AudioMgr.sfx('telegraph');
             Grid.render();
             UI.updateAll();
-            callback();
+            if (State.dialogueQueue.length > 0) {
+                State.processDialogueQueue(callback);
+            } else {
+                callback();
+            }
         } else {
-            this.bossBasicMoveAndAttack(boss, callback);
+            this.bossBasicMoveAndAttack(boss, function() {
+                if (State.dialogueQueue.length > 0) {
+                    State.processDialogueQueue(callback);
+                } else {
+                    callback();
+                }
+            });
+        }
+    },
+
+    processTurnAfterSpikeOverload: function(boss, callback) {
+        var self = this;
+        if (boss.telegraph) {
+            this.executeTelegraphedAttack(boss, boss.telegraph, function() {
+                boss.telegraph = null;
+                boss.telegraphTiles = null;
+                self.bossBasicMoveAndAttack(boss, function() {
+                    if (State.dialogueQueue.length > 0) {
+                        State.processDialogueQueue(callback);
+                    } else {
+                        callback();
+                    }
+                });
+            });
+        } else {
+            var nextAttack = this.getNextAttack(boss);
+            if (nextAttack) {
+                boss.telegraph = nextAttack;
+                boss.telegraphTiles = this.getTelegraphTiles(boss, nextAttack);
+                State.addLog(boss.name + ' telegraphs: ' + nextAttack.name, 'telegraph');
+                Grid.render();
+                UI.updateAll();
+                if (State.dialogueQueue.length > 0) {
+                    State.processDialogueQueue(callback);
+                } else {
+                    callback();
+                }
+            } else {
+                this.bossBasicMoveAndAttack(boss, function() {
+                    if (State.dialogueQueue.length > 0) {
+                        State.processDialogueQueue(callback);
+                    } else {
+                        callback();
+                    }
+                });
+            }
+        }
+    },
+
+    processBossPerTurnEffects: function(boss) {
+        if (boss.defId === 'mud_colossus') {
+            if (boss.floodColumn !== undefined) {
+                var col = boss.floodColumn;
+                for (var y = 0; y < Data.GRID_SIZE; y++) {
+                    for (var i = State.obstacles.length - 1; i >= 0; i--) {
+                        if (State.obstacles[i].x === col && State.obstacles[i].y === y) {
+                            State.obstacles.splice(i, 1);
+                        }
+                    }
+                    State.obstacles.push({
+                        x: col, y: y, id: 'swamp_pool', hp: -1,
+                        destructible: false, blocksMove: false, color: '#335522'
+                    });
+                }
+                State.addFloatingText(col, 4, 'SWAMP COLUMN!', '#335522');
+                boss.floodColumn += boss.floodDirection;
+                if (boss.floodColumn < 0) boss.floodColumn = Data.GRID_SIZE - 1;
+                if (boss.floodColumn >= Data.GRID_SIZE) boss.floodColumn = 0;
+            }
+        }
+
+        if (boss.defId === 'molten_chaos') {
+            var lavaCount = boss.lavaTilesPerTurn || 1;
+            for (var l = 0; l < lavaCount; l++) {
+                var rx = Math.floor(Math.random() * Data.GRID_SIZE);
+                var ry = Math.floor(Math.random() * Data.GRID_SIZE);
+                for (var i = State.obstacles.length - 1; i >= 0; i--) {
+                    if (State.obstacles[i].x === rx && State.obstacles[i].y === ry) {
+                        State.obstacles.splice(i, 1);
+                    }
+                }
+                State.obstacles.push({
+                    x: rx, y: ry, id: 'lava', hp: -1,
+                    destructible: false, blocksMove: false, color: '#ff4400'
+                });
+            }
+        }
+    },
+
+    checkPhaseChanges: function(boss, prevHp) {
+        if (!boss.phases) return;
+        var hpPercent = (boss.hp / boss.maxHp) * 100;
+
+        for (var i = 0; i < boss.phases.length; i++) {
+            var phase = boss.phases[i];
+            var key = boss.defId + '_phase_' + phase.threshold;
+            if (!State.phaseChangeTriggered[key] && prevHp > phase.threshold && hpPercent <= phase.threshold) {
+                State.phaseChangeTriggered[key] = true;
+                AudioMgr.sfx('phase_change');
+                if (phase.dialogue) {
+                    State.addDialogue(boss.name, phase.dialogue, boss.color);
+                }
+                if (phase.handler) {
+                    phase.handler(boss);
+                }
+                Grid.render();
+                UI.updateAll();
+                if (State.dialogueQueue.length > 0) {
+                    State.processDialogueQueue(function() {});
+                }
+                break;
+            }
         }
     },
 
@@ -29,104 +273,126 @@ var Boss = {
         var size = boss.size || 2;
         var centerX = boss.x + Math.floor(size / 2);
         var centerY = boss.y + Math.floor(size / 2);
+        var px = State.player.x;
+        var py = State.player.y;
         var tiles = [];
 
         switch (attack.name) {
-            case 'Ground Slam':
-            case 'Ground Pound':
-                tiles = [
-                    { x: centerX, y: centerY },
-                    { x: centerX + 1, y: centerY },
-                    { x: centerX - 1, y: centerY },
-                    { x: centerX, y: centerY + 1 },
-                    { x: centerX, y: centerY - 1 }
-                ];
+            case 'Spear Traps':
+                for (var i = 0; i < Data.GRID_SIZE; i++) {
+                    tiles.push({x: i, y: 0}, {x: i, y: 7}, {x: 0, y: i}, {x: 7, y: i});
+                }
                 break;
-            case 'Boulder Throw':
-            case 'Ice Boulder':
-            case 'Void Bolt':
-                var dx = State.player.x - centerX;
-                var dy = State.player.y - centerY;
+            case 'Spear Thrust':
+                for (var i = 0; i < Data.GRID_SIZE; i++) {
+                    tiles.push({x: i, y: 3}, {x: i, y: 4}, {x: 3, y: i}, {x: 4, y: i});
+                }
+                break;
+            case 'Spear Slam':
+                for (var dx = 2; dx <= 5; dx++) {
+                    for (var dy = 2; dy <= 5; dy++) {
+                        tiles.push({x: dx, y: dy});
+                    }
+                }
+                break;
+            case 'Swamp Spit':
+                var rx = px + Math.floor(Math.random() * 3) - 1;
+                var ry = py + Math.floor(Math.random() * 3) - 1;
+                tiles.push({x: Math.max(0, Math.min(7, rx)), y: Math.max(0, Math.min(7, ry))});
+                break;
+            case 'Wooden Thorns':
+                var row = 1 + Math.floor(Math.random() * 6);
+                var col = 1 + Math.floor(Math.random() * 6);
+                boss._thornsRow = row;
+                boss._thornsCol = col;
+                for (var i = 0; i < Data.GRID_SIZE; i++) {
+                    tiles.push({x: i, y: row}, {x: col, y: i});
+                }
+                break;
+            case 'Branch Slam':
+                for (var dx = -1; dx <= 1; dx++) {
+                    for (var dy = -1; dy <= 1; dy++) {
+                        tiles.push({x: px + dx, y: py + dy});
+                    }
+                }
+                break;
+            case 'Overgrow':
+                for (var dx = 2; dx <= 5; dx++) {
+                    for (var dy = 2; dy <= 5; dy++) {
+                        tiles.push({x: dx, y: dy});
+                    }
+                }
+                break;
+            case 'Magma Collapse':
+                var used = {};
+                for (var i = 0; i < 16; i++) {
+                    var mrx, mry, key;
+                    do {
+                        mrx = Math.floor(Math.random() * Data.GRID_SIZE);
+                        mry = Math.floor(Math.random() * Data.GRID_SIZE);
+                        key = mrx + ',' + mry;
+                    } while (used[key]);
+                    used[key] = true;
+                    tiles.push({x: mrx, y: mry});
+                }
+                break;
+            case 'Magma Spit':
+                for (var dx = -1; dx <= 1; dx++) {
+                    for (var dy = -1; dy <= 1; dy++) {
+                        tiles.push({x: px + dx, y: py + dy});
+                    }
+                }
+                break;
+            case 'Overheat':
+                for (var dx = 2; dx <= 5; dx++) {
+                    for (var dy = 2; dy <= 5; dy++) {
+                        tiles.push({x: dx, y: dy});
+                    }
+                }
+                break;
+            case 'Frozen Axe':
+                for (var dx = -2; dx <= 2; dx++) {
+                    for (var dy = -2; dy <= 2; dy++) {
+                        if (Math.abs(dx) + Math.abs(dy) <= 2 && (dx !== 0 || dy !== 0)) {
+                            tiles.push({x: centerX + dx, y: centerY + dy});
+                        }
+                    }
+                }
+                break;
+            case 'Frozen Stomp':
+                for (var dx = 0; dx <= 1; dx++) {
+                    for (var dy = 0; dy <= 1; dy++) {
+                        tiles.push({x: px + dx, y: py + dy});
+                    }
+                }
+                break;
+            case 'Summon Void':
+                for (var dx = -1; dx <= 1; dx++) {
+                    for (var dy = -1; dy <= 1; dy++) {
+                        tiles.push({x: px + dx, y: py + dy});
+                    }
+                }
+                break;
+            case 'Holy Smite':
+                for (var i = -3; i <= 3; i++) {
+                    tiles.push({x: px, y: py + i}, {x: px + i, y: py});
+                }
+                break;
+            case 'Holy Beam':
+                var dx = px - centerX;
+                var dy = py - centerY;
                 var stepX = dx === 0 ? 0 : (dx > 0 ? 1 : -1);
                 var stepY = dy === 0 ? 0 : (dy > 0 ? 1 : -1);
-                for (var i = 1; i <= attack.range; i++) {
-                    tiles.push({ x: centerX + stepX * i, y: centerY + stepY * i });
+                for (var i = 1; i <= 8; i++) {
+                    var tx = centerX + stepX * i;
+                    var ty = centerY + stepY * i;
+                    if (tx < 0 || tx >= Data.GRID_SIZE || ty < 0 || ty >= Data.GRID_SIZE) break;
+                    tiles.push({x: tx, y: ty});
                 }
                 break;
-            case 'Tail Whip':
-                tiles = [
-                    { x: centerX, y: centerY },
-                    { x: centerX + 1, y: centerY },
-                    { x: centerX - 1, y: centerY },
-                    { x: centerX, y: centerY + 1 },
-                    { x: centerX, y: centerY - 1 }
-                ];
-                break;
-            case 'Lightning Breath':
-            case 'Poison Spit':
-            case 'Fire Breath':
-                var dx2 = State.player.x - centerX;
-                var dy2 = State.player.y - centerY;
-                var dirX = dx2 === 0 ? 0 : (dx2 > 0 ? 1 : -1);
-                var dirY = dy2 === 0 ? 0 : (dy2 > 0 ? 1 : -1);
-                for (var i = 1; i <= attack.range; i++) {
-                    for (var spread = -1; spread <= 1; spread++) {
-                        if (dirX !== 0) {
-                            tiles.push({ x: centerX + dirX * i, y: centerY + spread });
-                        } else {
-                            tiles.push({ x: centerX + spread, y: centerY + dirY * i });
-                        }
-                    }
-                }
-                break;
-            case 'Fly Up':
-                tiles = [{ x: State.player.x, y: State.player.y }];
-                break;
-            case 'Root Grasp':
-                tiles = [
-                    { x: centerX, y: centerY },
-                    { x: centerX + 1, y: centerY },
-                    { x: centerX - 1, y: centerY },
-                    { x: centerX, y: centerY + 1 },
-                    { x: centerX, y: centerY - 1 },
-                    { x: centerX + 1, y: centerY + 1 },
-                    { x: centerX - 1, y: centerY - 1 },
-                    { x: centerX + 1, y: centerY - 1 },
-                    { x: centerX - 1, y: centerY + 1 }
-                ];
-                break;
-            case 'Leaf Storm':
-            case 'Blizzard':
-            case 'Eruption':
-            case 'Darkness':
-            case 'Holy Nova':
-                for (var dy3 = -attack.range; dy3 <= attack.range; dy3++) {
-                    for (var dx3 = -attack.range; dx3 <= attack.range; dx3++) {
-                        if (Math.abs(dx3) + Math.abs(dy3) <= attack.range) {
-                            tiles.push({ x: centerX + dx3, y: centerY + dy3 });
-                        }
-                    }
-                }
-                break;
-            case 'Multi-Head':
-                tiles = [
-                    { x: centerX, y: centerY },
-                    { x: centerX + 2, y: centerY },
-                    { x: centerX - 2, y: centerY },
-                    { x: centerX, y: centerY + 2 },
-                    { x: centerX, y: centerY - 2 }
-                ];
-                break;
-            case 'Swallow':
-            case 'Smite':
-                var dx4 = State.player.x - centerX;
-                var dy4 = State.player.y - centerY;
-                var stepX4 = dx4 === 0 ? 0 : (dx4 > 0 ? 1 : -1);
-                var stepY4 = dy4 === 0 ? 0 : (dy4 > 0 ? 1 : -1);
-                var range4 = attack.range || 4;
-                for (var i = 1; i <= range4; i++) {
-                    tiles.push({ x: centerX + stepX4 * i, y: centerY + stepY4 * i });
-                }
+            case 'Summon Shade':
+            case 'Summon Portal':
+            case 'Lesser Quagmire':
                 break;
         }
 
@@ -137,48 +403,41 @@ var Boss = {
 
     getNextAttack: function(boss) {
         if (!boss.attacks) return null;
+        var ready = [];
         for (var i = 0; i < boss.attacks.length; i++) {
-            var atk = boss.attacks[i];
-            if (atk.current <= 0) {
-                return atk;
+            if (boss.attacks[i].current <= 0) {
+                ready.push(boss.attacks[i]);
             }
         }
-        return null;
+        if (ready.length === 0) return null;
+        return ready[Math.floor(Math.random() * ready.length)];
     },
 
     executeTelegraphedAttack: function(boss, attack, callback) {
         attack.current = attack.cooldown;
-        for (var i = 0; i < boss.attacks.length; i++) {
-            if (boss.attacks[i].current > 0) {
-                boss.attacks[i].current--;
-            }
-        }
 
         State.addLog(boss.name + ' uses ' + attack.name, 'boss');
 
         var alertMessages = {
-            'Summon Rubble': boss.name + ' summoned rubble on yourself! Destroy the rubble to move',
-            'Boulder Throw': 'A boulder is heading your way!',
-            'Ground Slam': 'Ground slam! Move away from the center!',
-            'Root Grasp': 'Roots erupting from the ground! Move to dodge!',
-            'Summon Saplings': boss.name + ' is summoning saplings!',
-            'Leaf Storm': 'Leaf storm incoming! Stay clear!',
-            'Multi-Head': 'Multiple heads striking at once!',
-            'Regen': boss.name + ' is healing!',
-            'Poison Spit': 'Poison spit incoming! Dodge the cone!',
-            'Burrow': boss.name + ' is burrowing underground!',
-            'Swallow': 'A massive jaw approaches in a line!',
-            'Ice Boulder': 'Ice boulder heading your way!',
-            'Ground Pound': 'Ground pound! Move away from the center!',
-            'Blizzard': 'Blizzard incoming! Stay clear!',
-            'Fire Breath': 'Fire breath incoming! Dodge the cone!',
-            'Wing Buffet': 'Wing buffet incoming!',
-            'Eruption': 'Eruption incoming! Stay clear!',
-            'Void Bolt': 'Void bolt heading your way!',
-            'Darkness': 'Darkness engulfs the area!',
-            'Holy Nova': 'Holy nova incoming! Stay clear!',
-            'Divine Shield': boss.name + ' is raising a shield!',
-            'Smite': 'A smiting bolt heads your way!'
+            'Spear Traps': 'Spear traps on the outer ring! Stay inside!',
+            'Spear Thrust': 'Spear thrust in a plus shape! Dodge!',
+            'Spear Slam': 'Spear slam in the center! Move away!',
+            'Swamp Spit': 'Swamp spit incoming! Watch the tile!',
+            'Lesser Quagmire': 'The ground beneath transforms!',
+            'Wooden Thorns': 'Thorns erupt in lines! Dodge!',
+            'Branch Slam': 'Branch slams down! Move away!',
+            'Chain Pull': 'Chain pull incoming! Dodge the pull!',
+            'Overgrow': 'Overgrowth in the center! Move away!',
+            'Magma Collapse': 'Random tiles erupt with magma! Dodge!',
+            'Magma Spit': 'Magma spit incoming! Move away!',
+            'Overheat': 'Overheat in the center! Move away!',
+            'Frozen Axe': 'Frozen axe swings around! Stay close or far!',
+            'Frozen Stomp': 'Frozen stomp! Move away!',
+            'Summon Shade': 'Shades are being summoned!',
+            'Summon Portal': 'Portals are opening!',
+            'Summon Void': 'Void bolt incoming! Move away!',
+            'Holy Smite': 'Holy smite in a plus shape! Dodge!',
+            'Holy Beam': 'Holy beam incoming! Move away!'
         };
 
         if (alertMessages[attack.name]) {
@@ -186,30 +445,24 @@ var Boss = {
         }
 
         switch (attack.name) {
-            case 'Ground Slam': this.groundSlam(boss, attack, callback); break;
-            case 'Boulder Throw': this.boulderThrow(boss, attack, callback); break;
-            case 'Summon Rubble': this.summonRubble(boss, callback); break;
-            case 'Root Grasp': this.rootGrasp(boss, attack, callback); break;
-            case 'Summon Saplings': this.summonSaplings(boss, callback); break;
-            case 'Leaf Storm': this.aoeAttack(boss, attack, callback); break;
-            case 'Multi-Head': this.multiDirection(boss, attack, callback); break;
-            case 'Regen': this.selfHeal(boss, callback); break;
-            case 'Poison Spit': this.coneAttack(boss, attack, callback); break;
-            case 'Burrow': this.burrow(boss, callback); break;
-            case 'Tail Whip': this.tailSweep(boss, attack, callback); break;
-            case 'Swallow': this.executeLine(boss, attack, callback); break;
-            case 'Ice Boulder': this.boulderThrow(boss, attack, callback); break;
-            case 'Ground Pound': this.groundSlam(boss, attack, callback); break;
-            case 'Blizzard': this.aoeAttack(boss, attack, callback); break;
-            case 'Fire Breath': this.coneAttack(boss, attack, callback); break;
-            case 'Wing Buffet': this.wingGust(boss, callback); break;
-            case 'Eruption': this.aoeAttack(boss, attack, callback); break;
-            case 'Shadow Clone': this.cloneWraith(boss, callback); break;
-            case 'Void Bolt': this.boulderThrow(boss, attack, callback); break;
-            case 'Darkness': this.aoeAttack(boss, attack, callback); break;
-            case 'Holy Nova': this.aoeAttack(boss, attack, callback); break;
-            case 'Divine Shield': this.shieldSelf(boss, callback); break;
-            case 'Smite': this.singleTarget(boss, attack, callback); break;
+            case 'Spear Traps': this.spearTraps(boss, attack, callback); break;
+            case 'Spear Thrust': this.spearThrust(boss, attack, callback); break;
+            case 'Spear Slam': this.spearSlam(boss, attack, callback); break;
+            case 'Swamp Spit': this.swampSpit(boss, attack, callback); break;
+            case 'Lesser Quagmire': this.lesserQuagmire(boss, callback); break;
+            case 'Wooden Thorns': this.woodenThorns(boss, attack, callback); break;
+            case 'Branch Slam': this.branchSlam(boss, attack, callback); break;
+            case 'Overgrow': this.overgrow(boss, attack, callback); break;
+            case 'Magma Collapse': this.magmaCollapse(boss, attack, callback); break;
+            case 'Magma Spit': this.magmaSpit(boss, attack, callback); break;
+            case 'Overheat': this.overheat(boss, attack, callback); break;
+            case 'Frozen Axe': this.frozenAxe(boss, attack, callback); break;
+            case 'Frozen Stomp': this.frozenStomp(boss, attack, callback); break;
+            case 'Summon Shade': this.summonShade(boss, callback); break;
+            case 'Summon Portal': this.summonPortalPair(boss, callback); break;
+            case 'Summon Void': this.summonVoid(boss, attack, callback); break;
+            case 'Holy Smite': this.holySmite(boss, attack, callback); break;
+            case 'Holy Beam': this.holyBeam(boss, attack, callback); break;
             default: this.basicAttack(boss, callback);
         }
     },
@@ -231,6 +484,268 @@ var Boss = {
         callback();
     },
 
+    banditGangTurn: function(boss, callback) {
+        var bandits = [];
+        for (var i = 0; i < State.enemies.length; i++) {
+            var e = State.enemies[i];
+            if (e.hp > 0 && e.defId && Data.ENEMIES[e.defId] && (e.defId === 'tech_terry' || e.defId === 'shooter_sally' || e.defId === 'breaker_barry' || e.defId === 'molotov_mary')) {
+                bandits.push(e);
+            }
+        }
+
+        if (bandits.length === 0) {
+            callback();
+            return;
+        }
+
+        var self = this;
+
+        if (boss.banditTelegraph) {
+            var telegraphBandit = boss.banditTelegraph;
+            boss.banditTelegraph = null;
+            if (telegraphBandit.hp > 0) {
+                var storedTiles = telegraphBandit.telegraphTiles;
+                var storedSnipeAxis = telegraphBandit._snipeAxis;
+                var storedSnipePos = telegraphBandit._snipePos;
+                var storedMolotovTarget = telegraphBandit._molotovTarget;
+                this.banditSpecialAttack(telegraphBandit, function() {
+                    telegraphBandit.telegraphTiles = null;
+                    telegraphBandit.telegraph = null;
+                    self.banditBasicActions(bandits, telegraphBandit, callback);
+                });
+            } else {
+                telegraphBandit.telegraphTiles = null;
+                telegraphBandit.telegraph = null;
+                self.banditBasicActions(bandits, null, callback);
+            }
+            return;
+        }
+
+        var specialsBandit = bandits[Math.floor(Math.random() * bandits.length)];
+        boss.banditTelegraph = specialsBandit;
+        this.showBanditTelegraph(specialsBandit);
+        Grid.render();
+        UI.updateAll();
+        callback();
+    },
+
+    showBanditTelegraph: function(bandit) {
+        var name = Data.ENEMIES[bandit.defId] ? Data.ENEMIES[bandit.defId].name : bandit.defId;
+        var px = State.player.x;
+        var py = State.player.y;
+        var tiles = [];
+
+        switch (bandit.defId) {
+            case 'tech_terry':
+                for (var dx = -1; dx <= 1; dx++) {
+                    for (var dy = -1; dy <= 1; dy++) {
+                        tiles.push({x: px + dx, y: py + dy});
+                    }
+                }
+                break;
+            case 'shooter_sally':
+                var rx = Math.floor(Math.random() * Data.GRID_SIZE);
+                var ry = Math.floor(Math.random() * Data.GRID_SIZE);
+                bandit._snipeAxis = Math.random() < 0.5 ? 'row' : 'col';
+                bandit._snipePos = bandit._snipeAxis === 'row' ? rx : ry;
+                if (bandit._snipeAxis === 'row') {
+                    for (var i = 0; i < Data.GRID_SIZE; i++) tiles.push({x: i, y: ry});
+                } else {
+                    for (var i = 0; i < Data.GRID_SIZE; i++) tiles.push({x: rx, y: i});
+                }
+                break;
+            case 'breaker_barry':
+                var dx = bandit.x - px;
+                var dy = bandit.y - py;
+                var pullX = Math.max(0, Math.min(Data.GRID_SIZE - 1, px + Math.sign(dx) * 2));
+                var pullY = Math.max(0, Math.min(Data.GRID_SIZE - 1, py + Math.sign(dy) * 2));
+                tiles.push({x: pullX, y: pullY});
+                for (var bdx = -1; bdx <= 1; bdx++) {
+                    for (var bdy = -1; bdy <= 1; bdy++) {
+                        tiles.push({x: bandit.x + bdx, y: bandit.y + bdy});
+                    }
+                }
+                bandit._pullTarget = {x: pullX, y: pullY};
+                break;
+            case 'molotov_mary':
+                tiles.push({x: px, y: py});
+                bandit._molotovTarget = {x: px, y: py};
+                break;
+        }
+
+        if (tiles.length > 0) {
+            bandit.telegraphTiles = tiles;
+            var teleName = 'SPECIAL';
+            if (bandit.defId === 'tech_terry') teleName = 'Bomb Throw';
+            else if (bandit.defId === 'shooter_sally') teleName = 'Deadeye Snipe';
+            else if (bandit.defId === 'breaker_barry') teleName = 'Chain Pull';
+            else if (bandit.defId === 'molotov_mary') teleName = 'Desert Flames';
+            bandit.telegraph = { name: teleName };
+            State.animAoE(tiles, bandit.color);
+        }
+        State.addLog(name + ' telegraphs a special attack!', 'telegraph');
+        State.addFloatingText(bandit.x, bandit.y, 'TELEGRAPH!', '#ff4444');
+    },
+
+    banditBasicActions: function(bandits, skipBandit, callback) {
+        var self = this;
+        var actions = [];
+
+        for (var i = 0; i < bandits.length; i++) {
+            if (bandits[i] === skipBandit || bandits[i].hp <= 0) continue;
+            actions.push(bandits[i]);
+        }
+
+        var executed = 0;
+        var maxActions = 2;
+
+        function doNext() {
+            if (executed >= maxActions || actions.length === 0) {
+                Grid.render();
+                UI.updateAll();
+                callback();
+                return;
+            }
+
+            var bandit = actions.shift();
+            if (bandit.hp <= 0) {
+                doNext();
+                return;
+            }
+
+            var dist = AI.distance(bandit.x, bandit.y, State.player.x, State.player.y);
+            var name = Data.ENEMIES[bandit.defId] ? Data.ENEMIES[bandit.defId].name : bandit.defId;
+
+            if (bandit.defId === 'breaker_barry' && dist <= 1) {
+                State.addLog(name + ' attacks!', 'boss');
+                State.animSlash(bandit.x, bandit.y, State.player.x, State.player.y, bandit.color);
+                Combat.dealDamageToPlayer(bandit.damage);
+                executed++;
+                doNext();
+            } else if (bandit.defId === 'tech_terry') {
+                var attempts = 0;
+                var sx, sy;
+                do {
+                    sx = bandit.x + Math.floor(Math.random() * 3) - 1;
+                    sy = bandit.y + Math.floor(Math.random() * 3) - 1;
+                    attempts++;
+                } while (attempts < 10 && (sx < 0 || sx >= Data.GRID_SIZE || sy < 0 || sy >= Data.GRID_SIZE || Stages.isReserved(sx, sy)));
+                if (attempts < 10) {
+                    State.enemies.push({
+                        x: sx, y: sy, hp: 50, maxHp: 50,
+                        damage: 15, defId: 'mini_robot',
+                        facing: 'down', frozen: 0, freezeImmune: false,
+                        freezeImmuneTurns: 0, poison: null,
+                        isBoss: false, color: '#aaaaaa',
+                        isSummon: true, moveSpeed: 1
+                    });
+                    State.addFloatingText(sx, sy, 'ROBOT!', '#aaaaaa');
+                }
+                executed++;
+                doNext();
+            } else if ((bandit.defId === 'shooter_sally' || bandit.defId === 'molotov_mary') && dist <= 4) {
+                State.addLog(name + ' shoots!', 'boss');
+                State.animProjectile(bandit.x, bandit.y, State.player.x, State.player.y, bandit.color);
+                Combat.dealDamageToPlayer(bandit.damage);
+                executed++;
+                doNext();
+            } else {
+                doNext();
+            }
+        }
+        doNext();
+    },
+
+    banditSpecialAttack: function(bandit, callback) {
+        var name = Data.ENEMIES[bandit.defId] ? Data.ENEMIES[bandit.defId].name : bandit.defId;
+        var px = State.player.x;
+        var py = State.player.y;
+
+        switch (bandit.defId) {
+            case 'tech_terry':
+                State.addLog(name + ' uses Bomb Throw!', 'boss');
+                var tiles = bandit.telegraphTiles || [];
+                if (tiles.length === 0) {
+                    for (var dx = -1; dx <= 1; dx++) {
+                        for (var dy = -1; dy <= 1; dy++) {
+                            tiles.push({x: State.player.x + dx, y: State.player.y + dy});
+                        }
+                    }
+                }
+                State.animAoE(tiles, '#ffaa00');
+                for (var j = 0; j < tiles.length; j++) {
+                    if (tiles[j].x === State.player.x && tiles[j].y === State.player.y) {
+                        Combat.dealDamageToPlayer(80);
+                    }
+                }
+                State.addFloatingText(State.player.x, State.player.y, 'BOMB!', '#ffaa00');
+                break;
+            case 'shooter_sally':
+                State.addLog(name + ' uses Deadeye Snipe!', 'boss');
+                var snipeAxis = bandit._snipeAxis || (Math.random() < 0.5 ? 'row' : 'col');
+                var snipePos = bandit._snipePos !== undefined ? bandit._snipePos : Math.floor(Math.random() * Data.GRID_SIZE);
+                var teleportAxis = snipeAxis === 'row' ? 'col' : 'row';
+                var teleportPos = Math.floor(Math.random() * Data.GRID_SIZE);
+                var teleX = teleportAxis === 'col' ? teleportPos : bandit.x;
+                var teleY = teleportAxis === 'row' ? teleportPos : bandit.y;
+                teleX = Math.max(0, Math.min(Data.GRID_SIZE - 1, teleX));
+                teleY = Math.max(0, Math.min(Data.GRID_SIZE - 1, teleY));
+                var snipeTiles = [];
+                if (snipeAxis === 'row') {
+                    for (var i = 0; i < Data.GRID_SIZE; i++) snipeTiles.push({x: i, y: snipePos});
+                } else {
+                    for (var i = 0; i < Data.GRID_SIZE; i++) snipeTiles.push({x: snipePos, y: i});
+                }
+                State.animMove(bandit.x, bandit.y, teleX, teleY, bandit.color, '#ff0000');
+                bandit.x = teleX;
+                bandit.y = teleY;
+                State.animBeam(bandit.x, bandit.y, snipeTiles[snipeTiles.length - 1].x, snipeTiles[snipeTiles.length - 1].y, '#ff4444');
+                for (var j = 0; j < snipeTiles.length; j++) {
+                    if (snipeTiles[j].x === px && snipeTiles[j].y === py) {
+                        Combat.dealDamageToPlayer(90);
+                    }
+                }
+                State.addFloatingText(px, py, 'SNIPE!', '#ff4444');
+                bandit._snipeAxis = null;
+                bandit._snipePos = undefined;
+                break;
+            case 'breaker_barry':
+                State.addLog(name + ' uses Chain Pull!', 'boss');
+                var pullTarget = bandit._pullTarget || {x: px, y: py};
+                State.animMove(px, py, pullTarget.x, pullTarget.y, '#ff4444');
+                State.player.x = pullTarget.x;
+                State.player.y = pullTarget.y;
+                State.addFloatingText(pullTarget.x, pullTarget.y, 'PULLED!', '#ff4444');
+                var bDist = AI.distance(State.player.x, State.player.y, bandit.x, bandit.y);
+                if (bDist <= 1.5) {
+                    Combat.dealDamageToPlayer(bandit.damage);
+                    State.player.bleed = {damage: 15, turns: 3};
+                    State.addFloatingText(State.player.x, State.player.y, 'CHAINED!', '#ff4444');
+                }
+                bandit._pullTarget = null;
+                break;
+            case 'molotov_mary':
+                State.addLog(name + ' uses Desert Flames!', 'boss');
+                var target = bandit._molotovTarget || {x: px, y: py};
+                State.animProjectile(bandit.x, bandit.y, target.x, target.y, '#ff4400');
+                for (var i = State.obstacles.length - 1; i >= 0; i--) {
+                    if (State.obstacles[i].x === target.x && State.obstacles[i].y === target.y) {
+                        State.obstacles.splice(i, 1);
+                    }
+                }
+                State.obstacles.push({
+                    x: target.x, y: target.y, id: 'lava', hp: -1,
+                    destructible: false, blocksMove: false, color: '#ff4400'
+                });
+                State.addFloatingText(target.x, target.y, 'FIRE!', '#ff4400');
+                bandit._molotovTarget = null;
+                break;
+        }
+        Grid.render();
+        UI.updateAll();
+        callback();
+    },
+
     bossBasicMoveAndAttack: function(boss, callback) {
         var size = boss.size || 2;
         var centerX = boss.x + Math.floor(size / 2);
@@ -243,7 +758,7 @@ var Boss = {
             Combat.dealDamageToPlayer(Math.floor(boss.damage * 0.5));
             var dir = Grid.getDirection(centerX, centerY, State.player.x, State.player.y);
             boss.facing = dir;
-        } else {
+        } else if (!boss.stationary) {
             var dx = State.player.x - centerX;
             var dy = State.player.y - centerY;
             var moveX = dx === 0 ? 0 : (dx > 0 ? 1 : -1);
@@ -715,5 +1230,317 @@ var Boss = {
         Grid.render();
         UI.updateAll();
         callback();
+    },
+
+    // === OVERSEER ATTACKS ===
+    spearTraps: function(boss, attack, callback) {
+        var tiles = [];
+        for (var i = 0; i < Data.GRID_SIZE; i++) {
+            tiles.push({x: i, y: 0}, {x: i, y: 7}, {x: 0, y: i}, {x: 7, y: i});
+        }
+        State.animAoE(tiles, '#ff8800');
+        for (var j = 0; j < tiles.length; j++) {
+            if (tiles[j].x === State.player.x && tiles[j].y === State.player.y) {
+                Combat.dealDamageToPlayer(attack.damage);
+            }
+        }
+        Grid.render(); UI.updateAll(); callback();
+    },
+
+    spearThrust: function(boss, attack, callback) {
+        var tiles = [];
+        for (var i = 0; i < Data.GRID_SIZE; i++) {
+            tiles.push({x: i, y: 3}, {x: i, y: 4}, {x: 3, y: i}, {x: 4, y: i});
+        }
+        State.animAoE(tiles, '#ff8800');
+        for (var j = 0; j < tiles.length; j++) {
+            if (tiles[j].x === State.player.x && tiles[j].y === State.player.y) {
+                Combat.dealDamageToPlayer(attack.damage);
+            }
+        }
+        Grid.render(); UI.updateAll(); callback();
+    },
+
+    spearSlam: function(boss, attack, callback) {
+        var tiles = [];
+        for (var dx = 2; dx <= 5; dx++) {
+            for (var dy = 2; dy <= 5; dy++) {
+                tiles.push({x: dx, y: dy});
+            }
+        }
+        State.animAoE(tiles, '#ff8800');
+        for (var j = 0; j < tiles.length; j++) {
+            if (tiles[j].x === State.player.x && tiles[j].y === State.player.y) {
+                Combat.dealDamageToPlayer(attack.damage);
+            }
+        }
+        Grid.render(); UI.updateAll(); callback();
+    },
+
+    // === MUD COLOSSUS ATTACKS ===
+    swampSpit: function(boss, attack, callback) {
+        var size = boss.size || 2;
+        var centerX = boss.x + Math.floor(size / 2);
+        var centerY = boss.y + Math.floor(size / 2);
+        var tile = boss.telegraphTiles && boss.telegraphTiles.length > 0 ? boss.telegraphTiles[0] : {x: State.player.x, y: State.player.y};
+        State.animProjectile(centerX, centerY, tile.x, tile.y, '#335522');
+        if (!Stages.isReserved(tile.x, tile.y)) {
+            for (var i = State.obstacles.length - 1; i >= 0; i--) {
+                if (State.obstacles[i].x === tile.x && State.obstacles[i].y === tile.y) {
+                    State.obstacles.splice(i, 1);
+                }
+            }
+            State.obstacles.push({
+                x: tile.x, y: tile.y, id: 'swamp_pool', hp: -1,
+                destructible: false, blocksMove: false, color: '#335522'
+            });
+            State.addFloatingText(tile.x, tile.y, 'SWAMP!', '#335522');
+        }
+        Grid.render(); UI.updateAll(); callback();
+    },
+
+    lesserQuagmire: function(boss, callback) {
+        var size = boss.size || 2;
+        for (var dx = 0; dx < size; dx++) {
+            for (var dy = 0; dy < size; dy++) {
+                var tx = boss.x + dx;
+                var ty = boss.y + dy;
+                for (var i = State.obstacles.length - 1; i >= 0; i--) {
+                    if (State.obstacles[i].x === tx && State.obstacles[i].y === ty) {
+                        State.obstacles.splice(i, 1);
+                    }
+                }
+                State.obstacles.push({
+                    x: tx, y: ty, id: 'swamp_pool', hp: -1,
+                    destructible: false, blocksMove: false, color: '#335522'
+                });
+            }
+        }
+        State.addFloatingText(boss.x, boss.y, 'QUAGMIRE!', '#335522');
+        Grid.render(); UI.updateAll(); callback();
+    },
+
+    // === GREATWOOD TITAN ATTACKS ===
+    woodenThorns: function(boss, attack, callback) {
+        var row = boss._thornsRow !== undefined ? boss._thornsRow : 1 + Math.floor(Math.random() * 6);
+        var col = boss._thornsCol !== undefined ? boss._thornsCol : 1 + Math.floor(Math.random() * 6);
+        boss._thornsRow = undefined;
+        boss._thornsCol = undefined;
+        var tiles = [];
+        for (var i = 0; i < Data.GRID_SIZE; i++) {
+            tiles.push({x: i, y: row}, {x: col, y: i});
+        }
+        State.animAoE(tiles, '#446622');
+        for (var j = 0; j < tiles.length; j++) {
+            if (tiles[j].x === State.player.x && tiles[j].y === State.player.y) {
+                Combat.dealDamageToPlayer(attack.damage);
+            }
+        }
+        Grid.render(); UI.updateAll(); callback();
+    },
+
+    branchSlam: function(boss, attack, callback) {
+        var px = State.player.x;
+        var py = State.player.y;
+        var tiles = [];
+        for (var dx = -1; dx <= 1; dx++) {
+            for (var dy = -1; dy <= 1; dy++) {
+                tiles.push({x: px + dx, y: py + dy});
+            }
+        }
+        State.animAoE(tiles, '#446622');
+        for (var j = 0; j < tiles.length; j++) {
+            if (tiles[j].x === State.player.x && tiles[j].y === State.player.y) {
+                Combat.dealDamageToPlayer(attack.damage);
+            }
+        }
+        Grid.render(); UI.updateAll(); callback();
+    },
+
+    overgrow: function(boss, attack, callback) {
+        var tiles = [];
+        for (var dx = 2; dx <= 5; dx++) {
+            for (var dy = 2; dy <= 5; dy++) {
+                tiles.push({x: dx, y: dy});
+            }
+        }
+        State.animAoE(tiles, '#446622');
+        for (var j = 0; j < tiles.length; j++) {
+            if (tiles[j].x === State.player.x && tiles[j].y === State.player.y) {
+                Combat.dealDamageToPlayer(attack.damage);
+            }
+        }
+        Grid.render(); UI.updateAll(); callback();
+    },
+
+    // === MOLTEN CHAOS ATTACKS ===
+    magmaCollapse: function(boss, attack, callback) {
+        var tiles = boss.telegraphTiles || [];
+        State.animAoE(tiles, '#ff4400');
+        for (var j = 0; j < tiles.length; j++) {
+            var t = tiles[j];
+            if (t.x === State.player.x && t.y === State.player.y) {
+                Combat.dealDamageToPlayer(attack.damage);
+                State.player.bleed = {damage: 10, turns: 2};
+            }
+        }
+        Grid.render(); UI.updateAll(); callback();
+    },
+
+    magmaSpit: function(boss, attack, callback) {
+        var tiles = boss.telegraphTiles || [];
+        State.animAoE(tiles, '#ff4400');
+        for (var j = 0; j < tiles.length; j++) {
+            var t = tiles[j];
+            if (t.x === State.player.x && t.y === State.player.y) {
+                Combat.dealDamageToPlayer(attack.damage);
+                State.player.bleed = {damage: 10, turns: 2};
+            }
+        }
+        Grid.render(); UI.updateAll(); callback();
+    },
+
+    overheat: function(boss, attack, callback) {
+        var tiles = boss.telegraphTiles || [];
+        State.animAoE(tiles, '#ff4400');
+        for (var j = 0; j < tiles.length; j++) {
+            var t = tiles[j];
+            if (t.x === State.player.x && t.y === State.player.y) {
+                Combat.dealDamageToPlayer(attack.damage);
+                State.player.bleed = {damage: 10, turns: 2};
+            }
+        }
+        Grid.render(); UI.updateAll(); callback();
+    },
+
+    // === FROST DWARF ATTACKS ===
+    frozenAxe: function(boss, attack, callback) {
+        var size = boss.size || 2;
+        var centerX = boss.x + Math.floor(size / 2);
+        var centerY = boss.y + Math.floor(size / 2);
+        var tiles = [];
+        for (var dx = -2; dx <= 2; dx++) {
+            for (var dy = -2; dy <= 2; dy++) {
+                if (Math.abs(dx) + Math.abs(dy) <= 2 && (dx !== 0 || dy !== 0)) {
+                    tiles.push({x: centerX + dx, y: centerY + dy});
+                }
+            }
+        }
+        State.animRing(centerX, centerY, '#88bbdd');
+        for (var j = 0; j < tiles.length; j++) {
+            if (tiles[j].x === State.player.x && tiles[j].y === State.player.y) {
+                Combat.dealDamageToPlayer(attack.damage);
+            }
+        }
+        Grid.render(); UI.updateAll(); callback();
+    },
+
+    frozenStomp: function(boss, attack, callback) {
+        var tiles = boss.telegraphTiles || [];
+        State.animAoE(tiles, '#88bbdd');
+        for (var j = 0; j < tiles.length; j++) {
+            if (tiles[j].x === State.player.x && tiles[j].y === State.player.y) {
+                Combat.dealDamageToPlayer(attack.damage);
+            }
+        }
+        Grid.render(); UI.updateAll(); callback();
+    },
+
+    // === FIRST CLONE ATTACKS ===
+    summonShade: function(boss, callback) {
+        var attempts = 0;
+        var cx, cy;
+        do {
+            cx = Math.floor(Math.random() * Data.GRID_SIZE);
+            cy = Math.floor(Math.random() * Data.GRID_SIZE);
+            attempts++;
+        } while (attempts < 100 && Stages.isReserved(cx, cy));
+        State.enemies.push({
+            x: cx, y: cy, hp: 150, maxHp: 150,
+            damage: 20, defId: 'shade',
+            facing: 'down', frozen: 0, freezeImmune: false,
+            freezeImmuneTurns: 0, poison: null,
+            isBoss: false, color: '#443366',
+            isSummon: true, moveSpeed: 1
+        });
+        State.addFloatingText(cx, cy, 'SHADE!', '#6633aa');
+        Grid.render(); UI.updateAll(); callback();
+    },
+
+    summonPortalPair: function(boss, callback) {
+        var p1 = Stages.findOpenTile();
+        var p2 = Stages.findOpenTile();
+        if (p1 && p2) {
+            State.obstacles.push({
+                x: p1.x, y: p1.y, id: 'portal', hp: -1,
+                destructible: false, blocksMove: false, color: '#cc44ff'
+            });
+            State.obstacles.push({
+                x: p2.x, y: p2.y, id: 'portal', hp: -1,
+                destructible: false, blocksMove: false, color: '#cc44ff'
+            });
+            State.addFloatingText(p1.x, p1.y, 'PORTAL!', '#cc44ff');
+        }
+        Grid.render(); UI.updateAll(); callback();
+    },
+
+    summonVoid: function(boss, attack, callback) {
+        var px = State.player.x;
+        var py = State.player.y;
+        var tiles = [];
+        for (var dx = -1; dx <= 1; dx++) {
+            for (var dy = -1; dy <= 1; dy++) {
+                tiles.push({x: px + dx, y: py + dy});
+            }
+        }
+        State.animAoE(tiles, '#6633aa');
+        for (var j = 0; j < tiles.length; j++) {
+            if (tiles[j].x === State.player.x && tiles[j].y === State.player.y) {
+                Combat.dealDamageToPlayer(attack.damage);
+            }
+        }
+        Grid.render(); UI.updateAll(); callback();
+    },
+
+    // === LIGHT GUARDIAN ATTACKS ===
+    holySmite: function(boss, attack, callback) {
+        var px = State.player.x;
+        var py = State.player.y;
+        var tiles = [];
+        for (var i = -3; i <= 3; i++) {
+            tiles.push({x: px, y: py + i});
+            tiles.push({x: px + i, y: py});
+        }
+        State.animAoE(tiles, '#ffddaa');
+        for (var j = 0; j < tiles.length; j++) {
+            if (tiles[j].x === State.player.x && tiles[j].y === State.player.y) {
+                Combat.dealDamageToPlayer(attack.damage);
+            }
+        }
+        Grid.render(); UI.updateAll(); callback();
+    },
+
+    holyBeam: function(boss, attack, callback) {
+        var size = boss.size || 2;
+        var centerX = boss.x + Math.floor(size / 2);
+        var centerY = boss.y + Math.floor(size / 2);
+        var dx = State.player.x - centerX;
+        var dy = State.player.y - centerY;
+        var stepX = dx === 0 ? 0 : (dx > 0 ? 1 : -1);
+        var stepY = dy === 0 ? 0 : (dy > 0 ? 1 : -1);
+        var tiles = [];
+        for (var i = 1; i <= 8; i++) {
+            var tx = centerX + stepX * i;
+            var ty = centerY + stepY * i;
+            if (tx < 0 || tx >= Data.GRID_SIZE || ty < 0 || ty >= Data.GRID_SIZE) break;
+            tiles.push({x: tx, y: ty});
+        }
+        State.animBeam(centerX, centerY, tiles[tiles.length - 1].x, tiles[tiles.length - 1].y, '#ffddaa');
+        for (var j = 0; j < tiles.length; j++) {
+            if (tiles[j].x === State.player.x && tiles[j].y === State.player.y) {
+                Combat.dealDamageToPlayer(attack.damage);
+            }
+        }
+        Grid.render(); UI.updateAll(); callback();
     }
 };

@@ -66,7 +66,7 @@ var Stages = {
     },
 
     generateBossStage: function() {
-        var bossKey = 'colossus';
+        var bossKey = 'overseer';
         if (State.currentBiome && Data.BIOMES[State.currentBiome] && Data.BIOMES[State.currentBiome].bossId) {
             bossKey = Data.BIOMES[State.currentBiome].bossId;
         }
@@ -77,6 +77,11 @@ var Stages = {
 
         State.currentBossDef = bossDef;
         State.bossTurnCount = 0;
+
+        if (bossKey === 'bandit_gang') {
+            this.generateBanditGangStage(bossDef, loopScaling);
+            return;
+        }
 
         var centerX = Math.floor(Data.GRID_SIZE / 2) - 1;
         var centerY = Math.floor(Data.GRID_SIZE / 2) - 1;
@@ -97,15 +102,43 @@ var Stages = {
             isBoss: true,
             color: bossDef.color,
             name: bossDef.name,
+            stationary: bossDef.stationary || false,
             attacks: JSON.parse(JSON.stringify(bossDef.attacks)).map(function(a) {
                 if (a.damage > 0) a.damage = Math.floor(a.damage * loopScaling);
                 return a;
             }),
+            phases: bossDef.phases || [],
             nextAttack: null,
             telegraph: null
         };
 
         State.enemies.push(boss);
+    },
+
+    generateBanditGangStage: function(bossDef, loopScaling) {
+        var banditDefs = [
+            { defId: 'tech_terry', x: 0, y: 0 },
+            { defId: 'shooter_sally', x: 7, y: 0 },
+            { defId: 'breaker_barry', x: 0, y: 7 },
+            { defId: 'molotov_mary', x: 7, y: 7 }
+        ];
+
+        for (var i = 0; i < banditDefs.length; i++) {
+            var bd = banditDefs[i];
+            var def = Data.ENEMIES[bd.defId];
+            var hp = Math.floor(def.hp * loopScaling * 0.4);
+            State.enemies.push({
+                x: bd.x, y: bd.y,
+                hp: hp, maxHp: hp,
+                damage: Math.floor(def.damage * loopScaling),
+                defId: bd.defId,
+                facing: 'down',
+                frozen: 0, freezeImmune: false,
+                freezeImmuneTurns: 0, poison: null,
+                isBoss: false, color: def.color,
+                moveSpeed: def.moveSpeed
+            });
+        }
     },
 
     placeBiomeHazards: function(stage) {
