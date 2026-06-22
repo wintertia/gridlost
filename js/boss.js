@@ -498,11 +498,12 @@ var Boss = {
             return;
         }
 
+        var gangState = State.banditGangState || boss;
         var self = this;
 
-        if (boss.banditTelegraph) {
-            var telegraphBandit = boss.banditTelegraph;
-            boss.banditTelegraph = null;
+        if (gangState.banditTelegraph) {
+            var telegraphBandit = gangState.banditTelegraph;
+            gangState.banditTelegraph = null;
             if (telegraphBandit.hp > 0) {
                 var storedTiles = telegraphBandit.telegraphTiles;
                 var storedSnipeAxis = telegraphBandit._snipeAxis;
@@ -522,7 +523,7 @@ var Boss = {
         }
 
         var specialsBandit = bandits[Math.floor(Math.random() * bandits.length)];
-        boss.banditTelegraph = specialsBandit;
+        gangState.banditTelegraph = specialsBandit;
         this.showBanditTelegraph(specialsBandit);
         Grid.render();
         UI.updateAll();

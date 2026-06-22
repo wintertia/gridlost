@@ -42,6 +42,8 @@ var State = {
     poisonEffects: [],
     extraItemDrops: 0,
     spikeTurns: 0,
+    spikeLastX: -1,
+    spikeLastY: -1,
 
     debugMode: false,
     debugBiomeOverride: null,
@@ -82,6 +84,8 @@ var State = {
         this.poisonTiles = [];
         this.poisonEffects = [];
         this.spikeTurns = 0;
+        this.spikeLastX = -1;
+        this.spikeLastY = -1;
         this.hoveredTile = null;
         this.attackPreview = [];
         this.floatingTexts = [];

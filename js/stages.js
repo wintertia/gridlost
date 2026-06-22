@@ -116,6 +116,11 @@ var Stages = {
     },
 
     generateBanditGangStage: function(bossDef, loopScaling) {
+        State.banditGangState = {
+            banditTelegraph: null,
+            telegraph: null
+        };
+
         var banditDefs = [
             { defId: 'tech_terry', x: 0, y: 0 },
             { defId: 'shooter_sally', x: 7, y: 0 },

@@ -301,6 +301,8 @@ var Main = {
         State.burnTiles = [];
         State.poisonTiles = [];
         State.spikeTurns = 0;
+        State.spikeLastX = -1;
+        State.spikeLastY = -1;
         State.clearFloatingTexts();
         Stages.generate();
         UI.updateAll();

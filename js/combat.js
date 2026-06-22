@@ -1401,6 +1401,14 @@ var Combat = {
     processHazardTiles: function() {
         var px = State.player.x;
         var py = State.player.y;
+        var moved = (px !== State.spikeLastX || py !== State.spikeLastY);
+        State.spikeLastX = px;
+        State.spikeLastY = py;
+
+        if (moved) {
+            State.spikeTurns = 0;
+        }
+
         for (var i = 0; i < State.obstacles.length; i++) {
             var o = State.obstacles[i];
             if (o.x !== px || o.y !== py) continue;
@@ -1444,17 +1452,6 @@ var Combat = {
                 State.player.judgment = (State.player.judgment || 0) + 2;
                 State.addFloatingText(px, py, 'JUDGEMENT +' + State.player.judgment, '#ffdd88');
             }
-        }
-
-        var onSpike = false;
-        for (var j = 0; j < State.obstacles.length; j++) {
-            if (State.obstacles[j].x === px && State.obstacles[j].y === py && State.obstacles[j].id === 'spike_trap') {
-                onSpike = true;
-                break;
-            }
-        }
-        if (!onSpike) {
-            State.spikeTurns = 0;
         }
 
         if (State.player.hp <= 0) {

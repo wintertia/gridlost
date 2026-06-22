@@ -76,9 +76,35 @@ var AI = {
         return tiles;
     },
 
+    _isBanditEnemy: function(enemy) {
+        return enemy.defId === 'tech_terry' || enemy.defId === 'shooter_sally' ||
+               enemy.defId === 'breaker_barry' || enemy.defId === 'molotov_mary';
+    },
+
     processEnemyTurns: function() {
         var alive = State.getAliveEnemies();
         var index = 0;
+        var gangHandled = false;
+
+        // Bandit gang stage: handle group turn before individual processing
+        if (State.banditGangState) {
+            var hasBandits = false;
+            for (var i = 0; i < alive.length; i++) {
+                if (alive[i].hp > 0 && AI._isBanditEnemy(alive[i])) {
+                    hasBandits = true;
+                    break;
+                }
+            }
+            if (hasBandits) {
+                Boss.banditGangTurn(null, function() {
+                    gangHandled = true;
+                    processNext();
+                });
+                return;
+            }
+        }
+
+        processNext();
 
         function processNext() {
             if (index >= alive.length) {
@@ -90,6 +116,12 @@ var AI = {
             index++;
 
             if (enemy.hp <= 0) {
+                processNext();
+                return;
+            }
+
+            // Skip individual processing for bandits (handled by gang turn)
+            if (gangHandled && AI._isBanditEnemy(enemy)) {
                 processNext();
                 return;
             }
@@ -139,8 +171,6 @@ var AI = {
             }
             doMove();
         }
-
-        processNext();
     },
 
     processEnemy: function(enemy, callback) {
