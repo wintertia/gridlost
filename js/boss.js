@@ -1351,18 +1351,16 @@ var Boss = {
         var centerY = boss.y + Math.floor(size / 2);
         var tile = boss.telegraphTiles && boss.telegraphTiles.length > 0 ? boss.telegraphTiles[0] : {x: State.player.x, y: State.player.y};
         State.animProjectile(centerX, centerY, tile.x, tile.y, '#335522');
-        if (!Stages.isReserved(tile.x, tile.y)) {
-            for (var i = State.obstacles.length - 1; i >= 0; i--) {
-                if (State.obstacles[i].x === tile.x && State.obstacles[i].y === tile.y) {
-                    State.obstacles.splice(i, 1);
-                }
+        for (var i = State.obstacles.length - 1; i >= 0; i--) {
+            if (State.obstacles[i].x === tile.x && State.obstacles[i].y === tile.y) {
+                State.obstacles.splice(i, 1);
             }
-            State.obstacles.push({
-                x: tile.x, y: tile.y, id: 'swamp_pool', hp: -1,
-                destructible: false, blocksMove: false, color: '#335522'
-            });
-            State.addFloatingText(tile.x, tile.y, 'SWAMP!', '#335522');
         }
+        State.obstacles.push({
+            x: tile.x, y: tile.y, id: 'swamp_pool', hp: -1,
+            destructible: false, blocksMove: false, color: '#335522'
+        });
+        State.addFloatingText(tile.x, tile.y, 'SWAMP!', '#335522');
         Grid.render(); UI.updateAll(); callback();
     },
 
