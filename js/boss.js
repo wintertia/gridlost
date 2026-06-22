@@ -296,9 +296,26 @@ var Boss = {
                 }
                 break;
             case 'Swamp Spit':
-                var rx = px + Math.floor(Math.random() * 3) - 1;
-                var ry = py + Math.floor(Math.random() * 3) - 1;
-                tiles.push({x: Math.max(0, Math.min(7, rx)), y: Math.max(0, Math.min(7, ry))});
+                var candidates = [];
+                for (var sdx = -1; sdx <= 1; sdx++) {
+                    for (var sdy = -1; sdy <= 1; sdy++) {
+                        var sx = Math.max(0, Math.min(7, px + sdx));
+                        var sy = Math.max(0, Math.min(7, py + sdy));
+                        var isSwamp = false;
+                        for (var si = 0; si < State.obstacles.length; si++) {
+                            if (State.obstacles[si].x === sx && State.obstacles[si].y === sy && State.obstacles[si].id === 'swamp_pool') {
+                                isSwamp = true;
+                                break;
+                            }
+                        }
+                        if (!isSwamp) candidates.push({x: sx, y: sy});
+                    }
+                }
+                if (candidates.length > 0) {
+                    tiles.push(candidates[Math.floor(Math.random() * candidates.length)]);
+                } else {
+                    tiles.push({x: Math.max(0, Math.min(7, px)), y: Math.max(0, Math.min(7, py))});
+                }
                 break;
             case 'Wooden Thorns':
                 var row = 1 + Math.floor(Math.random() * 6);
@@ -545,14 +562,12 @@ var Boss = {
                 }
                 break;
             case 'shooter_sally':
-                var rx = Math.floor(Math.random() * Data.GRID_SIZE);
-                var ry = Math.floor(Math.random() * Data.GRID_SIZE);
                 bandit._snipeAxis = Math.random() < 0.5 ? 'row' : 'col';
-                bandit._snipePos = bandit._snipeAxis === 'row' ? rx : ry;
+                bandit._snipePos = bandit._snipeAxis === 'row' ? py : px;
                 if (bandit._snipeAxis === 'row') {
-                    for (var i = 0; i < Data.GRID_SIZE; i++) tiles.push({x: i, y: ry});
+                    for (var i = 0; i < Data.GRID_SIZE; i++) tiles.push({x: i, y: py});
                 } else {
-                    for (var i = 0; i < Data.GRID_SIZE; i++) tiles.push({x: rx, y: i});
+                    for (var i = 0; i < Data.GRID_SIZE; i++) tiles.push({x: px, y: i});
                 }
                 break;
             case 'breaker_barry':
@@ -651,7 +666,10 @@ var Boss = {
                 executed++;
                 doNext();
             } else {
-                doNext();
+                AI.moveToward(bandit, State.player.x, State.player.y, function() {
+                    executed++;
+                    doNext();
+                });
             }
         }
         doNext();
@@ -683,23 +701,18 @@ var Boss = {
                 break;
             case 'shooter_sally':
                 State.addLog(name + ' uses Deadeye Snipe!', 'boss');
-                var snipeAxis = bandit._snipeAxis || (Math.random() < 0.5 ? 'row' : 'col');
-                var snipePos = bandit._snipePos !== undefined ? bandit._snipePos : Math.floor(Math.random() * Data.GRID_SIZE);
-                var teleportAxis = snipeAxis === 'row' ? 'col' : 'row';
-                var teleportPos = Math.floor(Math.random() * Data.GRID_SIZE);
-                var teleX = teleportAxis === 'col' ? teleportPos : bandit.x;
-                var teleY = teleportAxis === 'row' ? teleportPos : bandit.y;
-                teleX = Math.max(0, Math.min(Data.GRID_SIZE - 1, teleX));
-                teleY = Math.max(0, Math.min(Data.GRID_SIZE - 1, teleY));
+                var snipeAxis = bandit._snipeAxis || 'row';
+                var snipePos = bandit._snipePos !== undefined ? bandit._snipePos : py;
                 var snipeTiles = [];
                 if (snipeAxis === 'row') {
                     for (var i = 0; i < Data.GRID_SIZE; i++) snipeTiles.push({x: i, y: snipePos});
                 } else {
                     for (var i = 0; i < Data.GRID_SIZE; i++) snipeTiles.push({x: snipePos, y: i});
                 }
-                State.animMove(bandit.x, bandit.y, teleX, teleY, bandit.color, '#ff0000');
-                bandit.x = teleX;
-                bandit.y = teleY;
+                var teleSpot = snipeTiles[Math.floor(Math.random() * snipeTiles.length)];
+                State.animMove(bandit.x, bandit.y, teleSpot.x, teleSpot.y, bandit.color, '#ff0000');
+                bandit.x = teleSpot.x;
+                bandit.y = teleSpot.y;
                 State.animBeam(bandit.x, bandit.y, snipeTiles[snipeTiles.length - 1].x, snipeTiles[snipeTiles.length - 1].y, '#ff4444');
                 for (var j = 0; j < snipeTiles.length; j++) {
                     if (snipeTiles[j].x === px && snipeTiles[j].y === py) {
@@ -717,9 +730,9 @@ var Boss = {
                 State.player.x = pullTarget.x;
                 State.player.y = pullTarget.y;
                 State.addFloatingText(pullTarget.x, pullTarget.y, 'PULLED!', '#ff4444');
+                Combat.dealDamageToPlayer(Math.floor(bandit.damage * 0.6));
                 var bDist = AI.distance(State.player.x, State.player.y, bandit.x, bandit.y);
                 if (bDist <= 1.5) {
-                    Combat.dealDamageToPlayer(bandit.damage);
                     State.player.bleed = {damage: 15, turns: 3};
                     State.addFloatingText(State.player.x, State.player.y, 'CHAINED!', '#ff4444');
                 }
@@ -1341,14 +1354,7 @@ var Boss = {
     },
 
     branchSlam: function(boss, attack, callback) {
-        var px = State.player.x;
-        var py = State.player.y;
-        var tiles = [];
-        for (var dx = -1; dx <= 1; dx++) {
-            for (var dy = -1; dy <= 1; dy++) {
-                tiles.push({x: px + dx, y: py + dy});
-            }
-        }
+        var tiles = boss.telegraphTiles || [];
         State.animAoE(tiles, '#446622');
         for (var j = 0; j < tiles.length; j++) {
             if (tiles[j].x === State.player.x && tiles[j].y === State.player.y) {
@@ -1359,12 +1365,7 @@ var Boss = {
     },
 
     overgrow: function(boss, attack, callback) {
-        var tiles = [];
-        for (var dx = 2; dx <= 5; dx++) {
-            for (var dy = 2; dy <= 5; dy++) {
-                tiles.push({x: dx, y: dy});
-            }
-        }
+        var tiles = boss.telegraphTiles || [];
         State.animAoE(tiles, '#446622');
         for (var j = 0; j < tiles.length; j++) {
             if (tiles[j].x === State.player.x && tiles[j].y === State.player.y) {

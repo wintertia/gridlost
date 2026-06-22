@@ -496,7 +496,7 @@ var Data = {
                     dialogue: 'You think you can defy me? Witness my true power!',
                     handler: function(boss) {
                         var dirs = [{x:0,y:0},{x:7,y:0},{x:0,y:7},{x:7,y:7}];
-                        for (var i = 0; i < 2; i++) {
+                        for (var i = 0; i < 4; i++) {
                             var d = dirs[i];
                             State.enemies.push({
                                 x: d.x, y: d.y, hp: 200, maxHp: 200,
@@ -602,8 +602,13 @@ var Data = {
                                 State.obstacles.splice(i, 1);
                             }
                         }
-                        boss.floodColumn = 0;
-                        boss.floodDirection = Math.random() < 0.5 ? 1 : -1;
+                        if (Math.random() < 0.5) {
+                            boss.floodColumn = 0;
+                            boss.floodDirection = 1;
+                        } else {
+                            boss.floodColumn = 7;
+                            boss.floodDirection = -1;
+                        }
                         State.addFloatingText(4, 4, 'SWAMP FLOOD!', '#335522');
                     }
                 }

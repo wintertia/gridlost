@@ -352,6 +352,16 @@ var Combat = {
                     }
                 }
         }
+
+        if (target.hp <= 0 && State.phase === 'player') {
+            var remaining = State.getAliveEnemies();
+            if (remaining.length === 0) {
+                var self = this;
+                Grid.render();
+                UI.updateAll();
+                setTimeout(function() { Main.stageClear(); }, 400);
+            }
+        }
     },
 
     processOnHitEffects: function(target, hitX, hitY) {

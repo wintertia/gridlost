@@ -122,10 +122,10 @@ var Stages = {
         };
 
         var banditDefs = [
-            { defId: 'tech_terry', x: 0, y: 0 },
-            { defId: 'shooter_sally', x: 7, y: 0 },
-            { defId: 'breaker_barry', x: 0, y: 7 },
-            { defId: 'molotov_mary', x: 7, y: 7 }
+            { defId: 'tech_terry', x: 2, y: 2 },
+            { defId: 'shooter_sally', x: 5, y: 2 },
+            { defId: 'breaker_barry', x: 2, y: 5 },
+            { defId: 'molotov_mary', x: 5, y: 5 }
         ];
 
         for (var i = 0; i < banditDefs.length; i++) {
