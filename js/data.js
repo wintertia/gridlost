@@ -601,7 +601,7 @@ var Data = {
         portal: { id: 'portal', name: 'Portal', desc: 'Teleports you to a random location.', hp: -1, destructible: false, color: '#cc44ff', blocksMove: false, teleport: true },
         spike_trap: { id: 'spike_trap', name: 'Spike Trap', desc: 'Deals heavy damage if you stand on it for 2 consecutive turns.', hp: -1, destructible: false, color: '#888899', blocksMove: false, baseDamage: 100 },
         chill_water: { id: 'chill_water', name: 'Frigid Water', desc: 'Costs 2 energy and applies Chilled.', hp: -1, destructible: false, color: '#4488cc', blocksMove: false, energyCost: 2, applyChilled: true },
-        swamp_pool: { id: 'swamp_pool', name: 'Toxic Pool', desc: 'Costs 3 energy to move through and deals damage.', hp: -1, destructible: false, color: '#335522', blocksMove: false, energyCost: 3, baseDamage: 16 },
+        swamp_pool: { id: 'swamp_pool', name: 'Toxic Pool', desc: 'Costs 2 energy to move through and applies poison.', hp: -1, destructible: false, color: '#335522', blocksMove: false, energyCost: 2 },
         judgement_sigil: { id: 'judgement_sigil', name: 'Judgement Sigil', desc: 'Applies Judgement status. Next hit deals double damage.', hp: -1, destructible: false, color: '#ffdd88', blocksMove: false }
     },
 
@@ -639,7 +639,7 @@ var Data = {
     ELITE_SPECIALS: {
         goblin: {
             name: 'Steal', desc: 'Teleport near player and attack',
-            shape: 'teleport_strike', damage: 40
+            shape: 'teleport_strike', damage: 25
         },
         archer: {
             name: 'Piercing Volley', desc: '8-range line AoE',
@@ -651,7 +651,7 @@ var Data = {
         },
         wolf: {
             name: 'Pack Howl', desc: 'Teleport behind player + attack',
-            shape: 'teleport_strike', damage: 50
+            shape: 'teleport_strike', damage: 30
         },
         druid: {
             name: 'Entangling Roots', desc: '3x3 AoE around player, applies chilled',
@@ -670,12 +670,12 @@ var Data = {
             shape: 'apply_disease', damage: 0
         },
         mud_golem: {
-            name: 'Quagmire', desc: '5x5 AoE around self, spawns water tiles',
-            shape: 'aoe_5x5_self', damage: 30, summonObstacle: 'water'
+            name: 'Quagmire', desc: '5x5 AoE around self, spawns swamp pools',
+            shape: 'aoe_5x5_self', damage: 0, summonObstacle: 'swamp_pool'
         },
         scorpion: {
             name: 'Venom Strike', desc: 'Single target + poison',
-            shape: 'single', damage: 50, effects: ['poison']
+            shape: 'single', damage: 30, effects: ['poison']
         },
         mummy: {
             name: 'Curse of Ages', desc: 'Apply curse + summon sand wraith',
@@ -698,31 +698,31 @@ var Data = {
             shape: 'aoe_3x3_target', damage: 70
         },
         fire_elemental: {
-            name: 'Inferno', desc: '3x3 AoE around player + burn tiles',
-            shape: 'aoe_3x3_burn', damage: 50
+            name: 'Inferno', desc: '3x3 AoE around player + lava tiles',
+            shape: 'aoe_3x3_lava', damage: 20
         },
         magma_slime: {
-            name: 'Eruption', desc: 'Spawn 5 lava tiles around player',
-            shape: 'eruption', damage: 0
+            name: 'Magma Spit', desc: 'Ranged attack + summons magma slime near player',
+            shape: 'summon_magma_slime', damage: 20
         },
         phoenix: {
             name: 'Dive Bomb', desc: 'Cross AoE at player + teleport',
-            shape: 'cross_teleport', damage: 50
+            shape: 'cross_teleport', damage: 30
         },
         wraith_enemy: {
             name: 'Phase Strike', desc: 'Teleport behind + 60 dmg ignores guard',
-            shape: 'phase_strike', damage: 60, ignoreGuard: true
+            shape: 'phase_strike', damage: 35, ignoreGuard: true
         },
         void_walker: {
             name: 'Void Rift', desc: 'Spawn portal near player',
             shape: 'spawn_portal', damage: 0
         },
         shade: {
-            name: 'Shadow Cloak', desc: 'Untargetable 1 turn, then 70 dmg',
-            shape: 'cloak_strike', damage: 70
+            name: 'Shadow Cloak', desc: 'Untargetable 1 turn, then attack',
+            shape: 'cloak_strike', damage: 40
         },
         angel: {
-            name: 'Holy Beam', desc: 'Single target 3-range 80 dmg',
+            name: 'Holy Beam', desc: 'Single target 3-range',
             shape: 'single_3', damage: 80
         },
         chariot: {
@@ -730,8 +730,8 @@ var Data = {
             shape: 'cross_2', damage: 50, effects: ['knockback1']
         },
         seraph: {
-            name: 'Divine Judgment', desc: 'Player takes double damage next hit',
-            shape: 'apply_judgment', damage: 0
+            name: 'Divine Judgment', desc: 'Small hit + double damage next hit',
+            shape: 'apply_judgment', damage: 20
         }
     },
 

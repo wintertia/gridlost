@@ -319,12 +319,14 @@ var AI = {
                 break;
             }
             case 'aoe_3x3_target':
-            case 'aoe_3x3_burn': {
+            case 'aoe_3x3_burn':
+            case 'aoe_3x3_lava': {
+                var lavaColor = special.shape === 'aoe_3x3_lava' ? '#ff4400' : '#ff6600';
                 State.animFlash([
                     {x: State.player.x-1, y: State.player.y-1}, {x: State.player.x, y: State.player.y-1}, {x: State.player.x+1, y: State.player.y-1},
                     {x: State.player.x-1, y: State.player.y}, {x: State.player.x, y: State.player.y}, {x: State.player.x+1, y: State.player.y},
                     {x: State.player.x-1, y: State.player.y+1}, {x: State.player.x, y: State.player.y+1}, {x: State.player.x+1, y: State.player.y+1}
-                ], special.shape === 'aoe_3x3_burn' ? '#ff6600' : '#ff4444', 16);
+                ], lavaColor, 16);
                 for (var dy3 = -1; dy3 <= 1; dy3++) {
                     for (var dx3 = -1; dx3 <= 1; dx3++) {
                         var bx = State.player.x + dx3;
@@ -333,7 +335,15 @@ var AI = {
                             if (bx === State.player.x && by === State.player.y) {
                                 Combat.dealDamageToPlayer(scaledDamage);
                             }
-                            if (special.shape === 'aoe_3x3_burn') {
+                            if (special.shape === 'aoe_3x3_lava') {
+                                var hasLava = false;
+                                for (var li = 0; li < State.obstacles.length; li++) {
+                                    if (State.obstacles[li].x === bx && State.obstacles[li].y === by) { hasLava = true; break; }
+                                }
+                                if (!hasLava) {
+                                    State.obstacles.push({ x: bx, y: by, id: 'lava', hp: -1, destructible: false, blocksMove: false, color: '#ff4400', baseDamage: 30 });
+                                }
+                            } else {
                                 State.burnTiles.push({ x: bx, y: by, turns: 3 });
                             }
                         }
@@ -406,21 +416,25 @@ var AI = {
                 break;
             }
             case 'aoe_5x5_self': {
-                State.animRing(enemy.x + 1, enemy.y + 1, '#ff4444');
+                State.animRing(enemy.x + 1, enemy.y + 1, '#335522');
                 for (var dy5 = -2; dy5 <= 2; dy5++) {
                     for (var dx5 = -2; dx5 <= 2; dx5++) {
                         var qx = enemy.x + dx5;
                         var qy = enemy.y + dy5;
                         if (qx >= 0 && qx < Data.GRID_SIZE && qy >= 0 && qy < Data.GRID_SIZE) {
-                            if (qx === State.player.x && qy === State.player.y) {
-                                Combat.dealDamageToPlayer(scaledDamage);
-                            }
-                            if (special.summonObstacle === 'water' && !Stages.isReserved(qx, qy) && Math.abs(dx5) + Math.abs(dy5) <= 2) {
-                                State.obstacles.push({ x: qx, y: qy, id: 'water', hp: -1, destructible: false, blocksMove: false, color: '#2266cc', energyCost: 2 });
+                            if (special.summonObstacle === 'swamp_pool' && Math.abs(dx5) + Math.abs(dy5) <= 2) {
+                                var hasObstacle = false;
+                                for (var wi = 0; wi < State.obstacles.length; wi++) {
+                                    if (State.obstacles[wi].x === qx && State.obstacles[wi].y === qy) { hasObstacle = true; break; }
+                                }
+                                if (!hasObstacle) {
+                                    State.obstacles.push({ x: qx, y: qy, id: 'swamp_pool', hp: -1, destructible: false, blocksMove: false, color: '#335522', energyCost: 2 });
+                                }
                             }
                         }
                     }
                 }
+                State.addFloatingText(enemy.x + 1, enemy.y + 1, 'QUAGMIRE!', '#335522');
                 Grid.render(); UI.updateAll(); callback();
                 break;
             }
@@ -483,17 +497,20 @@ var AI = {
                 Grid.render(); UI.updateAll(); callback();
                 break;
             }
-            case 'eruption': {
-                State.animRing(State.player.x, State.player.y, '#ff4400');
-                var edirs = [{ x: -1, y: 0 }, { x: 1, y: 0 }, { x: 0, y: -1 }, { x: 0, y: 1 }, { x: 0, y: 0 }];
-                for (var ei = 0; ei < edirs.length; ei++) {
-                    var elx = State.player.x + edirs[ei].x;
-                    var ely = State.player.y + edirs[ei].y;
-                    if (elx >= 0 && elx < Data.GRID_SIZE && ely >= 0 && ely < Data.GRID_SIZE && !Stages.isReserved(elx, ely)) {
-                        State.obstacles.push({ x: elx, y: ely, id: 'lava', hp: -1, destructible: false, blocksMove: false, color: '#ff4400', damage: 20 });
+            case 'summon_magma_slime': {
+                State.animProjectile(enemy.x, enemy.y, State.player.x, State.player.y, '#ff4400');
+                Combat.dealDamageToPlayer(scaledDamage);
+                var summonDirs = [{x:0,y:-1},{x:0,y:1},{x:-1,y:0},{x:1,y:0},{x:-1,y:-1},{x:1,y:-1},{x:-1,y:1},{x:1,y:1}];
+                for (var si = 0; si < summonDirs.length; si++) {
+                    var sx = State.player.x + summonDirs[si].x;
+                    var sy = State.player.y + summonDirs[si].y;
+                    if (sx >= 0 && sx < Data.GRID_SIZE && sy >= 0 && sy < Data.GRID_SIZE && !State.isBlocked(sx, sy) && !State.getEnemyAt(sx, sy)) {
+                        var slime = { x: sx, y: sy, defId: 'magma_slime', hp: 55, maxHp: 55, damage: 25, moveSpeed: 1, frozen: 0, isElite: false };
+                        State.enemies.push(slime);
+                        State.addFloatingText(sx, sy, 'SPAWNED!', '#ff4400');
+                        break;
                     }
                 }
-                State.addFloatingText(State.player.x, State.player.y, 'ERUPTION!', '#ff4400');
                 Grid.render(); UI.updateAll(); callback();
                 break;
             }
@@ -561,6 +578,8 @@ var AI = {
                 break;
             }
             case 'apply_judgment': {
+                State.animProjectile(enemy.x, enemy.y, State.player.x, State.player.y, '#ffdd88');
+                Combat.dealDamageToPlayer(scaledDamage);
                 State.player.judgment = 2;
                 State.addFloatingText(State.player.x, State.player.y, 'JUDGMENT!', '#ffdd88');
                 State.addLog('Player will take double damage from next hit!', 'telegraph');
@@ -650,6 +669,10 @@ var AI = {
                 if (enemy.defId === 'frost_elemental') {
                     State.player.chilled = 2;
                     State.addFloatingText(State.player.x, State.player.y, 'CHILLED!', '#88ddff');
+                }
+                if (enemy.defId === 'plaguebearer') {
+                    State.player.diseased = true;
+                    State.addFloatingText(State.player.x, State.player.y, 'DISEASED!', '#44cc44');
                 }
                 break;
             }
@@ -926,6 +949,7 @@ var AI = {
             case 'aoe_3x3':
             case 'aoe_3x3_target':
             case 'aoe_3x3_burn':
+            case 'aoe_3x3_lava':
             case 'aoe_5x5_self':
                 var r = special.shape === 'aoe_5x5_self' ? 2 : 1;
                 for (var dy = -r; dy <= r; dy++) {

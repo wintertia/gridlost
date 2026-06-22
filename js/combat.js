@@ -1384,13 +1384,14 @@ var Combat = {
                 State.addLog('Lava burns you for ' + lavaDmg + ' damage!', 'enemy');
             }
             if (o.id === 'swamp_pool') {
+                var poolPoisonDmg = this.hazardDamage(20);
                 if (!State.player.poison) {
-                    State.player.poison = { damage: 20, turns: 3 };
+                    State.player.poison = { damage: poolPoisonDmg, turns: 3 };
                 } else {
                     State.player.poison.turns += 3;
                 }
                 State.addFloatingText(px, py, 'POISONED!', '#44cc44');
-                State.addLog('Toxic pool refreshes poison!', 'enemy');
+                State.addLog('Toxic pool applies poison for 3 turns!', 'enemy');
             }
             if (o.id === 'chill_water') {
                 State.player.chilled = Math.max(State.player.chilled, 2);

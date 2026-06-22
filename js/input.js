@@ -341,7 +341,7 @@ var Input = {
                 cost = Math.max(cost, 2);
             }
             if (o.x === x && o.y === y && o.id === 'swamp_pool') {
-                cost = Math.max(cost, 3);
+                cost = Math.max(cost, 2);
             }
         }
 
@@ -373,7 +373,8 @@ var Input = {
                 State.addLog('Chill water freezes you!', 'enemy');
             }
             if (o.id === 'swamp_pool') {
-                State.player.poison = { damage: 20, turns: 3 };
+                var poolPoisonDmg = Combat.hazardDamage(20);
+                State.player.poison = { damage: poolPoisonDmg, turns: 3 };
                 State.addFloatingText(x, y, 'POISONED!', '#44cc44');
                 State.addLog('Toxic pool poisons you for 3 turns!', 'enemy');
             }

@@ -15,7 +15,7 @@ var UI = {
     updateBuffBar: function() {
         var p = State.player;
         var sig = [
-            p.chilled, p.diseased ? 1 : 0, p.cursed ? 1 : 0, p.bleed ? p.bleed.turns : 0, p.judgment,
+            p.chilled, p.diseased ? 1 : 0, p.cursed ? 1 : 0, p.bleed ? p.bleed.turns : 0, p.poison ? p.poison.turns : 0, p.judgment,
             p.berserk, p.lifestealAura, p.rejuvenation, p.tempPower, p.shield, p.damageReduction, p.tempPowerTurns, p.damageReductionTurns
         ].join(',');
         if (sig === this._lastBuffSig) return;
@@ -26,6 +26,7 @@ var UI = {
         if (p.diseased) buffs.push({ icon: '%', color: '#44cc44', bg: '#1a3a1a', turns: -1, name: 'Diseased', desc: 'Damage reduced by 30%' });
         if (p.cursed) buffs.push({ icon: '#', color: '#8844aa', bg: '#2a1a3a', turns: -1, name: 'Cursed', desc: 'Take 30% more damage' });
         if (p.bleed && p.bleed.turns > 0) buffs.push({ icon: 'B', color: '#ff4444', bg: '#3a1a1a', turns: p.bleed.turns, name: 'Bleed', desc: 'Take ' + p.bleed.damage + ' damage per turn' });
+        if (p.poison && p.poison.turns > 0) buffs.push({ icon: 'P', color: '#44cc44', bg: '#1a3a1a', turns: p.poison.turns, name: 'Poison', desc: 'Take ' + p.poison.damage + ' damage per turn' });
         if (p.judgment > 0) buffs.push({ icon: '!', color: '#ffdd88', bg: '#3a3a1a', turns: p.judgment, name: 'Judgment', desc: 'Next hit deals double damage' });
         if (p.berserk > 0) buffs.push({ icon: 'X', color: '#ff4444', bg: '#3a1a1a', turns: p.berserk, name: 'Berserk', desc: '+50% damage dealt and taken' });
         if (p.lifestealAura > 0) buffs.push({ icon: 'L', color: '#cc4444', bg: '#3a1a1a', turns: p.lifestealAura, name: 'Lifesteal Aura', desc: 'Heal 20% of damage dealt' });
@@ -144,14 +145,19 @@ var UI = {
             if (i >= 2 && i <= 4 && !skill) $slot.addClass('empty');
 
             if (i === 0) {
+                var $icon = $slot.find('.skill-icon');
                 if (i === p.selectedSlot && State.turnStartState) {
                     $slot.find('.skill-name').text('Undo');
                     $slot.find('.skill-cost').text('Free');
                     $slot.attr('data-tooltip', 'Undo all moves this turn\nReturn to turn start');
+                    $icon.text('\u21A9');
+                    $icon.css('background', '#88aaff');
                 } else {
                     $slot.find('.skill-name').text('Move');
-                    $slot.find('.skill-cost').text('1⚡');
+                    $slot.find('.skill-cost').text('1\u26A1');
                     $slot.attr('data-tooltip', 'Move to an adjacent tile\nCost: 1 energy');
+                    $icon.text('M');
+                    $icon.css('background', '');
                 }
             } else if (i === 1) {
                 var basicSkill = p.skills[1];
