@@ -67,8 +67,8 @@ var Data = {
     ITEMS: {
         // === COMMON (White) ===
         tough_shell: {
-            id: 'tough_shell', name: 'Tough Shell', desc: '+50 max HP',
-            rarity: 'common', effect: { type: 'passive', stat: 'maxHp', value: 50 },
+            id: 'tough_shell', name: 'Tough Shell', desc: '+15% max HP (stacks)',
+            rarity: 'common', effect: { type: 'passive', stat: 'maxHpMultiplier', value: 0.15 },
             icon: '\u25C6', iconBg: '#4488cc'
         },
         iron_skin: {
@@ -119,8 +119,8 @@ var Data = {
             icon: '\u2738', iconBg: '#ff6622'
         },
         battle_momentum: {
-            id: 'battle_momentum', name: 'Battle Momentum', desc: 'On kill: +1 energy',
-            rarity: 'uncommon', effect: { type: 'on_kill', chance: 100, energyRestore: 1 },
+            id: 'battle_momentum', name: 'Battle Momentum', desc: 'On kill: 25% chance +1 energy per stack',
+            rarity: 'uncommon', effect: { type: 'on_kill', chance: 25, energyRestore: 1 },
             icon: '\u25BA', iconBg: '#ee4444'
         },
         desperate_strength: {
@@ -129,8 +129,8 @@ var Data = {
             icon: '\u2660', iconBg: '#cc2222'
         },
         thorns_armor: {
-            id: 'thorns_armor', name: 'Thorns Armor', desc: 'Reflect 15% melee damage',
-            rarity: 'uncommon', effect: { type: 'passive', stat: 'thorns', value: 15 },
+            id: 'thorns_armor', name: 'Thorns Armor', desc: 'Reflect 25% melee damage',
+            rarity: 'uncommon', effect: { type: 'passive', stat: 'thorns', value: 25 },
             icon: '\u2663', iconBg: '#44aa44'
         },
         chain_lightning: {
@@ -146,13 +146,13 @@ var Data = {
             icon: '\u2756', iconBg: '#ff88cc'
         },
         chaos_embrace: {
-            id: 'chaos_embrace', name: 'Chaos Embrace', desc: 'On hit: 15% random status',
-            rarity: 'rare', effect: { type: 'on_hit', chance: 15, status: 'random' },
+            id: 'chaos_embrace', name: 'Chaos Embrace', desc: 'On hit: 20% random status',
+            rarity: 'rare', effect: { type: 'on_hit', chance: 20, status: 'random' },
             icon: '\u2727', iconBg: '#aa44ff'
         },
         berserker_blood: {
-            id: 'berserker_blood', name: "Berserker's Blood", desc: '+15% dmg per 10% missing HP',
-            rarity: 'rare', effect: { type: 'conditional', condition: 'missingHp', stat: 'power', valuePer10: 15 },
+            id: 'berserker_blood', name: "Berserker's Blood", desc: '+12% dmg per 10% missing HP',
+            rarity: 'rare', effect: { type: 'conditional', condition: 'missingHp', stat: 'power', valuePer10: 12 },
             icon: '\u2665', iconBg: '#aa0022'
         },
         vampiric_edge: {
@@ -232,7 +232,7 @@ var Data = {
         },
         ice_shard: {
             id: 'ice_shard', name: 'Ice Shard', desc: 'Freezing line, freezes enemies',
-            energyCost: 4, damage: 40, shape: 'line', range: 4,
+            energyCost: 3, damage: 60, shape: 'line', range: 4,
             color: '#88ddff', isBasic: false, effects: ['freeze']
         },
         backstab: {
@@ -272,7 +272,7 @@ var Data = {
         },
         blink_strike: {
             id: 'blink_strike', name: 'Blink Strike', desc: 'Teleport and 3x3 AoE',
-            energyCost: 3, damage: 60, shape: 'blink', range: 3,
+            energyCost: 3, damage: 70, shape: 'blink', range: 3,
             color: '#cc44ff', isBasic: false, effects: ['blink_aoe']
         },
         rend: {
@@ -302,12 +302,12 @@ var Data = {
         },
         fire_nova: {
             id: 'fire_nova', name: 'Fire Nova', desc: 'AoE around self, leaves burn tiles',
-            energyCost: 2, damage: 40, shape: 'ring', range: 1,
+            energyCost: 2, damage: 50, shape: 'ring', range: 1,
             color: '#ff6622', isBasic: false, effects: ['burn']
         },
         frost_nova: {
             id: 'frost_nova', name: 'Frost Nova', desc: 'AoE around self, freezes enemies',
-            energyCost: 3, damage: 30, shape: 'ring', range: 1,
+            energyCost: 2, damage: 50, shape: 'ring', range: 1,
             color: '#88ddff', isBasic: false, effects: ['freeze']
         },
         mark: {
@@ -316,7 +316,7 @@ var Data = {
             color: '#ff8800', isBasic: false, effects: ['mark']
         },
         lifesteal_aura: {
-            id: 'lifesteal_aura', name: 'Lifesteal Aura', desc: 'Heal 20% of damage dealt for 3 turns',
+            id: 'lifesteal_aura', name: 'Lifesteal Aura', desc: 'Heal 25% of damage dealt for 3 turns',
             energyCost: 3, damage: 0, shape: 'self', range: 0,
             color: '#cc4444', isBasic: false, effects: ['lifesteal_aura']
         },
@@ -332,12 +332,12 @@ var Data = {
         },
         piercing_arrow: {
             id: 'piercing_arrow', name: 'Piercing Arrow', desc: 'Long range piercing line',
-            energyCost: 3, damage: 50, shape: 'line', range: 5,
+            energyCost: 3, damage: 70, shape: 'line', range: 5,
             color: '#88ff44', isBasic: false, effects: []
         },
         ricochet: {
             id: 'ricochet', name: 'Ricochet', desc: 'Bounce shot hits 3 enemies',
-            energyCost: 3, damage: 50, shape: 'single', range: 3,
+            energyCost: 3, damage: 60, shape: 'single', range: 3,
             color: '#ffaa44', isBasic: false, effects: ['chain_2']
         },
         arrow_rain: {
@@ -347,12 +347,12 @@ var Data = {
         },
         snipe: {
             id: 'snipe', name: 'Snipe', desc: 'High damage long range shot',
-            energyCost: 5, damage: 100, shape: 'single', range: 5,
+            energyCost: 5, damage: 120, shape: 'single', range: 5,
             color: '#ff4488', isBasic: false, effects: []
         }
     },
 
-    SKILL_POOL: ['thrust', 'fireball', 'whirlwind', 'holy_smite', 'ice_shard', 'backstab', 'shield_bash', 'lightning', 'poison_cloud', 'war_cry', 'dash', 'blink_strike', 'rend', 'execute', 'cleave', 'heal', 'reave', 'fire_nova', 'frost_nova', 'mark', 'lifesteal_aura', 'berserk', 'rejuvenation', 'piercing_arrow', 'ricochet', 'arrow_rain', 'snipe'],
+    SKILL_POOL: ['thrust', 'fireball', 'whirlwind', 'holy_smite', 'ice_shard', 'backstab', 'shield_bash', 'lightning', 'poison_cloud', 'dash', 'blink_strike', 'rend', 'execute', 'cleave', 'heal', 'reave', 'fire_nova', 'frost_nova', 'mark', 'lifesteal_aura', 'berserk', 'rejuvenation', 'piercing_arrow', 'ricochet', 'arrow_rain', 'snipe'],
 
     ENEMIES: {
         goblin: {

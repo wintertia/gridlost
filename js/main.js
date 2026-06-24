@@ -230,7 +230,12 @@ var Main = {
         State.addLog('Obtained ' + item.name + (stacks > 1 ? ' (x' + stacks + ')' : ''), 'item');
         AudioMgr.sfx('pickup');
 
-        if (item.effect.type === 'passive' && item.effect.stat === 'maxHp') {
+        if (item.effect.type === 'passive' && item.effect.stat === 'maxHpMultiplier') {
+            var hpMultiplier = item.effect.value;
+            var hpBonus = Math.floor(State.player.maxHp * hpMultiplier);
+            State.player.maxHp += hpBonus;
+            State.player.hp += hpBonus;
+        } else if (item.effect.type === 'passive' && item.effect.stat === 'maxHp') {
             var hpBonus = item.effect.value;
             State.player.maxHp += hpBonus;
             State.player.hp += hpBonus;

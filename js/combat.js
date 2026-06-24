@@ -120,7 +120,7 @@ var Combat = {
         if (cls && cls.passiveId === 'crit_master') {
             critChance += 10 + (p._rogueCritChanceBonus || 0);
         }
-        if (target && p.items['lone_wolf'] > 0 && !target.isBoss) {
+        if (target && p.items['lone_wolf'] > 0) {
             var alive = State.getAliveEnemies();
             var adjacentAllies = 0;
             for (var lw = 0; lw < alive.length; lw++) {
@@ -145,7 +145,7 @@ var Combat = {
             if (cls && cls.passiveId === 'crit_master') {
                 critDamageBonus += (p._rogueCritDmgBonus || 0);
             }
-            if (target && p.items['lone_wolf'] > 0 && !target.isBoss) {
+            if (target && p.items['lone_wolf'] > 0) {
                 var alive2 = State.getAliveEnemies();
                 var adj2 = 0;
                 for (var lw2 = 0; lw2 < alive2.length; lw2++) {
@@ -308,7 +308,7 @@ var Combat = {
 
         if (source === 'player' && State.player.lifestealAura && State.player.lifestealAura > 0) {
             var lifestealStacks = State.player.skillStacks['lifesteal_aura'] || 0;
-            var lifestealPercent = 0.2 + (lifestealStacks * 0.025);
+            var lifestealPercent = 0.25 + (lifestealStacks * 0.025);
             var lifestealHeal = Math.floor(actualDmg * lifestealPercent);
             if (lifestealHeal > 0) {
                 State.player.hp = Math.min(State.player.hp + lifestealHeal, State.player.maxHp);
@@ -458,9 +458,12 @@ var Combat = {
         }
 
         if (items['battle_momentum'] > 0) {
-            var energyRestore = items['battle_momentum'];
-            State.player.energy = Math.min(State.player.energy + energyRestore, State.player.maxEnergy);
-            State.addFloatingText(State.player.x, State.player.y, '+' + energyRestore + ' ⚡', '#ffaa00');
+            var momentumStacks = items['battle_momentum'];
+            var momentumChance = 25 * momentumStacks;
+            if (Math.random() * 100 < momentumChance) {
+                State.player.energy = Math.min(State.player.energy + 1, State.player.maxEnergy);
+                State.addFloatingText(State.player.x, State.player.y, '+1 ⚡', '#ffaa00');
+            }
         }
 
         if (target.isElite) {
@@ -1247,7 +1250,7 @@ var Combat = {
         if (items['berserker_blood'] > 0) {
             var missingHpPercent = Math.floor((1 - p.hp / p.maxHp) * 100);
             var stacks = Math.floor(missingHpPercent / 10);
-            bonus += 15 * stacks * items['berserker_blood'];
+            bonus += 12 * stacks * items['berserker_blood'];
         }
 
         return bonus;
@@ -1326,7 +1329,7 @@ var Combat = {
     processPlayerStatusEffects: function() {
         if (State.player.rejuvenation && State.player.rejuvenation > 0) {
             var rejuvStacks = State.player.skillStacks['rejuvenation'] || 0;
-            var rejuvPercent = 0.05 + (rejuvStacks * 0.025);
+            var rejuvPercent = 0.08 + (rejuvStacks * 0.025);
             var healAmount = Math.floor(State.player.maxHp * rejuvPercent);
             State.player.hp = Math.min(State.player.hp + healAmount, State.player.maxHp);
             State.addFloatingText(State.player.x, State.player.y, '+' + healAmount + ' HP', '#44ff88');
