@@ -26,6 +26,7 @@
             <p class="game-version">v0.1.7</p>
             <button id="btn-start" class="pixel-btn">NEW ADVENTURE</button>
             <button id="btn-settings-menu" class="pixel-btn small">SETTINGS</button>
+            <p class="game-credits">by <strong>wintertia</strong><br><a href="https://gridlost.wintertia.qzz.io" target="_blank">Play the full game on gridlost.wintertia.qzz.io</a></p>
         </div>
     </div>
 
@@ -230,14 +231,15 @@
     <div id="death-screen" class="screen overlay">
         <div class="modal death-modal">
             <h2 class="modal-title death-title">YOU DIED</h2>
-            <p class="death-stage">Reached Stage <span id="death-stage-num">1</span></p>
-            <p class="death-turns">Survived <span id="death-turns">0</span> turns</p>
+            <p class="death-stage" id="death-defeated-text">Defeated by ??? in ???</p>
             <div id="death-stats" class="death-stats">
                 <div class="stat-line"><span>Stages Cleared:</span><span id="stat-stages">0</span></div>
 <div class="stat-line"><span>Time Survived:</span><span id="stat-time">0:00</span></div>
                 <div class="stat-line"><span>Total Damage Dealt:</span><span id="stat-damage">0</span></div>
+                <div class="stat-line"><span>Total Damage Taken:</span><span id="stat-damage-taken">0</span></div>
                 <div class="stat-line"><span>Enemies Killed:</span><span id="stat-kills">0</span></div>
                 <div class="stat-line"><span>Bosses Killed:</span><span id="stat-bosses">0</span></div>
+                <div class="stat-line"><span>Skills Used:</span><span id="stat-skills-used">0</span></div>
                 <div class="stat-divider"></div>
                 <div class="stat-line"><span>Items Collected:</span><span id="stat-items">0</span></div>
                 <div id="stat-items-list" class="death-items-list"></div>
@@ -246,6 +248,7 @@
                 <div id="stat-skills-list" class="death-items-list"></div>
             </div>
             <button id="btn-retry" class="pixel-btn">TRY AGAIN</button>
+            <p class="game-version" style="margin-top:12px;color:#fff">v0.1.7</p>
         </div>
     </div>
 

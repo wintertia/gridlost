@@ -1,6 +1,7 @@
 var Boss = {
     processTurn: function(boss, callback) {
         State.bossTurnCount++;
+        State.lastDamageSource = boss.name || 'Boss';
 
         if (boss.attacks) {
             for (var i = 0; i < boss.attacks.length; i++) {
@@ -75,11 +76,6 @@ var Boss = {
             if (aliveTreants === 0) {
                 boss.invulnerable = false;
                 State.addFloatingText(boss.x, boss.y, 'VULNERABLE!', '#ff4444');
-            } else {
-                State.addFloatingText(boss.x, boss.y, 'INVULNERABLE!', '#446622');
-                Grid.render(); UI.updateAll();
-                callback();
-                return;
             }
         }
 

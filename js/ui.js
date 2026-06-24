@@ -585,8 +585,13 @@ var UI = {
     },
 
     showDeathScreen: function() {
-        $('#death-stage-num').text(State.stage);
-        $('#death-turns').text(State.turn);
+        var killer = State.lastDamageSource || 'Unknown';
+        var biomeName = 'Unknown';
+        if (State.currentBiome && Data.BIOMES[State.currentBiome]) {
+            biomeName = Data.BIOMES[State.currentBiome].name;
+        }
+        $('#death-defeated-text').text('Defeated by ' + killer + ' in ' + biomeName);
+
         $('#stat-stages').text(State.stage - 1);
 
         var elapsed = Math.floor((Date.now() - State.startTime) / 1000);
@@ -595,8 +600,10 @@ var UI = {
         $('#stat-time').text(minutes + ':' + (seconds < 10 ? '0' : '') + seconds);
 
         $('#stat-damage').text(State.runStats.totalDamage);
+        $('#stat-damage-taken').text(State.runStats.totalDamageTaken);
         $('#stat-kills').text(State.runStats.enemyKills);
         $('#stat-bosses').text(State.runStats.bossesKilled);
+        $('#stat-skills-used').text(State.runStats.skillsUsed);
 
         var itemCount = 0;
         var $itemsList = $('#stat-items-list');
@@ -682,10 +689,6 @@ var UI = {
 
         html += '<button class="debug-biome-btn" data-biome="" style="background:#222;color:#888;border:2px solid #444;padding:10px 12px;border-radius:4px;font-family:\'Press Start 2P\';font-size:10px;cursor:pointer;text-align:left">CLEAR OVERRIDE (random)</button>';
 
-        var invColor = State.debugInvincibility ? '#00ff00' : '#444';
-        var invLabel = State.debugInvincibility ? 'INVINCIBILITY: ON ✓' : 'INVINCIBILITY: OFF';
-        html += '<button class="debug-biome-btn" data-debug="invincibility" style="background:#222;color:' + invColor + ';border:2px solid ' + invColor + ';padding:10px 12px;border-radius:4px;font-family:\'Press Start 2P\';font-size:10px;cursor:pointer;text-align:left">' + invLabel + '</button>';
-
         html += '<button class="debug-biome-btn" data-debug="skip" style="background:#222;color:#ff4444;border:2px solid #ff4444;padding:10px 12px;border-radius:4px;font-family:\'Press Start 2P\';font-size:10px;cursor:pointer;text-align:left">SKIP STAGE</button>';
 
         html += '</div></div></div>';
@@ -696,14 +699,6 @@ var UI = {
         $overlay.find('.debug-biome-btn').on('click', function() {
             var biomeId = $(this).data('biome');
             var debugAction = $(this).data('debug');
-            if (debugAction === 'invincibility') {
-                State.debugInvincibility = !State.debugInvincibility;
-                State.addLog('[DEBUG] Invincibility ' + (State.debugInvincibility ? 'ON' : 'OFF'), 'info');
-                State.addFloatingText(State.player.x, State.player.y, State.debugInvincibility ? 'INVINCIBLE' : 'MORTAL', '#ff00ff');
-                UI.updateStats();
-                $overlay.remove();
-                return;
-            }
             if (debugAction === 'skip') {
                 State.addLog('[DEBUG] Stage skipped', 'info');
                 for (var ei = State.enemies.length - 1; ei >= 0; ei--) {

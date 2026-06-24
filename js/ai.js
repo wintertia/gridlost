@@ -120,6 +120,8 @@ var AI = {
                 return;
             }
 
+            State.lastDamageSource = enemy.name || 'Enemy';
+
             // Skip individual processing for bandits (handled by gang turn)
             if (gangHandled && AI._isBanditEnemy(enemy)) {
                 processNext();

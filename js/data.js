@@ -316,7 +316,7 @@ var Data = {
             color: '#ff8800', isBasic: false, effects: ['mark']
         },
         lifesteal_aura: {
-            id: 'lifesteal_aura', name: 'Lifesteal Aura', desc: 'Heal 25% of damage dealt for 3 turns',
+            id: 'lifesteal_aura', name: 'Lifesteal Aura', desc: 'Heal 50% of damage dealt for 3 turns',
             energyCost: 3, damage: 0, shape: 'self', range: 0,
             color: '#cc4444', isBasic: false, effects: ['lifesteal_aura']
         },
@@ -617,7 +617,7 @@ var Data = {
             startDialogue: 'You dare enter my swamp? You will sink!'
         },
         greatwood_titan: {
-            id: 'greatwood_titan', name: 'Greatwood Titan', hp: 4000, damage: 45,
+            id: 'greatwood_titan', name: 'Greatwood Titan', hp: 3200, damage: 45,
             color: '#446622', behavior: 'boss', size: 2, stationary: true,
             attacks: [
                 { name: 'Wooden Thorns', shape: 'wooden_thorns', damage: 110, cooldown: 2, current: 0 },
@@ -630,7 +630,7 @@ var Data = {
                     dialogue: 'The woods answer my call! Fight my children!',
                     handler: function(boss) {
                         var dirs = [{x:0,y:0},{x:7,y:0},{x:0,y:7},{x:7,y:7}];
-                        for (var i = 0; i < 2; i++) {
+                        for (var i = 0; i < 4; i++) {
                             var d = dirs[i];
                             State.enemies.push({
                                 x: d.x, y: d.y, hp: 250, maxHp: 250,
@@ -638,7 +638,7 @@ var Data = {
                                 facing: 'down', frozen: 0, freezeImmune: false,
                                 freezeImmuneTurns: 0, poison: null,
                                 isBoss: false, color: '#446622',
-                                isSummon: true, moveSpeed: 0.5
+                                isSummon: true, moveSpeed: 1
                             });
                         }
                         boss.invulnerable = true;
@@ -732,8 +732,8 @@ var Data = {
                     threshold: 66,
                     dialogue: 'The magma calls for servants!',
                     handler: function(boss) {
-                        var dirs = [{x:0,y:0},{x:7,y:0}];
-                        for (var i = 0; i < 2; i++) {
+                        var dirs = [{x:0,y:0},{x:7,y:0},{x:0,y:7},{x:7,y:7}];
+                        for (var i = 0; i < 4; i++) {
                             var d = dirs[i];
                             State.enemies.push({
                                 x: d.x, y: d.y, hp: 200, maxHp: 200,

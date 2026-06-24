@@ -1292,6 +1292,24 @@ html, body {
     letter-spacing: 1px;
 }
 
+.game-credits {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 0.5rem;
+    color: #555;
+    margin-top: 2rem;
+    text-align: center;
+    line-height: 2;
+}
+
+.game-credits a {
+    color: #888;
+    text-decoration: none;
+}
+
+.game-credits a:hover {
+    color: #fff;
+}
+
 .settings-modal {
     min-width: 320px;
 }

@@ -66,9 +66,12 @@ var State = {
     maxLogEntries: 50,
     runStats: {
         totalDamage: 0,
+        totalDamageTaken: 0,
+        skillsUsed: 0,
         enemyKills: 0,
         bossesKilled: 0
     },
+    lastDamageSource: null,
     turnStartState: null,
     dialogueQueue: [],
     currentDialogue: null,
@@ -95,7 +98,8 @@ var State = {
         this.currentBossDef = null;
         this.bossTurnCount = 0;
         this.combatLog = [];
-        this.runStats = { totalDamage: 0, enemyKills: 0, bossesKilled: 0 };
+        this.runStats = { totalDamage: 0, totalDamageTaken: 0, skillsUsed: 0, enemyKills: 0, bossesKilled: 0 };
+        this.lastDamageSource = null;
         this.startTime = Date.now();
         this.turnStartState = null;
         this.dialogueQueue = [];

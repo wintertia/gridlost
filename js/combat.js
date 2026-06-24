@@ -87,7 +87,7 @@ var Combat = {
         if (skill && skill.id) {
             var skillStacks = State.player.skillStacks[skill.id] || 0;
             if (skillStacks > 0 && !['war_cry', 'heal', 'lifesteal_aura', 'rejuvenation', 'mark', 'berserk', 'guard'].includes(skill.id)) {
-                var perStack = skill.isBasic ? 0.5 : 0.2;
+                var perStack = skill.isBasic ? 0.3 : 0.2;
                 var stackMultiplier = 1 + (skillStacks * perStack);
                 dmg = Math.floor(dmg * stackMultiplier);
             }
@@ -171,9 +171,16 @@ var Combat = {
         if (target && target.x !== undefined && target.y !== undefined) {
             var cls = Data.CLASSES[p.classId];
             if (cls && (cls.passiveId === 'melee_expert' || cls.passiveId === 'range_master')) {
-                var dx = Math.abs(target.x - p.x);
-                var dy = Math.abs(target.y - p.y);
-                var inMeleeRange = dx <= 1 && dy <= 1;
+                var tSize = target.size || 1;
+                var minDx = Math.abs(p.x - target.x);
+                var minDy = Math.abs(p.y - target.y);
+                for (var ts = 1; ts < tSize; ts++) {
+                    var dxt = Math.abs(p.x - (target.x + ts));
+                    var dyt = Math.abs(p.y - (target.y + ts));
+                    if (dxt < minDx) minDx = dxt;
+                    if (dyt < minDy) minDy = dyt;
+                }
+                var inMeleeRange = minDx <= 1 && minDy <= 1;
                 var passiveActive = (cls.passiveId === 'melee_expert' && inMeleeRange) ||
                                     (cls.passiveId === 'range_master' && !inMeleeRange);
                 if (passiveActive) {
@@ -216,6 +223,23 @@ var Combat = {
         }
 
         var prevHp = target.hp;
+
+        // Boss phase snap: if damage would skip a phase, snap to highest untriggered threshold
+        if (target.isBoss && target.phases && target.hp > 0) {
+            var projectedHp = target.hp - actualDmg;
+            var projectedPercent = (projectedHp / target.maxHp) * 100;
+            for (var pi = 0; pi < target.phases.length; pi++) {
+                var phase = target.phases[pi];
+                var phaseKey = target.defId + '_phase_' + phase.threshold;
+                if (!State.phaseChangeTriggered[phaseKey] && prevHp > phase.threshold && projectedPercent <= phase.threshold) {
+                    // Snap HP to just above threshold so phase triggers naturally
+                    target.hp = Math.floor(target.maxHp * (phase.threshold / 100)) + 1;
+                    actualDmg = prevHp - target.hp;
+                    break;
+                }
+            }
+        }
+
         target.hp -= actualDmg;
         State.runStats.totalDamage += actualDmg;
         var color = isCrit ? '#ffff00' : '#ff4444';
@@ -273,9 +297,16 @@ var Combat = {
                                 });
                                 State.addFloatingText(sx, sy, 'SPLIT!', '#ff4400');
                                 splitCount++;
-                            }
-                        }
-                    }
+                }
+            }
+
+            if (target.isElite && !State.isBossStage) {
+                State.extraItemDrops++;
+                State.addLog('Elite defeated! +1 item drop at stage end.', 'boss');
+                State.addFloatingText(centerX, centerY, 'ELITE KILL!', '#ffaa00');
+                AudioMgr.sfx('levelup');
+            }
+        }
                 }
 
                 if (target.defId === 'phoenix' && !target.hasRevived) {
@@ -308,7 +339,7 @@ var Combat = {
 
         if (source === 'player' && State.player.lifestealAura && State.player.lifestealAura > 0) {
             var lifestealStacks = State.player.skillStacks['lifesteal_aura'] || 0;
-            var lifestealPercent = 0.25 + (lifestealStacks * 0.025);
+            var lifestealPercent = 0.5 + (lifestealStacks * 0.10);
             var lifestealHeal = Math.floor(actualDmg * lifestealPercent);
             if (lifestealHeal > 0) {
                 State.player.hp = Math.min(State.player.hp + lifestealHeal, State.player.maxHp);
@@ -465,13 +496,6 @@ var Combat = {
                 State.addFloatingText(State.player.x, State.player.y, '+1 ⚡', '#ffaa00');
             }
         }
-
-        if (target.isElite) {
-            State.extraItemDrops++;
-            State.addLog('Elite defeated! +1 item drop at stage end.', 'boss');
-            State.addFloatingText(centerX, centerY, 'ELITE KILL!', '#ffaa00');
-            AudioMgr.sfx('levelup');
-        }
     },
 
     dealDamageToPlayer: function(dmg) {
@@ -530,6 +554,7 @@ var Combat = {
         }
 
         State.player.hp -= reducedDmg;
+        State.runStats.totalDamageTaken += reducedDmg;
         if (State.debugInvincibility && State.player.hp <= 1) {
             State.player.hp = 1;
             State.addFloatingText(State.player.x, State.player.y, 'INVINCIBLE!', '#ff00ff');
@@ -553,6 +578,7 @@ var Combat = {
         if (dist > skill.range) return;
 
         State.player.energy -= skill.energyCost;
+        State.runStats.skillsUsed++;
         State.addLog('Player uses ' + skill.name, 'action');
 
         var isRanged = skill.range > 1;
@@ -575,10 +601,12 @@ var Combat = {
                 isCrit = result.isCrit;
 
                 if (skill.effects.indexOf('backstab') !== -1 && enemy.frozen > 0) {
-                    var backstabResult = this.calculateDamage(skill.damage * 3, skill, enemy);
+                    var backstabStacks = State.player.skillStacks['backstab'] || 0;
+                    var backstabMultiplier = 3 + (backstabStacks * 0.5);
+                    var backstabResult = this.calculateDamage(skill.damage * backstabMultiplier, skill, enemy);
                     dmg = backstabResult.damage;
                     isCrit = backstabResult.isCrit;
-                    State.addFloatingText(tx, ty, 'SHATTER!', '#ff8800');
+                    State.addFloatingText(tx, ty, 'SHATTER! ×' + backstabMultiplier.toFixed(1), '#ff8800');
                 }
 
                 if (skill.effects.indexOf('execute') !== -1) {
@@ -703,6 +731,7 @@ var Combat = {
         if (!enemy) return;
 
         State.player.energy -= skill.energyCost;
+        State.runStats.skillsUsed++;
         State.addLog('Player uses Blink Strike', 'action');
 
         State.animProjectile(State.player.x, State.player.y, tx, ty, skill.color);
@@ -772,13 +801,14 @@ var Combat = {
         }
 
         State.player.energy -= skill.energyCost;
+        State.runStats.skillsUsed++;
         State.addLog('Player uses ' + skill.name, 'action');
 
         State.animRing(State.player.x, State.player.y, skill.color);
 
         if (skill.effects.indexOf('heal') !== -1) {
             var healStacks = State.player.skillStacks['heal'] || 0;
-            var healPercent = 0.2 + (healStacks * 0.025);
+            var healPercent = 0.2 + (healStacks * 0.05);
             var healAmount = Math.floor(State.player.maxHp * healPercent);
             State.player.hp = Math.min(State.player.hp + healAmount, State.player.maxHp);
             State.addFloatingText(State.player.x, State.player.y, '+' + healAmount + ' HP', '#44ff88');
@@ -806,6 +836,8 @@ var Combat = {
     executeDirectionalSkill: function(tx, ty, skill) {
         if (State.player.energy < skill.energyCost) return;
 
+        State.player.energy -= skill.energyCost;
+        State.runStats.skillsUsed++;
         var tiles = this.getAffectedTiles(State.player.x, State.player.y, tx, ty, skill);
 
         if (skill.shape === 'line') {
@@ -878,6 +910,7 @@ var Combat = {
     executeRingSkill: function(skill) {
         if (State.player.energy < skill.energyCost) return;
         State.player.energy -= skill.energyCost;
+        State.runStats.skillsUsed++;
         State.addLog('Player uses ' + skill.name, 'action');
 
         State.animRing(State.player.x, State.player.y, skill.color);
@@ -939,6 +972,7 @@ var Combat = {
         if (dist > skill.range) return;
 
         State.player.energy -= skill.energyCost;
+        State.runStats.skillsUsed++;
         State.addLog('Player uses ' + skill.name, 'action');
 
         var tiles = this.getAffectedTiles(State.player.x, State.player.y, tx, ty, skill);
@@ -993,6 +1027,7 @@ var Combat = {
         var dist = Math.abs(dx) + Math.abs(dy);
         if (dist > 3 || dist === 0) return;
 
+        State.runStats.skillsUsed++;
         State.addLog('Player uses Dash', 'action');
 
         var stepX = dx === 0 ? 0 : (dx > 0 ? 1 : -1);
@@ -1043,11 +1078,24 @@ var Combat = {
     },
 
     hitObstacle: function(x, y, dmg) {
+        var bonus = State.getPlayerDamage();
+        var itemPowerBonus = this.calculateItemStatBonus('power');
+        var modifiedDmg = dmg + bonus + itemPowerBonus;
+
+        if (State.player.tempPower > 0) {
+            modifiedDmg = Math.floor(modifiedDmg * (1 + State.player.tempPower / 100));
+        }
+        if (State.player.berserk && State.player.berserk > 0) {
+            var berserkStacks = State.player.skillStacks['berserk'] || 0;
+            var berserkMultiplier = 1.5 + (berserkStacks * 0.25);
+            modifiedDmg = Math.floor(modifiedDmg * berserkMultiplier);
+        }
+
         for (var i = 0; i < State.obstacles.length; i++) {
             var o = State.obstacles[i];
             if (o.x === x && o.y === y && o.destructible) {
-                o.hp -= dmg;
-                State.addFloatingText(x, y, '-' + dmg, '#886644');
+                o.hp -= modifiedDmg;
+                State.addFloatingText(x, y, '-' + modifiedDmg, '#886644');
                 if (o.hp <= 0) {
                     State.obstacles.splice(i, 1);
                 }
@@ -1061,6 +1109,7 @@ var Combat = {
         var energy = State.player.energy;
         if (energy <= 0) return;
 
+        State.runStats.skillsUsed++;
         State.player.guarding = true;
         State.player.guardEnergy = energy;
         State.player.energy = 0;
@@ -1329,7 +1378,7 @@ var Combat = {
     processPlayerStatusEffects: function() {
         if (State.player.rejuvenation && State.player.rejuvenation > 0) {
             var rejuvStacks = State.player.skillStacks['rejuvenation'] || 0;
-            var rejuvPercent = 0.08 + (rejuvStacks * 0.025);
+            var rejuvPercent = 0.08 + (rejuvStacks * 0.04);
             var healAmount = Math.floor(State.player.maxHp * rejuvPercent);
             State.player.hp = Math.min(State.player.hp + healAmount, State.player.maxHp);
             State.addFloatingText(State.player.x, State.player.y, '+' + healAmount + ' HP', '#44ff88');
@@ -1361,6 +1410,7 @@ var Combat = {
         }
 
         if (State.player.bleed && State.player.bleed.turns > 0) {
+            State.lastDamageSource = 'Bleed';
             var pbDmg = State.player.bleed.damage;
             State.player.hp -= pbDmg;
             State.addFloatingText(State.player.x, State.player.y, '-' + pbDmg + ' BLEED', '#ff4444');
@@ -1375,6 +1425,7 @@ var Combat = {
         }
 
         if (State.player.poison && State.player.poison.turns > 0) {
+            State.lastDamageSource = 'Poison';
             var poDmg = State.player.poison.damage;
             State.player.hp -= poDmg;
             State.addFloatingText(State.player.x, State.player.y, '-' + poDmg + ' POISON', '#44cc44');
@@ -1427,8 +1478,10 @@ var Combat = {
             if (o.x !== px || o.y !== py) continue;
 
             if (o.id === 'lava') {
+                State.lastDamageSource = 'Lava';
                 var lavaDmg = this.hazardDamage(30);
                 State.player.hp -= lavaDmg;
+                State.runStats.totalDamageTaken += lavaDmg;
                 State.addFloatingText(px, py, '-' + lavaDmg + ' BURN', '#ff4400');
                 State.addLog('Lava burns you for ' + lavaDmg + ' damage!', 'enemy');
                 AudioMgr.sfx('lava');
@@ -1453,8 +1506,10 @@ var Combat = {
             if (o.id === 'spike_trap') {
                 State.spikeTurns++;
                 if (State.spikeTurns >= 2) {
+                    State.lastDamageSource = 'Spike Trap';
                     var spikeDmg = this.hazardDamage(100);
                     State.player.hp -= spikeDmg;
+                    State.runStats.totalDamageTaken += spikeDmg;
                     State.addFloatingText(px, py, '-' + spikeDmg + ' SPIKES!', '#ff4444');
                     State.addLog('Spike trap impales you for ' + spikeDmg + ' damage!', 'enemy');
                     State.spikeTurns = 0;
@@ -1462,8 +1517,10 @@ var Combat = {
                 }
             }
             if (o.id === 'void') {
+                State.lastDamageSource = 'Void';
                 var voidDmg = this.hazardDamage(20);
                 State.player.hp -= voidDmg;
+                State.runStats.totalDamageTaken += voidDmg;
                 State.player.cursed = Math.max(State.player.cursed || 0, 2);
                 State.player.diseased = Math.max(State.player.diseased || 0, 2);
                 State.addFloatingText(px, py, '-' + voidDmg + ' VOID!', '#6633aa');
