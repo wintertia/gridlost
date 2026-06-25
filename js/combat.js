@@ -836,7 +836,6 @@ var Combat = {
     executeDirectionalSkill: function(tx, ty, skill) {
         if (State.player.energy < skill.energyCost) return;
 
-        State.player.energy -= skill.energyCost;
         State.runStats.skillsUsed++;
         var tiles = this.getAffectedTiles(State.player.x, State.player.y, tx, ty, skill);
 
@@ -851,7 +850,6 @@ var Combat = {
         var lastHitEnemy = null;
         var hitEnemies = [];
 
-        State.player.energy -= skill.energyCost;
         State.addLog('Player uses ' + skill.name, 'action');
 
         for (var i = 0; i < tiles.length; i++) {
