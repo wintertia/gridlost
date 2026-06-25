@@ -173,7 +173,7 @@ var Data = {
 
         // === BOSS (Gold) ===
         boss_tome: {
-            id: 'boss_tome', name: 'Boss Tome', desc: '+50% basic attack potency (stacks)',
+            id: 'boss_tome', name: 'Boss Tome', desc: '+30% basic attack potency (stacks)',
             rarity: 'boss', effect: { type: 'passive', stat: 'basicPotency', value: 50 },
             icon: '\u2666', iconBg: '#ffaa00'
         },

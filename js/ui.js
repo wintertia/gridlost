@@ -168,8 +168,8 @@ var UI = {
                     $slot.find('.skill-cost').text('1⚡');
                     var tooltipText = displayName + '\n';
                     if (stacks > 0) {
-                        var newDmg = Math.floor(basicSkill.damage * (1 + stacks * 0.5));
-                        var pct = stacks * 50;
+                        var newDmg = Math.floor(basicSkill.damage * (1 + stacks * 0.3));
+                        var pct = stacks * 30;
                         tooltipText += 'Damage: ' + basicSkill.damage + ' → ' + newDmg + ' (+' + pct + '%)\n';
                     } else {
                         tooltipText += 'Damage: ' + basicSkill.damage + '\n';
