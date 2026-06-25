@@ -185,6 +185,8 @@ var AI = {
                 enemy.eliteTelegraphing = false;
                 enemy.eliteTelegraphName = null;
                 enemy.eliteTelegraphTiles = null;
+                enemy._eliteTelegraphPX = undefined;
+                enemy._eliteTelegraphPY = undefined;
                 var self = this;
                 this.executeEliteSpecial(enemy, function() {
                     var dist2 = self.distance(enemy.x, enemy.y, State.player.x, State.player.y);
@@ -215,6 +217,8 @@ var AI = {
                 if (eliteSpecial) {
                     enemy.eliteTelegraphName = eliteSpecial.name;
                     enemy.eliteTelegraphTiles = AI.getEliteTelegraphTiles(enemy, eliteSpecial);
+                    enemy._eliteTelegraphPX = State.player.x;
+                    enemy._eliteTelegraphPY = State.player.y;
                     State.addLog('[ELITE] ' + def.name + ' telegraphs: ' + eliteSpecial.name + '!', 'telegraph');
                     State.addFloatingText(enemy.x, enemy.y, eliteSpecial.name.toUpperCase() + '!', '#ff4444');
                     Grid.render();
@@ -308,6 +312,9 @@ var AI = {
         var scaledDamage = Math.floor(special.damage * Data.ELITE_DMG_MULT * Data.ELITE_TELEGRAPH_MULT);
         State.addLog('[ELITE] ' + name + ' uses ' + special.name + '!', 'boss');
 
+        var tpx = enemy._eliteTelegraphPX !== undefined ? enemy._eliteTelegraphPX : State.player.x;
+        var tpy = enemy._eliteTelegraphPY !== undefined ? enemy._eliteTelegraphPY : State.player.y;
+
         switch (special.shape) {
             case 'teleport_strike': {
                 var dirs = [{ x: -1, y: 0 }, { x: 1, y: 0 }, { x: 0, y: -1 }, { x: 0, y: 1 }];
@@ -334,8 +341,8 @@ var AI = {
                 break;
             }
             case 'line_8': {
-                var dx = State.player.x - enemy.x;
-                var dy = State.player.y - enemy.y;
+                var dx = tpx - enemy.x;
+                var dy = tpy - enemy.y;
                 var stepX = dx === 0 ? 0 : (dx > 0 ? 1 : -1);
                 var stepY = dy === 0 ? 0 : (dy > 0 ? 1 : -1);
                 State.animBeam(enemy.x, enemy.y, enemy.x + stepX * 8, enemy.y + stepY * 8, '#ee8833');
@@ -372,13 +379,13 @@ var AI = {
             }
             case 'aoe_3x3': {
                 State.animFlash([
-                    {x: State.player.x-1, y: State.player.y-1}, {x: State.player.x, y: State.player.y-1}, {x: State.player.x+1, y: State.player.y-1},
-                    {x: State.player.x-1, y: State.player.y}, {x: State.player.x, y: State.player.y}, {x: State.player.x+1, y: State.player.y},
-                    {x: State.player.x-1, y: State.player.y+1}, {x: State.player.x, y: State.player.y+1}, {x: State.player.x+1, y: State.player.y+1}
+                    {x: tpx-1, y: tpy-1}, {x: tpx, y: tpy-1}, {x: tpx+1, y: tpy-1},
+                    {x: tpx-1, y: tpy}, {x: tpx, y: tpy}, {x: tpx+1, y: tpy},
+                    {x: tpx-1, y: tpy+1}, {x: tpx, y: tpy+1}, {x: tpx+1, y: tpy+1}
                 ], '#ff4444', 16);
                 for (var dy2 = -1; dy2 <= 1; dy2++) {
                     for (var dx2 = -1; dx2 <= 1; dx2++) {
-                        if (State.player.x + dx2 === State.player.x && State.player.y + dy2 === State.player.y) {
+                        if (State.player.x === tpx + dx2 && State.player.y === tpy + dy2) {
                             Combat.dealDamageToPlayer(scaledDamage);
                         }
                     }
@@ -395,14 +402,14 @@ var AI = {
             case 'aoe_3x3_lava': {
                 var lavaColor = special.shape === 'aoe_3x3_lava' ? '#ff4400' : '#ff6600';
                 State.animFlash([
-                    {x: State.player.x-1, y: State.player.y-1}, {x: State.player.x, y: State.player.y-1}, {x: State.player.x+1, y: State.player.y-1},
-                    {x: State.player.x-1, y: State.player.y}, {x: State.player.x, y: State.player.y}, {x: State.player.x+1, y: State.player.y},
-                    {x: State.player.x-1, y: State.player.y+1}, {x: State.player.x, y: State.player.y+1}, {x: State.player.x+1, y: State.player.y+1}
+                    {x: tpx-1, y: tpy-1}, {x: tpx, y: tpy-1}, {x: tpx+1, y: tpy-1},
+                    {x: tpx-1, y: tpy}, {x: tpx, y: tpy}, {x: tpx+1, y: tpy},
+                    {x: tpx-1, y: tpy+1}, {x: tpx, y: tpy+1}, {x: tpx+1, y: tpy+1}
                 ], lavaColor, 16);
                 for (var dy3 = -1; dy3 <= 1; dy3++) {
                     for (var dx3 = -1; dx3 <= 1; dx3++) {
-                        var bx = State.player.x + dx3;
-                        var by = State.player.y + dy3;
+                        var bx = tpx + dx3;
+                        var by = tpy + dy3;
                         if (bx >= 0 && bx < Data.GRID_SIZE && by >= 0 && by < Data.GRID_SIZE) {
                             if (bx === State.player.x && by === State.player.y) {
                                 Combat.dealDamageToPlayer(scaledDamage);
@@ -459,8 +466,8 @@ var AI = {
                 break;
             }
             case 'pull_2': {
-                State.animBeam(enemy.x, enemy.y, State.player.x, State.player.y, '#558844');
-                var pullDir = Grid.getDirection(enemy.x, enemy.y, State.player.x, State.player.y);
+                State.animBeam(enemy.x, enemy.y, tpx, tpy, '#558844');
+                var pullDir = Grid.getDirection(tpx, tpy, enemy.x, enemy.y);
                 for (var pi = 0; pi < 2; pi++) {
                     var pnx = State.player.x + (pullDir === 'right' ? -1 : pullDir === 'left' ? 1 : 0);
                     var pny = State.player.y + (pullDir === 'down' ? -1 : pullDir === 'up' ? 1 : 0);
@@ -512,9 +519,9 @@ var AI = {
             }
             case 'single':
             case 'single_3': {
-                State.animProjectile(enemy.x, enemy.y, State.player.x, State.player.y, '#ff4444');
+                State.animProjectile(enemy.x, enemy.y, tpx, tpy, '#ff4444');
                 var singleRange = special.shape === 'single_3' ? 3 : 2;
-                var sd = this.distance(enemy.x, enemy.y, State.player.x, State.player.y);
+                var sd = this.distance(enemy.x, enemy.y, tpx, tpy);
                 if (sd <= singleRange) {
                     Combat.dealDamageToPlayer(scaledDamage);
                     if (special.effects && special.effects.indexOf('poison') !== -1) {
@@ -548,8 +555,8 @@ var AI = {
                 break;
             }
             case 'cone_3': {
-                var cdx = State.player.x - enemy.x;
-                var cdy = State.player.y - enemy.y;
+                var cdx = tpx - enemy.x;
+                var cdy = tpy - enemy.y;
                 var cdirX = cdx === 0 ? 0 : (cdx > 0 ? 1 : -1);
                 var cdirY = cdy === 0 ? 0 : (cdy > 0 ? 1 : -1);
                 State.animSlash(enemy.x, enemy.y, enemy.x + cdirX * 3, enemy.y + cdirY * 3, '#ff8844');
@@ -570,12 +577,12 @@ var AI = {
                 break;
             }
             case 'summon_magma_slime': {
-                State.animProjectile(enemy.x, enemy.y, State.player.x, State.player.y, '#ff4400');
+                State.animProjectile(enemy.x, enemy.y, tpx, tpy, '#ff4400');
                 Combat.dealDamageToPlayer(scaledDamage);
                 var summonDirs = [{x:0,y:-1},{x:0,y:1},{x:-1,y:0},{x:1,y:0},{x:-1,y:-1},{x:1,y:-1},{x:-1,y:1},{x:1,y:1}];
                 for (var si = 0; si < summonDirs.length; si++) {
-                    var sx = State.player.x + summonDirs[si].x;
-                    var sy = State.player.y + summonDirs[si].y;
+                    var sx = tpx + summonDirs[si].x;
+                    var sy = tpy + summonDirs[si].y;
                     if (sx >= 0 && sx < Data.GRID_SIZE && sy >= 0 && sy < Data.GRID_SIZE && !State.isBlocked(sx, sy) && !State.getEnemyAt(sx, sy)) {
                         var slime = { x: sx, y: sy, defId: 'magma_slime', hp: 55, maxHp: 55, damage: 25, moveSpeed: 1, frozen: 0, isElite: false };
                         State.enemies.push(slime);
@@ -598,8 +605,8 @@ var AI = {
                         Combat.dealDamageToPlayer(scaledDamage);
                     }
                 }
-                State.animMove(enemy.x, enemy.y, State.player.x, State.player.y, '#ffaa00', '#ff0000');
-                enemy.x = State.player.x; enemy.y = State.player.y;
+                State.animMove(enemy.x, enemy.y, tpx, tpy, '#ffaa00', '#ff0000');
+                enemy.x = tpx; enemy.y = tpy;
                 State.addFloatingText(enemy.x, enemy.y, 'DIVE!', '#ffaa00');
                 Grid.render(); UI.updateAll(); callback();
                 break;
@@ -607,10 +614,10 @@ var AI = {
             case 'phase_strike': {
                 var oldPhX = enemy.x;
                 var oldPhY = enemy.y;
-                State.animProjectile(enemy.x, enemy.y, State.player.x, State.player.y, '#664488');
-                var phaseDir = Grid.getDirection(enemy.x, enemy.y, State.player.x, State.player.y);
-                var phX = State.player.x + (phaseDir === 'right' ? -1 : phaseDir === 'left' ? 1 : 0);
-                var phY = State.player.y + (phaseDir === 'down' ? -1 : phaseDir === 'up' ? 1 : 0);
+                State.animProjectile(enemy.x, enemy.y, tpx, tpy, '#664488');
+                var phaseDir = Grid.getDirection(enemy.x, enemy.y, tpx, tpy);
+                var phX = tpx + (phaseDir === 'right' ? -1 : phaseDir === 'left' ? 1 : 0);
+                var phY = tpy + (phaseDir === 'down' ? -1 : phaseDir === 'up' ? 1 : 0);
                 if (phX >= 0 && phX < Data.GRID_SIZE && phY >= 0 && phY < Data.GRID_SIZE && !State.isBlocked(phX, phY)) {
                     State.animMove(oldPhX, oldPhY, phX, phY, '#664488', '#ff0000');
                     enemy.x = phX; enemy.y = phY;
@@ -623,8 +630,8 @@ var AI = {
             case 'spawn_portal': {
                 var pdirs = [{ x: -2, y: 0 }, { x: 2, y: 0 }, { x: 0, y: -2 }, { x: 0, y: 2 }];
                 for (var pori = 0; pori < pdirs.length; pori++) {
-                    var porx = State.player.x + pdirs[pori].x;
-                    var pory = State.player.y + pdirs[pori].y;
+                    var porx = tpx + pdirs[pori].x;
+                    var pory = tpy + pdirs[pori].y;
                     if (porx >= 0 && porx < Data.GRID_SIZE && pory >= 0 && pory < Data.GRID_SIZE && !Stages.isReserved(porx, pory)) {
                         State.obstacles.push({ x: porx, y: pory, id: 'portal', hp: -1, destructible: false, blocksMove: false, color: '#cc44ff', teleport: true });
                         State.addFloatingText(porx, pory, 'VOID!', '#443366');
